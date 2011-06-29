@@ -24,23 +24,23 @@
         | MinusUnary = 62
 
     type Block
-        = Statements of Statement list * LastStatement
+        = Statements of Statement list * LastStatement option
 
     and Statement
-        = Assignment of Var list * Expression list
-        | FunctionCall of FunctionCall
+        = Assign of Var list * Expr list
+        | FuncCall of FuncCall
         | Do of Block
-        | While of Expression * Block
-        | Repeat of Block * Expression
-        | If of Expression * Block * (Expression * Block) list * Block option  
-        | For of Name * Expression * Expression * Expression list * Block
-        | ForIn of Name list * Expression list * Block
-        | Function of FuncName * FuncBody
-        | LocalFunction of Name * FuncBody
-        | LocalAssignment of Name list * Expression list
+        | While of Expr * Block
+        | Repeat of Block * Expr
+        | If of Expr * Block * (Expr * Block) list * Block option  
+        | For of Name * Expr * Expr * Expr list * Block
+        | ForIn of Name list * Expr list * Block
+        | Func of FuncName * FuncBody
+        | LocalFunc of Name * FuncBody
+        | LocalAssign of Name list * Expr list
 
     and LastStatement
-        = Return of Expression list
+        = Return of Expr list
         | Break
 
     and FuncName
@@ -48,41 +48,41 @@
 
     and Var
         = VarName of Name
-        | TableEntry of PrefixExpression * Expression
-        | TableDot of PrefixExpression * Name
+        | TableEntry of PrefixExpr * Expr
+        | TableDot of PrefixExpr * Name
     
-    and Expression
+    and Expr
         = Nil
         | True
         | False
         | Number of double
         | String of string
         | VarArgs
-        | Function of FuncBody
-        | PrefixExpression of PrefixExpression
+        | Func of FuncBody
+        | PrefixExpr of PrefixExpr
         | TableConstructor of Field * Field list
-        | BinaryOpExpr of Expression * BinaryOp * Expression
-        | UnaryOpExpr of UnaryOp * Expression
+        | BinaryOpExpr of Expr * BinaryOp * Expr
+        | UnaryOpExpr of UnaryOp * Expr
     
-    and PrefixExpression
+    and PrefixExpr
         = VarExpr of Var
-        | FunctionCall of FunctionCall
-        | Expression of Expression
+        | FuncCall of FuncCall
+        | Expr of Expr
     
-    and FunctionCall
-        = FunctionCallNormal of PrefixExpression * Arguments
-        | FunctionCallObject of PrefixExpression * Name * Arguments
+    and FuncCall
+        = FuncCallNormal of PrefixExpr * Args
+        | FuncCallObject of PrefixExpr * Name * Args
 
-    and Arguments
-        = ArgumentsNormal of Expression list
-        | ArgumentsTable of Field list
-        | ArgumentString of string
+    and Args
+        = ArgsNormal of Expr list
+        | ArgsTable of Field list
+        | ArgString of string
 
-    and FuncBody = ParameterList * Block
+    and FuncBody = ParamList * Block
 
-    and ParameterList = Name list * bool // varargs
+    and ParamList = Name list * bool // varargs
 
     and Field
-        = FieldExpression of Expression * Expression
-        | FieldName of Name * Expression
-        | FieldOnly of Expression
+        = FieldExpr of Expr * Expr
+        | FieldName of Name * Expr
+        | FieldOnly of Expr
