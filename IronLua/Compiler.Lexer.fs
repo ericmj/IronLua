@@ -1,6 +1,8 @@
 ﻿namespace IronLua.Compiler
 
 module Lexer =
+    open IronLua.Error
+
     type Lexeme = int * string * int * int
 
     module Char =
@@ -124,6 +126,7 @@ module Lexer =
 
     module Input =
         type State =
+            val mutable File : string
             val mutable Source : string
             val mutable Index : int
             val mutable Char : char
@@ -134,6 +137,7 @@ module Lexer =
             val mutable Buffer : System.Text.StringBuilder
         
             new(source) = {
+                File = "<unknown>"
                 Source = source
                 Index = 0
                 Char = '\000'
@@ -189,6 +193,8 @@ module Lexer =
     open Input
     open Char
 
+    let faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
+
     let bufferNumericEscape s =
         ()
 
@@ -218,14 +224,14 @@ module Lexer =
                 | '\r' -> '\r' |> bufferAppend s
                 | '\\' -> '\\' |> bufferAppend s
                 | c when isDecimal c -> bufferNumericEscape s
-                | c                  -> failwithf "unknown escape char `\%c`" c
+                | c                  -> faillexer s (Message.unknownEscapeChar c)
                 stringLiteral()
 
             | '\r' ->
                 if canPeek  s && peek s = '\n' then advance s
-                failwith "unexpected end of string"
+                faillexer s Message.unexpectedEOS
             | '\n' ->
-                failwith "unexpected end of string"
+                faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
                 outputBuffer s Symbol.String
@@ -266,6 +272,6 @@ module Lexer =
                     stringLiteralLong s
 
                 | c ->
-                    failwithf "´%c´ not matched by lexer" c
+                    faillexer s (Message.unexpectedChar c)
 
         lexer
