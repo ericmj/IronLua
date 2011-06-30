@@ -3,6 +3,8 @@
 module Lexer =
     type Lexeme = int * string * int * int
 
+    module Char = ()
+
     module Symbol =
         // Keywords
         let [<Literal>] And = 0
@@ -182,7 +184,24 @@ module Lexer =
 
     let create source =
         let s = Input.create source
-        let rec lexer () =
-            ()
+
+        let rec lexer () : Lexeme =
+            match current s with
+            | ' ' | '\t' ->
+                advance s
+                lexer()
+
+            | '\r' ->
+                if peek s = '\n' then advance s
+                advance s
+                newline s
+                lexer()
+            | '\n' ->
+                advance s
+                newline s
+                lexer()
+
+            | c ->
+                failwithf "´%c´ not matched by lexer" c
 
         lexer
