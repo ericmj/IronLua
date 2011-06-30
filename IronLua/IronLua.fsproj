@@ -40,6 +40,7 @@
     <Compile Include="Compiler.Ast.fs" />
     <Compile Include="Compiler.Parser.fs" />
     <Compile Include="Program.fs" />
+    <Compile Include="Compiler.Lexer.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
