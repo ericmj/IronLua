@@ -13,17 +13,17 @@ module Ast =
         | NotEqual = 34
         | Equal = 35
         | Concat = 40
-        | Plus = 50
-        | MinusBinary = 51
-        | Star = 52
-        | Slash = 53
-        | Percent = 54
-        | Roof = 70
+        | Add = 50
+        | Subtract = 51
+        | Multiply = 52
+        | Divide = 53
+        | Mod = 54
+        | Raised = 70
 
     type UnaryOp
         = Not = 60
         | Hash = 61
-        | MinusUnary = 62
+        | Negative = 62
 
     type Block
         = Statements of Statement list * LastStatement option

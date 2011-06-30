@@ -27,33 +27,96 @@ module Lexer =
         let [<Literal>] Until = 19
         let [<Literal>] While = 20
 
-        // Markers
-        let [<Literal>] EOL = 100
+        // Punctuations
+        let [<Literal>] Plus = 100
+        let [<Literal>] Minus = 101
+        let [<Literal>] Star = 102
+        let [<Literal>] Slash = 103
+        let [<Literal>] Percent = 104
+        let [<Literal>] Carrot = 105
+        let [<Literal>] Hash = 106
+        let [<Literal>] EqualEqual = 107
+        let [<Literal>] TildeEqual = 108
+        let [<Literal>] LessEqual = 109
+        let [<Literal>] GreaterEqual = 110
+        let [<Literal>] Less = 111
+        let [<Literal>] Greater = 112
+        let [<Literal>] Equal = 113
+        let [<Literal>] LeftParen = 114
+        let [<Literal>] RightParen = 115
+        let [<Literal>] LeftBrace = 116
+        let [<Literal>] RightBrace = 117
+        let [<Literal>] LeftBrack = 118
+        let [<Literal>] RightBrack = 119
+        let [<Literal>] SemiColon = 120
+        let [<Literal>] Colon = 121
+        let [<Literal>] Comma = 122
+        let [<Literal>] Dot = 123
+        let [<Literal>] DotDot = 124
+        let [<Literal>] DotDotDot = 125
 
-        let keywords =
-          [
-            "and", And;
-            "break", Break;
-            "do", Do;
-            "else", Else;
-            "elseif", Elseif;
-            "end", End;
-            "false", False;
-            "for", For;
-            "function", Function;
-            "if", If;
-            "in", In;
-            "local", Local;
-            "nil", Nil;
-            "not", Not;
-            "or", Or;
-            "repeat", Repeat;
-            "return", Return;
-            "then", Then;
-            "true", True;
-            "until", Until;
-            "while", While;
-           ] |> dict
+        // Literals
+        let [<Literal>] Number = 200
+        let [<Literal>] String = 201
+        let [<Literal>] Identifier = 202
+
+        // Markers
+        let [<Literal>] EOL = 300
+
+    let keywords =
+        [
+        "and", Symbol.And;
+        "break", Symbol.Break;
+        "do", Symbol.Do;
+        "else", Symbol.Else;
+        "elseif", Symbol.Elseif;
+        "end", Symbol.End;
+        "false", Symbol.False;
+        "for", Symbol.For;
+        "function", Symbol.Function;
+        "if", Symbol.If;
+        "in", Symbol.In;
+        "local", Symbol.Local;
+        "nil", Symbol.Nil;
+        "not", Symbol.Not;
+        "or", Symbol.Or;
+        "repeat", Symbol.Repeat;
+        "return", Symbol.Return;
+        "then", Symbol.Then;
+        "true", Symbol.True;
+        "until", Symbol.Until;
+        "while", Symbol.While;
+        ] |> dict
+
+    let punctuations = 
+        [
+        "+", Symbol.Plus;
+        "-", Symbol.Minus;
+        "*", Symbol.Star;
+        "/", Symbol.Slash;
+        "%", Symbol.Percent;
+        "^", Symbol.Carrot;
+        "#", Symbol.Hash;
+        "==", Symbol.EqualEqual;
+        "~=", Symbol.TildeEqual;
+        "<=", Symbol.LessEqual;
+        ">=", Symbol.GreaterEqual;
+        "<", Symbol.Less;
+        ">", Symbol.Greater;
+        "=", Symbol.Equal;
+        "(", Symbol.LeftParen;
+        ")", Symbol.RightParen;
+        "{", Symbol.LeftBrace;
+        "}", Symbol.RightBrace;
+        "[", Symbol.LeftBrack;
+        "]", Symbol.RightBrack;
+        ";", Symbol.SemiColon;
+        ":", Symbol.Colon;
+        ",", Symbol.Comma;
+        ".", Symbol.Dot;
+        "..", Symbol.DotDot;
+        "...", Symbol.DotDotDot;
+        ] |> dict
 
     module Input =
         type State =
