@@ -1,8 +1,59 @@
 ﻿namespace IronLua.Compiler
 
 module Lexer =
+    type Lexeme = int * string * int * int
+
     module Symbol =
-        let [<Literal>] EOL = 0
+        // Keywords
+        let [<Literal>] And = 0
+        let [<Literal>] Break = 1
+        let [<Literal>] Do = 2
+        let [<Literal>] Else = 3
+        let [<Literal>] Elseif = 4
+        let [<Literal>] End = 5
+        let [<Literal>] False = 6
+        let [<Literal>] For = 7
+        let [<Literal>] Function = 8
+        let [<Literal>] If = 9
+        let [<Literal>] In = 10
+        let [<Literal>] Local = 11
+        let [<Literal>] Nil = 12
+        let [<Literal>] Not = 13
+        let [<Literal>] Or = 14
+        let [<Literal>] Repeat = 15
+        let [<Literal>] Return = 16
+        let [<Literal>] Then = 17
+        let [<Literal>] True = 18
+        let [<Literal>] Until = 19
+        let [<Literal>] While = 20
+
+        // Markers
+        let [<Literal>] EOL = 100
+
+        let keywords =
+          [
+            "and", And;
+            "break", Break;
+            "do", Do;
+            "else", Else;
+            "elseif", Elseif;
+            "end", End;
+            "false", False;
+            "for", For;
+            "function", Function;
+            "if", If;
+            "in", In;
+            "local", Local;
+            "nil", Nil;
+            "not", Not;
+            "or", Or;
+            "repeat", Repeat;
+            "return", Return;
+            "then", Then;
+            "true", True;
+            "until", Until;
+            "while", While;
+           ] |> dict
 
     module Input =
         type State =
@@ -55,13 +106,13 @@ module Lexer =
         let bufferClear (s:State) =
             s.Buffer.Clear() |> ignore
 
-        let output (s:State) sym =
+        let output (s:State) sym : Lexeme =
             sym, null, s.StoredLine, s.StoredColumn
 
-        let outputBuffer (s:State) sym =
+        let outputBuffer (s:State) sym : Lexeme =
             sym, s.Buffer.ToString(), s.StoredLine, s.StoredColumn
 
-        let outputEOL (s:State) =
+        let outputEOL (s:State) : Lexeme =
             Symbol.EOL, null, s.Line, s.Column
 
     open Input
