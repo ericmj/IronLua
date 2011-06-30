@@ -3,7 +3,9 @@
 module Lexer =
     type Lexeme = int * string * int * int
 
-    module Char = ()
+    module Char =
+        let isDecimal c =
+            c >= '0' && c <= '9'
 
     module Symbol =
         // Keywords
@@ -155,6 +157,10 @@ module Lexer =
             s.Index <- s.Index + 1
             s.Column <- s.Column + 1
 
+        let storePosition (s:State) =
+            s.StoredColumn <- s.Column
+            s.StoredLine <- s.Line
+
         let newline (s:State) =
             s.Line <- s.Line + 1
             s.Column <- 0
@@ -181,27 +187,85 @@ module Lexer =
             Symbol.EOL, null, s.Line, s.Column
 
     open Input
+    open Char
+
+    let bufferNumericEscape s =
+        ()
+
+    let stringLiteralLong s =
+        Unchecked.defaultof<Lexeme>
+
+    let stringLiteral s endChar =
+        storePosition s
+        bufferClear s
+
+        let rec stringLiteral () =
+            advance s
+            match current s with            
+            | '\\' ->
+                advance s
+                match current s with
+                | 'a'  -> '\a' |> bufferAppend s
+                | 'b'  -> '\b' |> bufferAppend s
+                | 'f'  -> '\f' |> bufferAppend s
+                | 'n'  -> '\n' |> bufferAppend s
+                | 'r'  -> '\r' |> bufferAppend s
+                | 't'  -> '\t' |> bufferAppend s
+                | 'v'  -> '\v' |> bufferAppend s
+                | '\"' -> '\"' |> bufferAppend s
+                | '\'' -> '\'' |> bufferAppend s
+                | '\n' -> '\n' |> bufferAppend s
+                | '\r' -> '\r' |> bufferAppend s
+                | '\\' -> '\\' |> bufferAppend s
+                | c when isDecimal c -> bufferNumericEscape s
+                | c                  -> failwithf "unknown escape char `\%c`" c
+                stringLiteral()
+
+            | '\r' ->
+                if canPeek  s && peek s = '\n' then advance s
+                failwith "unexpected end of string"
+            | '\n' ->
+                failwith "unexpected end of string"
+                
+            | c when c = endChar ->
+                outputBuffer s Symbol.String
+
+            | c ->
+                bufferAppend s c
+                stringLiteral()
+
+        stringLiteral()
+
+                    
 
     let create source =
         let s = Input.create source
 
         let rec lexer () : Lexeme =
-            match current s with
-            | ' ' | '\t' ->
-                advance s
-                lexer()
+            if not (canContinue s) then
+                outputEOL s
+            else
+                match current s with
+                | ' ' | '\t' ->
+                    advance s
+                    lexer()
 
-            | '\r' ->
-                if peek s = '\n' then advance s
-                advance s
-                newline s
-                lexer()
-            | '\n' ->
-                advance s
-                newline s
-                lexer()
+                | '\r' ->
+                    if canPeek s && peek s = '\n' then advance s
+                    advance s
+                    newline s
+                    lexer()
+                | '\n' ->
+                    advance s
+                    newline s
+                    lexer()
 
-            | c ->
-                failwithf "´%c´ not matched by lexer" c
+                | '\'' | '"' ->
+                    stringLiteral s (current s)
+                | '[' ->
+                    stringLiteralLong s
+
+                | c ->
+                    failwithf "´%c´ not matched by lexer" c
 
         lexer
