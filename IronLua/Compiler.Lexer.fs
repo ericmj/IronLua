@@ -1,7 +1,8 @@
 ﻿namespace IronLua.Compiler
 
+open IronLua.Error
+
 module Lexer =
-    open IronLua.Error
 
     type Lexeme = int * string * int * int
 
@@ -196,7 +197,14 @@ module Lexer =
     let faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
     let bufferNumericEscape s =
-        ()
+        let rec aux value n =
+            if n >= 3 || (current s |> isDecimal |> not) then
+                value
+            else
+                let newValue = 10*value + int (current s) - int '0'
+                advance s
+                aux newValue (n+1)
+        aux 0 0 |> char |> bufferAppend s
 
     let stringLiteralLong s =
         Unchecked.defaultof<Lexeme>
@@ -234,6 +242,7 @@ module Lexer =
                 faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
+                advance s
                 outputBuffer s Symbol.String
 
             | c ->
@@ -241,8 +250,6 @@ module Lexer =
                 stringLiteral()
 
         stringLiteral()
-
-                    
 
     let create source =
         let s = Input.create source
