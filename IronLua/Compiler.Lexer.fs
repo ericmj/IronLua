@@ -211,6 +211,12 @@ module Lexer =
 
     let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
+    let nextLine s =
+        if current s = '\r' && canPeek s && peek s = '\n' then
+            advance s
+        advance s
+        newline s
+
     let bufferNumericEscape s =
         let rec bufferNumericEscape value n =
             if n >= 3 || (current s |> isDecimal |> not) then
@@ -242,9 +248,8 @@ module Lexer =
 
         // Skip immediately following newline
         match peek s with
-        | '\r' -> advance s; newline s; if peek s = '\n' then advance s
-        | '\n' -> advance s; newline s
-        | _    -> ()
+        | '\r' | '\n' -> nextLine s
+        | _           -> ()
 
         let rec stringLiteralLong () =
             advance s
@@ -286,19 +291,13 @@ module Lexer =
                 | '\"' -> '\"' |> bufferAppend s
                 | '\'' -> '\'' |> bufferAppend s
                 | '\\' -> '\\' |> bufferAppend s
-                | '\r' -> '\r' |> bufferAppend s
-                          newline s
-                          if peek s = '\n' then bufferAppend s '\n'; advance s
-                | '\n' -> '\n' |> bufferAppend s
-                          newline s
+                | '\r' -> '\r' |> bufferAppend s; nextLine s
+                | '\n' -> '\n' |> bufferAppend s; nextLine s
                 | c when isDecimal c -> bufferNumericEscape s
                 | c                  -> faillexer s (Message.unknownEscapeChar c)
                 stringLiteral()
 
-            | '\r' ->
-                if peek s = '\n' then advance s
-                faillexer s Message.unexpectedEOS
-            | '\n' ->
+            | '\r' | '\n' ->
                 faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
@@ -324,14 +323,8 @@ module Lexer =
                     advance s
                     lexer()
 
-                | '\r' ->
-                    if canPeek s && peek s = '\n' then advance s
-                    advance s
-                    newline s
-                    lexer()
-                | '\n' ->
-                    advance s
-                    newline s
+                | '\r' | '\n' ->
+                    nextLine s
                     lexer()
 
                 | '\'' | '"' ->

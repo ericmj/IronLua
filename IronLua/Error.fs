@@ -16,7 +16,7 @@ module Error =
         member x.PrettyPrint =
             sprintf "%s(%i, %i): %s" file (fst position) (snd position) msg
 
-    module Message =
+    module internal Message =
         let unexpectedChar = sprintf "Unexpected '%c'"
         let unexpectedEOS = "Unexpected end of string"
         let unknownEscapeChar = sprintf "Unknown escape char '\%c'"

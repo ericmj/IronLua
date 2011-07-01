@@ -8,4 +8,3 @@ module Program =
     let lexprint () = lexer() |> string |> dprintfn
 
     lexprint()
-    lexprint()
