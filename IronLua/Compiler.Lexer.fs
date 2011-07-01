@@ -149,11 +149,16 @@ module Lexer =
                 Buffer = System.Text.StringBuilder(1024)
             }
 
+        let inline private tryIndex (s:State) f =
+            try f()
+            with | :? System.IndexOutOfRangeException ->  
+                raise <| CompileError(s.File, (s.Line, s.Column), Message.unexpectedEOF)
+
         let create source =
             State(source)
 
         let current (s:State) =
-            s.Source.[s.Index]
+            (fun () -> s.Source.[s.Index]) |> tryIndex s
 
         let canContinue (s:State) =
             s.Index < s.Source.Length
@@ -161,6 +166,10 @@ module Lexer =
         let advance (s:State) =
             s.Index <- s.Index + 1
             s.Column <- s.Column + 1
+            
+        let back (s:State) =
+            s.Index <- s.Index - 1
+            s.Column <- s.Column - 1
 
         let storePosition (s:State) =
             s.StoredColumn <- s.Column
@@ -171,13 +180,19 @@ module Lexer =
             s.Column <- 0
 
         let peek (s:State) =
-            s.Source.[s.Index+1]
+            (fun () -> s.Source.[s.Index+1]) |> tryIndex s
 
         let canPeek (s:State) =
             s.Index+1 < s.Source.Length
 
         let bufferAppend (s:State) (c:char) =
             s.Buffer.Append(c) |> ignore
+
+        let bufferRemoveStart (s:State) length =
+            s.Buffer.Remove(0, length) |> ignore
+
+        let bufferRemoveEnd (s:State) length =
+            s.Buffer.Remove(s.Buffer.Length-length, length) |> ignore
 
         let bufferClear (s:State) =
             s.Buffer.Clear() |> ignore
@@ -194,20 +209,62 @@ module Lexer =
     open Input
     open Char
 
-    let faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
+    let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
     let bufferNumericEscape s =
-        let rec aux value n =
+        let rec bufferNumericEscape value n =
             if n >= 3 || (current s |> isDecimal |> not) then
                 value
             else
                 let newValue = 10*value + int (current s) - int '0'
                 advance s
-                aux newValue (n+1)
-        aux 0 0 |> char |> bufferAppend s
+                bufferNumericEscape newValue (n+1)
+        bufferNumericEscape 0 0 |> char |> bufferAppend s
 
     let stringLiteralLong s =
-        Unchecked.defaultof<Lexeme>
+        storePosition s
+        bufferClear s
+        advance s
+
+        let rec countEquals endChar n =
+            match current s with
+            | '='                -> current s |> bufferAppend s
+                                    advance s
+                                    countEquals endChar (n+1)
+            | c when c = endChar -> n
+            | c                  -> current s |> bufferAppend s
+                                    advance s
+                                    -1
+
+        let numEqualsStart = countEquals '[' 0
+        if numEqualsStart = -1 then
+            faillexer s (Message.invalidLongStringDelimter (current s))
+
+        // Skip immediately following newline
+        match peek s with
+        | '\r' -> advance s; newline s; if peek s = '\n' then advance s
+        | '\n' -> advance s; newline s
+        | _    -> ()
+
+        let rec stringLiteralLong () =
+            advance s
+            current s |> bufferAppend s
+            match current s with
+            | ']' ->
+                advance s
+                let numEqualsEnd = countEquals ']' 0
+                if numEqualsStart = numEqualsEnd then
+                    numEqualsStart |> bufferRemoveStart s
+                    numEqualsEnd + 1 |> bufferRemoveEnd s
+                    advance s
+                    outputBuffer s Symbol.String
+                else
+                    back s
+                    stringLiteralLong()
+            | _ ->
+                stringLiteralLong()
+
+        stringLiteralLong()
 
     let stringLiteral s endChar =
         storePosition s
@@ -228,27 +285,31 @@ module Lexer =
                 | 'v'  -> '\v' |> bufferAppend s
                 | '\"' -> '\"' |> bufferAppend s
                 | '\'' -> '\'' |> bufferAppend s
-                | '\n' -> '\n' |> bufferAppend s
-                | '\r' -> '\r' |> bufferAppend s
                 | '\\' -> '\\' |> bufferAppend s
+                | '\r' -> '\r' |> bufferAppend s
+                          newline s
+                          if peek s = '\n' then bufferAppend s '\n'; advance s
+                | '\n' -> '\n' |> bufferAppend s
+                          newline s
                 | c when isDecimal c -> bufferNumericEscape s
                 | c                  -> faillexer s (Message.unknownEscapeChar c)
                 stringLiteral()
 
             | '\r' ->
-                if canPeek  s && peek s = '\n' then advance s
+                if peek s = '\n' then advance s
                 faillexer s Message.unexpectedEOS
             | '\n' ->
                 faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
                 advance s
+                advance s
                 outputBuffer s Symbol.String
 
             | c ->
                 bufferAppend s c
                 stringLiteral()
-
+        
         stringLiteral()
 
     let create source =

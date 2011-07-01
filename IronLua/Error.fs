@@ -17,7 +17,8 @@ module Error =
             sprintf "%s(%i, %i): %s" file (fst position) (snd position) msg
 
     module Message =
-        let unexpectedChar = sprintf "Unexpected `%c`"
+        let unexpectedChar = sprintf "Unexpected '%c'"
         let unexpectedEOS = "Unexpected end of string"
-        let unknownEscapeChar = sprintf "Unknown escape char `\%c`"
-
+        let unknownEscapeChar = sprintf "Unknown escape char '\%c'"
+        let unexpectedEOF = "Unexpected end of file"
+        let invalidLongStringDelimter = sprintf "Invalid long string delimter '%c'"
