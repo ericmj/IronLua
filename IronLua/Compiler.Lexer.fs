@@ -3,7 +3,6 @@
 open IronLua.Error
 
 module Lexer =
-
     type Lexeme = int * string * int * int
 
     module Char =
@@ -212,12 +211,14 @@ module Lexer =
     let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
     let nextLine s =
+        // Handle windows-style newline
         if current s = '\r' && canPeek s && peek s = '\n' then
             advance s
         advance s
         newline s
 
     let bufferNumericEscape s =
+        // Match \X \XX \XXX where X is a decimal number
         let rec bufferNumericEscape value n =
             if n >= 3 || (current s |> isDecimal |> not) then
                 value
@@ -227,20 +228,19 @@ module Lexer =
                 bufferNumericEscape newValue (n+1)
         bufferNumericEscape 0 0 |> char |> bufferAppend s
 
-    let stringLiteralLong s =
+    let longStringLiteral s =
         storePosition s
         bufferClear s
         advance s
 
+        // Count = until endChar [ or ], return -1 if unknown char found
         let rec countEquals endChar n =
             match current s with
             | '='                -> current s |> bufferAppend s
                                     advance s
                                     countEquals endChar (n+1)
             | c when c = endChar -> n
-            | c                  -> current s |> bufferAppend s
-                                    advance s
-                                    -1
+            | c                  -> -1
 
         let numEqualsStart = countEquals '[' 0
         if numEqualsStart = -1 then
@@ -251,25 +251,31 @@ module Lexer =
         | '\r' | '\n' -> nextLine s
         | _           -> ()
 
-        let rec stringLiteralLong () =
+        let rec longStringLiteral () =
             advance s
             current s |> bufferAppend s
             match current s with
             | ']' ->
+                // Output string if matching ='s found
                 advance s
                 let numEqualsEnd = countEquals ']' 0
                 if numEqualsStart = numEqualsEnd then
+                    // Trim long string delimters
                     numEqualsStart |> bufferRemoveStart s
                     numEqualsEnd + 1 |> bufferRemoveEnd s
                     advance s
                     outputBuffer s Symbol.String
+                elif numEqualsEnd = -1 then
+                    current s |> bufferAppend s
+                    longStringLiteral()
                 else
+                    // Parse ']' again because it can be the start of another long string delimeter
                     back s
-                    stringLiteralLong()
+                    longStringLiteral()
             | _ ->
-                stringLiteralLong()
+                longStringLiteral()
 
-        stringLiteralLong()
+        longStringLiteral()
 
     let stringLiteral s endChar =
         storePosition s
@@ -277,7 +283,8 @@ module Lexer =
 
         let rec stringLiteral () =
             advance s
-            match current s with            
+            match current s with
+            // Escape chars
             | '\\' ->
                 advance s
                 match current s with
@@ -301,8 +308,7 @@ module Lexer =
                 faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
-                advance s
-                advance s
+                advance s; advance s
                 outputBuffer s Symbol.String
 
             | c ->
@@ -311,6 +317,7 @@ module Lexer =
         
         stringLiteral()
 
+    // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
         let s = Input.create source
 
@@ -319,18 +326,22 @@ module Lexer =
                 outputEOL s
             else
                 match current s with
+                // Whitespace
                 | ' ' | '\t' ->
                     advance s
                     lexer()
-
+                
+                // Newlines
                 | '\r' | '\n' ->
                     nextLine s
                     lexer()
 
+                // String
                 | '\'' | '"' ->
                     stringLiteral s (current s)
+                // Long string
                 | '[' ->
-                    stringLiteralLong s
+                    longStringLiteral s
 
                 | c ->
                     faillexer s (Message.unexpectedChar c)
