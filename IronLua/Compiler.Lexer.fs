@@ -73,7 +73,7 @@ module Lexer =
         let [<Literal>] Identifier = 203
 
         // Markers
-        let [<Literal>] EOL = 300
+        let [<Literal>] EOF = 300
 
     let keywords =
         [
@@ -218,8 +218,8 @@ module Lexer =
         let outputBuffer (s:State) sym : Lexeme =
             sym, s.Buffer.ToString(), s.StoredLine, s.StoredColumn
 
-        let outputEOL (s:State) : Lexeme =
-            Symbol.EOL, null, s.Line, s.Column
+        let outputEOF (s:State) : Lexeme =
+            Symbol.EOF, null, s.Line, s.Column
 
     open Input
     open Char
@@ -405,13 +405,27 @@ module Lexer =
 
         numericLiteral()
 
+    // Short comment, such as --bla bla bla
+    let shortComment s =
+        let rec shortComment () =
+            advance s
+            match current s with
+            | '\r' | '\n' -> nextLine s
+            | _           -> shortComment()
+        shortComment()
+            
+
+    // Long comment, such as --[[bla bla bla]]
+    let longComment s =
+        ()
+
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
         let s = Input.create source
 
         let rec lexer () : Lexeme =
             if not (canContinue s) then
-                outputEOL s
+                outputEOF s
             else
                 match current s with
                 // Whitespace
@@ -430,6 +444,20 @@ module Lexer =
                 // Long string
                 | '[' ->
                     longStringLiteral s
+
+                // Comment or minus
+                | '-' ->
+                    // TODO: Minus
+                    storePosition s
+                    advance s
+
+                    match current s with
+                    | '-' ->
+                        if canPeek s && peek s = '['
+                            then longComment s
+                            else shortComment s
+                    | _   -> ()
+                    lexer()
 
                 // Numeric
                 | c when isDecimal c ->
