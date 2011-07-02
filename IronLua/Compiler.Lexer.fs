@@ -14,6 +14,7 @@ module Lexer =
          || (c >= 'a' && c <= 'f')
          || (c >= 'A' && c <= 'F')
 
+
     module Symbol =
         // Keywords
         let [<Literal>] And = 0
@@ -130,6 +131,7 @@ module Lexer =
         "...", Symbol.DotDotDot;
         ] |> dict
 
+
     module Input =
         type State =
             val mutable File : string
@@ -226,6 +228,15 @@ module Lexer =
 
     let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
+    // Counts ='s until endChar [ or ], return -1 if unknown char found
+    let rec countEquals s endChar n =
+        match current s with
+        | '='                -> current s |> bufferAppend s
+                                advance s
+                                countEquals s endChar (n+1)
+        | c when c = endChar -> n
+        | c                  -> -1
+
     // Parses a newline
     let nextLine s =
         // Handle windows-style newline
@@ -252,16 +263,7 @@ module Lexer =
         bufferClear s
         advance s
 
-        // Count = until endChar [ or ], return -1 if unknown char found
-        let rec countEquals endChar n =
-            match current s with
-            | '='                -> current s |> bufferAppend s
-                                    advance s
-                                    countEquals endChar (n+1)
-            | c when c = endChar -> n
-            | c                  -> -1
-
-        let numEqualsStart = countEquals '[' 0
+        let numEqualsStart = countEquals s '[' 0
         if numEqualsStart = -1 then
             faillexer s (Message.invalidLongStringDelimter (current s))
 
@@ -277,7 +279,8 @@ module Lexer =
             | ']' ->
                 // Output string if matching ='s found
                 advance s
-                let numEqualsEnd = countEquals ']' 0
+                let numEqualsEnd = countEquals s ']' 0
+
                 if numEqualsStart = numEqualsEnd then
                     // Trim long string delimters
                     numEqualsStart |> bufferRemoveStart s
@@ -291,6 +294,7 @@ module Lexer =
                     // Parse ']' again because it can be the start of another long string delimeter
                     back s
                     longStringLiteral()
+            
             | _ ->
                 longStringLiteral()
 
@@ -417,7 +421,33 @@ module Lexer =
 
     // Long comment, such as --[[bla bla bla]]
     let longComment s =
-        ()
+        advance s
+        let numEqualsStart = countEquals s '[' 0
+
+        let rec longComment () =
+            advance s
+            match current s with
+            | ']' ->
+                advance s
+                let numEqualsEnd = countEquals s ']' 0
+
+                if numEqualsStart = numEqualsEnd then
+                    advance s
+                elif numEqualsEnd = -1 then
+                    longComment()
+                else
+                    // Parse ']' again because it can be the start of another long string delimeter
+                    back s
+                    longComment()
+
+            | _ ->
+                longComment()
+
+        // Not a valid long string delimter handle as a short comment
+        if numEqualsStart = -1 then
+            shortComment s
+        else
+            longComment()
 
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
@@ -447,7 +477,6 @@ module Lexer =
 
                 // Comment or minus
                 | '-' ->
-                    // TODO: Minus
                     storePosition s
                     advance s
 
@@ -456,8 +485,9 @@ module Lexer =
                         if canPeek s && peek s = '['
                             then longComment s
                             else shortComment s
-                    | _   -> ()
-                    lexer()
+                        lexer()
+                    | _   ->
+                        Symbol.Minus |> output s
 
                 // Numeric
                 | c when isDecimal c ->
