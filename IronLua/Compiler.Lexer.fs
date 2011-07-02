@@ -320,7 +320,9 @@ module Lexer =
                 | '\r' -> '\r' |> bufferAppend s; nextLine s
                 | '\n' -> '\n' |> bufferAppend s; nextLine s
                 | c when isDecimal c -> bufferNumericEscape s
-                | c                  -> faillexer s (Message.unknownEscapeChar c)
+                // Lua manual says  ", ' and \ can be escaped outside of the above chars
+                // but Luac allows any char to be escaped
+                | c -> c |> bufferAppend s 
                 stringLiteral()
 
             | '\r' | '\n' ->
