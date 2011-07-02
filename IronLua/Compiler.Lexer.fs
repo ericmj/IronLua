@@ -9,6 +9,11 @@ module Lexer =
         let isDecimal c =
             c >= '0' && c <= '9'
 
+        let isHex c =
+            c >= '0' && c <= '9'
+         || c >= 'a' && c <= 'f'
+         || c >= 'A' && c <= 'F'
+
     module Symbol =
         // Keywords
         let [<Literal>] And = 0
@@ -165,6 +170,10 @@ module Lexer =
         let advance (s:State) =
             s.Index <- s.Index + 1
             s.Column <- s.Column + 1
+
+        let skip (s:State) n =
+            s.Index <- s.Index + n
+            s.Column <- s.Column + n
             
         let back (s:State) =
             s.Index <- s.Index - 1
@@ -187,6 +196,9 @@ module Lexer =
         let bufferAppend (s:State) (c:char) =
             s.Buffer.Append(c) |> ignore
 
+        let bufferAppendStr (s:State) (str:string) =
+            s.Buffer.Append(str) |> ignore
+
         let bufferRemoveStart (s:State) length =
             s.Buffer.Remove(0, length) |> ignore
 
@@ -195,6 +207,9 @@ module Lexer =
 
         let bufferClear (s:State) =
             s.Buffer.Clear() |> ignore
+
+        let bufferLength (s:State) =
+            s.Buffer.Length
 
         let output (s:State) sym : Lexeme =
             sym, null, s.StoredLine, s.StoredColumn
@@ -210,6 +225,7 @@ module Lexer =
 
     let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
+    // Parses a newline
     let nextLine s =
         // Handle windows-style newline
         if current s = '\r' && canPeek s && peek s = '\n' then
@@ -217,8 +233,9 @@ module Lexer =
         advance s
         newline s
 
+    // Parses a numeric escape in a string, 
+    // such as \X \XX \XXX where X is a decimal number
     let bufferNumericEscape s =
-        // Match \X \XX \XXX where X is a decimal number
         let rec bufferNumericEscape value n =
             if n >= 3 || (current s |> isDecimal |> not) then
                 value
@@ -228,6 +245,7 @@ module Lexer =
                 bufferNumericEscape newValue (n+1)
         bufferNumericEscape 0 0 |> char |> bufferAppend s
 
+    // Parses a long string literal, such as [[bla bla]]
     let longStringLiteral s =
         storePosition s
         bufferClear s
@@ -277,6 +295,7 @@ module Lexer =
 
         longStringLiteral()
 
+    // Parses a string literal, such as "bla bla"
     let stringLiteral s endChar =
         storePosition s
         bufferClear s
@@ -308,7 +327,7 @@ module Lexer =
                 faillexer s Message.unexpectedEOS
                 
             | c when c = endChar ->
-                advance s; advance s
+                skip s 2
                 outputBuffer s Symbol.String
 
             | c ->
@@ -316,6 +335,47 @@ module Lexer =
                 stringLiteral()
         
         stringLiteral()
+
+    let bufferExponent s =
+        current s |> bufferAppend s
+
+        let rec bufferExponent () =
+            advance s
+            if current s |> isDecimal then
+                current s |> bufferAppend s
+                bufferExponent()
+            else
+                ()
+
+        bufferExponent()
+
+    // Parses a hex literal, such as 0xFF or 0x10p4
+    // Can be malformed, parser handles that
+    let numericHexLiteral s =
+        storePosition s
+        bufferClear s
+        "0x" |> bufferAppendStr s
+        advance s
+
+        let rec numericHexLiteral () =
+            advance s
+            if not (canContinue s) then
+                outputBuffer s Symbol.Number
+            else
+                match current s with
+                | 'p' | 'P' ->
+                    bufferExponent s
+                    outputBuffer s Symbol.Number
+                | c when isHex c ->
+                    current s |> bufferAppend s
+                    numericHexLiteral()
+                | _ ->
+                    outputBuffer s Symbol.Number
+
+        numericHexLiteral()
+
+    let numericLiteral s =
+        faillexer s "Not implemented yet"
 
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
@@ -342,6 +402,12 @@ module Lexer =
                 // Long string
                 | '[' ->
                     longStringLiteral s
+
+                // Numeric
+                | c when isDecimal c ->
+                    match peek s with
+                    | 'x' | 'X' -> numericHexLiteral s
+                    | _         -> numericLiteral s
 
                 | c ->
                     faillexer s (Message.unexpectedChar c)
