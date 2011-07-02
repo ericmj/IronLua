@@ -14,6 +14,13 @@ module Lexer =
          || (c >= 'a' && c <= 'f')
          || (c >= 'A' && c <= 'F')
 
+        let isFirstPunctuation c =
+            match c with 
+            | '+' | '-' | '*' | '/' | '%' | '^' | '#'
+            | '=' | '~' | '<' | '>' | '(' | ')' | '{'
+            | '}' | '[' | ']' | ';' | ':' | ',' | '.' -> true
+            | _ -> false
+
 
     module Symbol =
         // Keywords
@@ -99,36 +106,6 @@ module Lexer =
         "true", Symbol.True;
         "until", Symbol.Until;
         "while", Symbol.While;
-        ] |> dict
-
-    let punctuations = 
-        [
-        "+", Symbol.Plus;
-        "-", Symbol.Minus;
-        "*", Symbol.Star;
-        "/", Symbol.Slash;
-        "%", Symbol.Percent;
-        "^", Symbol.Carrot;
-        "#", Symbol.Hash;
-        "==", Symbol.EqualEqual;
-        "~=", Symbol.TildeEqual;
-        "<=", Symbol.LessEqual;
-        ">=", Symbol.GreaterEqual;
-        "<", Symbol.Less;
-        ">", Symbol.Greater;
-        "=", Symbol.Equal;
-        "(", Symbol.LeftParen;
-        ")", Symbol.RightParen;
-        "{", Symbol.LeftBrace;
-        "}", Symbol.RightBrace;
-        "[", Symbol.LeftBrack;
-        "]", Symbol.RightBrack;
-        ";", Symbol.SemiColon;
-        ":", Symbol.Colon;
-        ",", Symbol.Comma;
-        ".", Symbol.Dot;
-        "..", Symbol.DotDot;
-        "...", Symbol.DotDotDot;
         ] |> dict
 
 
@@ -449,6 +426,51 @@ module Lexer =
         else
             longComment()
 
+    // Punctuation
+    let punctuation s =
+        storePosition s
+        let twoPunct c s1 s2 =
+            advance s
+            if current s = c
+                then s1
+                elif s2 <> -1 then s1
+                else faillexer s (Message.unexpectedChar c)
+
+        let dotPunct () =
+            advance s
+            if current s = '.' then
+                advance s
+                if current s = '.'
+                    then Symbol.DotDotDot
+                    else Symbol.DotDot
+            else
+                Symbol.Dot
+
+        match current s with
+        | '+' -> Symbol.Plus
+        | '-' -> Symbol.Minus
+        | '*' -> Symbol.Star
+        | '/' -> Symbol.Slash
+        | '%' -> Symbol.Percent
+        | '^' -> Symbol.Carrot
+        | '#' -> Symbol.Hash
+        | '(' -> Symbol.LeftParen
+        | ')' -> Symbol.RightParen
+        | '{' -> Symbol.LeftBrace
+        | '}' -> Symbol.RightBrace
+        | '[' -> Symbol.LeftBrack
+        | ']' -> Symbol.RightBrack
+        | ';' -> Symbol.SemiColon
+        | ':' -> Symbol.Colon
+        | ',' -> Symbol.Comma
+
+        | '=' -> twoPunct '=' Symbol.EqualEqual Symbol.Equal
+        | '~' -> twoPunct '=' Symbol.TildeEqual -1
+        | '<' -> twoPunct '=' Symbol.LessEqual Symbol.Less
+        | '>' -> twoPunct '=' Symbol.GreaterEqual Symbol.Greater
+        | '.' -> dotPunct()
+        | _   -> failwith "FAIL!"
+
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
         let s = Input.create source
@@ -494,6 +516,12 @@ module Lexer =
                     match peek s with
                     | 'x' | 'X' -> numericHexLiteral s
                     | _         -> numericLiteral s
+
+                // Punctuation
+                | c when isFirstPunctuation c ->
+                    let symbol = punctuation s
+                    advance s
+                    output s symbol
 
                 | c ->
                     faillexer s (Message.unexpectedChar c)
