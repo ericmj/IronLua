@@ -10,9 +10,9 @@ module Lexer =
             c >= '0' && c <= '9'
 
         let isHex c =
-            c >= '0' && c <= '9'
-         || c >= 'a' && c <= 'f'
-         || c >= 'A' && c <= 'F'
+            (c >= '0' && c <= '9')
+         || (c >= 'a' && c <= 'f')
+         || (c >= 'A' && c <= 'F')
 
     module Symbol =
         // Keywords
@@ -68,8 +68,9 @@ module Lexer =
 
         // Literals
         let [<Literal>] Number = 200
-        let [<Literal>] String = 201
-        let [<Literal>] Identifier = 202
+        let [<Literal>] HexNumber = 201
+        let [<Literal>] String = 202
+        let [<Literal>] Identifier = 203
 
         // Markers
         let [<Literal>] EOL = 300
@@ -338,16 +339,22 @@ module Lexer =
         
         stringLiteral()
 
+    // Parses the exponent part of a numeric literal,
+    // such as e+5 p8 e2
     let bufferExponent s =
         current s |> bufferAppend s
+        advance s
+
+        if canContinue s && (current s = '-' || current s = '+') then
+            current s |> bufferAppend s
+            advance s
 
         let rec bufferExponent () =
-            advance s
-            if current s |> isDecimal then
+            if canContinue s && current s |> isDecimal then
                 current s |> bufferAppend s
+                advance s
                 bufferExponent()
-            else
-                ()
+            else ()
 
         bufferExponent()
 
@@ -356,7 +363,7 @@ module Lexer =
     let numericHexLiteral s =
         storePosition s
         bufferClear s
-        "0x" |> bufferAppendStr s
+        bufferAppendStr s "0x"
         advance s
 
         let rec numericHexLiteral () =
@@ -367,17 +374,36 @@ module Lexer =
                 match current s with
                 | 'p' | 'P' ->
                     bufferExponent s
-                    outputBuffer s Symbol.Number
+                    outputBuffer s Symbol.HexNumber
                 | c when isHex c ->
                     current s |> bufferAppend s
                     numericHexLiteral()
                 | _ ->
-                    outputBuffer s Symbol.Number
+                    outputBuffer s Symbol.HexNumber
 
         numericHexLiteral()
 
     let numericLiteral s =
-        faillexer s "Not implemented yet"
+        storePosition s
+        bufferClear s
+        current s |> bufferAppend s
+
+        let rec numericLiteral () =
+            advance s
+            if not (canContinue s) then
+                outputBuffer s Symbol.Number
+            else
+                match current s with
+                | 'e' | 'E' ->
+                    bufferExponent s
+                    outputBuffer s Symbol.Number
+                | c when isDecimal c || c = '.' ->
+                    current s |> bufferAppend s
+                    numericLiteral()
+                | _ ->
+                    outputBuffer s Symbol.Number
+
+        numericLiteral()
 
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
