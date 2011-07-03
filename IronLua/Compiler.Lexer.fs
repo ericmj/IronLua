@@ -519,11 +519,12 @@ module Lexer =
                     | _   ->
                         Symbol.Minus |> output s
 
+                // Hex numeric
+                | '0' when canPeek s && (peek s = 'X' || peek s = 'x') ->
+                    numericHexLiteral s
                 // Numeric
                 | c when isDecimal c ->
-                    match peek s with
-                    | 'x' | 'X' -> numericHexLiteral s
-                    | _         -> numericLiteral s
+                    numericLiteral s
 
                 // Punctuation
                 | c when isFirstPunctuation c ->
