@@ -110,6 +110,17 @@ module Lexer =
             | '}' | '[' | ']' | ';' | ':' | ',' | '.' -> true
             | _ -> false
 
+        let isIdentifierStart c =
+            (c >= 'a' && c <= 'z')
+         || (c >= 'A' && c <= 'Z')
+         || c = '_'
+
+        let isIdentifier c =
+            (c >= 'a' && c <= 'z')
+         || (c >= 'A' && c <= 'Z')
+         || (c >= '0' && c <= '9')
+         || c = '_'
+
 
     module Input =
         type State =
@@ -130,7 +141,7 @@ module Lexer =
                 Index = 0
                 Char = '\000'
                 Line = 1
-                Column = 0
+                Column = 1
                 StoredLine = -1
                 StoredColumn = -1
                 Buffer = System.Text.StringBuilder(1024)
@@ -168,7 +179,7 @@ module Lexer =
 
         let newline (s:State) =
             s.Line <- s.Line + 1
-            s.Column <- 0
+            s.Column <- 1
 
         let peek (s:State) =
             (fun () -> s.Source.[s.Index+1]) |> tryIndex s
@@ -191,8 +202,8 @@ module Lexer =
         let bufferClear (s:State) =
             s.Buffer.Clear() |> ignore
 
-        let bufferLength (s:State) =
-            s.Buffer.Length
+        let bufferLook (s:State) =
+            s.Buffer.ToString()
 
         let output (s:State) sym : Lexeme =
             sym, null, s.StoredLine, s.StoredColumn
@@ -479,6 +490,26 @@ module Lexer =
 
         | c  -> faillexer s (Message.unexpectedChar c)
 
+    // Identifier or keyword
+    let identifier s =
+        storePosition s
+        bufferClear s
+
+        let rec identifier () =
+            if canContinue s && current s |> isIdentifier then
+                current s |> bufferAppend s
+                advance s
+                identifier()
+
+        identifier()
+
+        // Keyword or identifier?
+        let mutable symbol = Symbol.EOF
+        if keywords.TryGetValue(bufferLook s, &symbol) then
+            output s symbol
+        else
+            outputBuffer s Symbol.Identifier
+
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
         let s = Input.create source
@@ -525,6 +556,10 @@ module Lexer =
                 // Numeric
                 | c when isDecimal c ->
                     numericLiteral s
+
+                // Identifier or keyword
+                | c when isIdentifierStart c ->
+                    identifier s
 
                 // Punctuation
                 | c when isFirstPunctuation c ->
