@@ -3,85 +3,70 @@
 open IronLua.Error
 
 module Lexer =
-    type Lexeme = int * string * int * int
+    type Symbol =
+        | None = -1
 
-    module Char =
-        let isDecimal c =
-            c >= '0' && c <= '9'
-
-        let isHex c =
-            (c >= '0' && c <= '9')
-         || (c >= 'a' && c <= 'f')
-         || (c >= 'A' && c <= 'F')
-
-        let isFirstPunctuation c =
-            match c with 
-            | '+' | '-' | '*' | '/' | '%' | '^' | '#'
-            | '=' | '~' | '<' | '>' | '(' | ')' | '{'
-            | '}' | '[' | ']' | ';' | ':' | ',' | '.' -> true
-            | _ -> false
-
-
-    module Symbol =
         // Keywords
-        let [<Literal>] And = 0
-        let [<Literal>] Break = 1
-        let [<Literal>] Do = 2
-        let [<Literal>] Else = 3
-        let [<Literal>] Elseif = 4
-        let [<Literal>] End = 5
-        let [<Literal>] False = 6
-        let [<Literal>] For = 7
-        let [<Literal>] Function = 8
-        let [<Literal>] If = 9
-        let [<Literal>] In = 10
-        let [<Literal>] Local = 11
-        let [<Literal>] Nil = 12
-        let [<Literal>] Not = 13
-        let [<Literal>] Or = 14
-        let [<Literal>] Repeat = 15
-        let [<Literal>] Return = 16
-        let [<Literal>] Then = 17
-        let [<Literal>] True = 18
-        let [<Literal>] Until = 19
-        let [<Literal>] While = 20
+        | And = 0
+        | Break = 1
+        | Do = 2
+        | Else = 3
+        | Elseif = 4
+        | End = 5
+        | False = 6
+        | For = 7
+        | Function = 8
+        | If = 9
+        | In = 10
+        | Local = 11
+        | Nil = 12
+        | Not = 13
+        | Or = 14
+        | Repeat = 15
+        | Return = 16
+        | Then = 17
+        | True = 18
+        | Until = 19
+        | While = 20
 
         // Punctuations
-        let [<Literal>] Plus = 100
-        let [<Literal>] Minus = 101
-        let [<Literal>] Star = 102
-        let [<Literal>] Slash = 103
-        let [<Literal>] Percent = 104
-        let [<Literal>] Carrot = 105
-        let [<Literal>] Hash = 106
-        let [<Literal>] EqualEqual = 107
-        let [<Literal>] TildeEqual = 108
-        let [<Literal>] LessEqual = 109
-        let [<Literal>] GreaterEqual = 110
-        let [<Literal>] Less = 111
-        let [<Literal>] Greater = 112
-        let [<Literal>] Equal = 113
-        let [<Literal>] LeftParen = 114
-        let [<Literal>] RightParen = 115
-        let [<Literal>] LeftBrace = 116
-        let [<Literal>] RightBrace = 117
-        let [<Literal>] LeftBrack = 118
-        let [<Literal>] RightBrack = 119
-        let [<Literal>] SemiColon = 120
-        let [<Literal>] Colon = 121
-        let [<Literal>] Comma = 122
-        let [<Literal>] Dot = 123
-        let [<Literal>] DotDot = 124
-        let [<Literal>] DotDotDot = 125
+        | Plus = 100
+        | Minus = 101
+        | Star = 102
+        | Slash = 103
+        | Percent = 104
+        | Carrot = 105
+        | Hash = 106
+        | EqualEqual = 107
+        | TildeEqual = 108
+        | LessEqual = 109
+        | GreaterEqual = 110
+        | Less = 111
+        | Greater = 112
+        | Equal = 113
+        | LeftParen = 114
+        | RightParen = 115
+        | LeftBrace = 116
+        | RightBrace = 117
+        | LeftBrack = 118
+        | RightBrack = 119
+        | SemiColon = 120
+        | Colon = 121
+        | Comma = 122
+        | Dot = 123
+        | DotDot = 124
+        | DotDotDot = 125
 
         // Literals
-        let [<Literal>] Number = 200
-        let [<Literal>] HexNumber = 201
-        let [<Literal>] String = 202
-        let [<Literal>] Identifier = 203
+        | Number = 200
+        | HexNumber = 201
+        | String = 202
+        | Identifier = 203
 
         // Markers
-        let [<Literal>] EOF = 300
+        | EOF = 300
+
+    type Lexeme = Symbol * string * int * int
 
     let keywords =
         [
@@ -109,6 +94,23 @@ module Lexer =
         ] |> dict
 
 
+    module Char =
+        let isDecimal c =
+            c >= '0' && c <= '9'
+
+        let isHex c =
+            (c >= '0' && c <= '9')
+         || (c >= 'a' && c <= 'f')
+         || (c >= 'A' && c <= 'F')
+
+        let isFirstPunctuation c =
+            match c with 
+            | '+' | '-' | '*' | '/' | '%' | '^' | '#'
+            | '=' | '~' | '<' | '>' | '(' | ')' | '{'
+            | '}' | '[' | ']' | ';' | ':' | ',' | '.' -> true
+            | _ -> false
+
+
     module Input =
         type State =
             val mutable File : string
@@ -117,6 +119,7 @@ module Lexer =
             val mutable Char : char
             val mutable Line : int
             val mutable Column : int
+
             val mutable StoredLine : int
             val mutable StoredColumn : int
             val mutable Buffer : System.Text.StringBuilder
@@ -199,6 +202,7 @@ module Lexer =
 
         let outputEOF (s:State) : Lexeme =
             Symbol.EOF, null, s.Line, s.Column
+
 
     open Input
     open Char
@@ -433,18 +437,7 @@ module Lexer =
             advance s
             if current s = c
                 then s1
-                elif s2 <> -1 then s1
                 else faillexer s (Message.unexpectedChar c)
-
-        let dotPunct () =
-            advance s
-            if current s = '.' then
-                advance s
-                if current s = '.'
-                    then Symbol.DotDotDot
-                    else Symbol.DotDot
-            else
-                Symbol.Dot
 
         match current s with
         | '+' -> Symbol.Plus
@@ -465,11 +458,26 @@ module Lexer =
         | ',' -> Symbol.Comma
 
         | '=' -> twoPunct '=' Symbol.EqualEqual Symbol.Equal
-        | '~' -> twoPunct '=' Symbol.TildeEqual -1
         | '<' -> twoPunct '=' Symbol.LessEqual Symbol.Less
         | '>' -> twoPunct '=' Symbol.GreaterEqual Symbol.Greater
-        | '.' -> dotPunct()
-        | _   -> failwith "FAIL!"
+        
+        | '.' ->
+            advance s
+            if current s = '.' then
+                advance s
+                if current s = '.'
+                    then Symbol.DotDotDot
+                    else Symbol.DotDot
+            else
+                Symbol.Dot
+
+        | '~' ->
+            advance s
+            match current s with
+            | '=' -> Symbol.TildeEqual
+            | c   -> faillexer s (Message.unexpectedChar c)
+
+        | c  -> faillexer s (Message.unexpectedChar c)
 
     // Create lexer - not thread safe, use multiple instances for concurrency
     let create source =
@@ -519,9 +527,12 @@ module Lexer =
 
                 // Punctuation
                 | c when isFirstPunctuation c ->
-                    let symbol = punctuation s
-                    advance s
-                    output s symbol
+                    match punctuation s with
+                    | Symbol.None ->
+                        faillexer s ("test")
+                    | symbol ->
+                        advance s
+                        output s symbol
 
                 | c ->
                     faillexer s (Message.unexpectedChar c)
