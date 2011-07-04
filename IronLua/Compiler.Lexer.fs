@@ -4,67 +4,65 @@ open IronLua.Error
 
 module Lexer =
     type Symbol =
-        | None = -1
-
         // Keywords
-        | And = 0
-        | Break = 1
-        | Do = 2
-        | Else = 3
-        | Elseif = 4
-        | End = 5
-        | False = 6
-        | For = 7
-        | Function = 8
-        | If = 9
-        | In = 10
-        | Local = 11
-        | Nil = 12
-        | Not = 13
-        | Or = 14
-        | Repeat = 15
-        | Return = 16
-        | Then = 17
-        | True = 18
-        | Until = 19
-        | While = 20
+        | And           = 0
+        | Break         = 1
+        | Do            = 2
+        | Else          = 3
+        | Elseif        = 4
+        | End           = 5
+        | False         = 6
+        | For           = 7
+        | Function      = 8
+        | If            = 9
+        | In            = 10
+        | Local         = 11
+        | Nil           = 12
+        | Not           = 13
+        | Or            = 14
+        | Repeat        = 15
+        | Return        = 16
+        | Then          = 17
+        | True          = 18
+        | Until         = 19
+        | While         = 20
 
         // Punctuations
-        | Plus = 100
-        | Minus = 101
-        | Star = 102
-        | Slash = 103
-        | Percent = 104
-        | Carrot = 105
-        | Hash = 106
-        | EqualEqual = 107
-        | TildeEqual = 108
-        | LessEqual = 109
-        | GreaterEqual = 110
-        | Less = 111
-        | Greater = 112
-        | Equal = 113
-        | LeftParen = 114
-        | RightParen = 115
-        | LeftBrace = 116
-        | RightBrace = 117
-        | LeftBrack = 118
-        | RightBrack = 119
-        | SemiColon = 120
-        | Colon = 121
-        | Comma = 122
-        | Dot = 123
-        | DotDot = 124
-        | DotDotDot = 125
+        | Plus          = 21
+        | Minus         = 22
+        | Star          = 23
+        | Slash         = 24
+        | Percent       = 25
+        | Carrot        = 26
+        | Hash          = 27
+        | EqualEqual    = 28
+        | TildeEqual    = 29
+        | LessEqual     = 30
+        | GreaterEqual  = 31
+        | Less          = 32
+        | Greater       = 33
+        | Equal         = 34
+        | LeftParen     = 35
+        | RightParen    = 36
+        | LeftBrace     = 37
+        | RightBrace    = 38
+        | LeftBrack     = 39
+        | RightBrack    = 40
+        | SemiColon     = 41
+        | Colon         = 42
+        | Comma         = 43
+        | Dot           = 44
+        | DotDot        = 45
+        | DotDotDot     = 46
 
         // Literals
-        | Number = 200
-        | HexNumber = 201
-        | String = 202
-        | Identifier = 203
+        | Number        = 47
+        | HexNumber     = 48
+        | String        = 49
+        | Identifier    = 50
 
         // Markers
-        | EOF = 300
+        | EOF           = 51
 
     type Lexeme = Symbol * string * int * int
 
@@ -563,12 +561,9 @@ module Lexer =
 
                 // Punctuation
                 | c when isFirstPunctuation c ->
-                    match punctuation s with
-                    | Symbol.None ->
-                        faillexer s ("test")
-                    | symbol ->
-                        advance s
-                        output s symbol
+                    let symbol = punctuation s
+                    advance s
+                    output s symbol
 
                 | c ->
                     faillexer s (Message.unexpectedChar c)
