@@ -4,29 +4,29 @@ module Ast =
     type Name = string
 
     type BinaryOp
-        = Or = 10
-        | And = 20
-        | LessThan = 30
-        | GreaterThan = 31
-        | LessThanEquals = 32
-        | GreaterThanEquals = 33
-        | NotEqual = 34
-        | Equal = 35
-        | Concat = 40
-        | Add = 50
-        | Subtract = 51
-        | Multiply = 52
-        | Divide = 53
-        | Mod = 54
-        | Raised = 70
+        = Or            = 0
+        | And           = 1
+        | Less          = 2
+        | Greater       = 3
+        | LessEquals    = 4
+        | GreaterEquals = 5
+        | NotEqual      = 6
+        | Equal         = 7
+        | Concat        = 8
+        | Add           = 9
+        | Subtract      = 10
+        | Multiply      = 11
+        | Divide        = 12
+        | Mod           = 13
+        | Raised        = 14
 
     type UnaryOp
-        = Not = 60
-        | Hash = 61
-        | Negative = 62
+        = Not           = 15
+        | Hash          = 16
+        | Negative      = 17
 
     type Block
-        = Statements of Statement list * LastStatement option
+        = Block of Statement list * LastStatement option
 
     and Statement
         = Assign of Var list * Expr list
@@ -55,8 +55,7 @@ module Ast =
     
     and Expr
         = Nil
-        | True
-        | False
+        | Boolean of bool
         | Number of double
         | String of string
         | VarArgs

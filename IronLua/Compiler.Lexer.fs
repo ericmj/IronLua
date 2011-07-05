@@ -120,7 +120,7 @@ module Lexer =
          || c = '_'
 
 
-    module Input =
+    module internal Input =
         type State =
             val mutable File : string
             val mutable Source : string
@@ -145,16 +145,16 @@ module Lexer =
                 Buffer = System.Text.StringBuilder(1024)
             }
 
-        let inline private tryIndex (s:State) f =
-            try f()
-            with | :? System.IndexOutOfRangeException ->  
-                raise <| CompileError(s.File, (s.Line, s.Column), Message.unexpectedEOF)
-
         let create source =
             State(source)
 
+        let inline getAt (s:State) i =
+            try s.Source.[i]
+            with | :? System.IndexOutOfRangeException ->  
+                raise <| CompileError(s.File, (s.Line, s.Column), Message.unexpectedEOF)
+
         let current (s:State) =
-            (fun () -> s.Source.[s.Index]) |> tryIndex s
+            getAt s s.Index
 
         let canContinue (s:State) =
             s.Index < s.Source.Length
@@ -180,7 +180,7 @@ module Lexer =
             s.Column <- 1
 
         let peek (s:State) =
-            (fun () -> s.Source.[s.Index+1]) |> tryIndex s
+            getAt s (s.Index+1)
 
         let canPeek (s:State) =
             s.Index+1 < s.Source.Length
@@ -216,10 +216,10 @@ module Lexer =
     open Input
     open Char
 
-    let inline faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
+    let inline private faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
     // Counts ='s until endChar [ or ], return -1 if unknown char found
-    let rec countEquals s endChar n =
+    let rec private countEquals s endChar n =
         match current s with
         | '='                -> current s |> bufferAppend s
                                 advance s
@@ -228,7 +228,7 @@ module Lexer =
         | c                  -> -1
 
     // Parses a newline
-    let nextLine s =
+    let private nextLine s =
         // Handle windows-style newline
         if current s = '\r' && canPeek s && peek s = '\n' then
             advance s
@@ -237,7 +237,7 @@ module Lexer =
 
     // Parses a numeric escape in a string, 
     // such as \X \XX \XXX where X is a decimal number
-    let bufferNumericEscape s =
+    let private bufferNumericEscape s =
         let rec bufferNumericEscape value n =
             if n >= 3 || (current s |> isDecimal |> not) then
                 value
@@ -248,7 +248,7 @@ module Lexer =
         bufferNumericEscape 0 0 |> char |> bufferAppend s
 
     // Parses a long string literal, such as [[bla bla]]
-    let longStringLiteral s =
+    let private longStringLiteral s =
         storePosition s
         bufferClear s
         advance s
@@ -291,7 +291,7 @@ module Lexer =
         longStringLiteral()
 
     // Parses a string literal, such as "bla bla"
-    let stringLiteral s endChar =
+    let private stringLiteral s endChar =
         storePosition s
         bufferClear s
 
@@ -335,7 +335,7 @@ module Lexer =
 
     // Parses the exponent part of a numeric literal,
     // such as e+5 p8 e2
-    let bufferExponent s =
+    let private bufferExponent s =
         current s |> bufferAppend s
         advance s
 
@@ -354,7 +354,7 @@ module Lexer =
 
     // Parses a hex literal, such as 0xFF or 0x10p4
     // Can be malformed, parser handles that
-    let numericHexLiteral s =
+    let private numericHexLiteral s =
         storePosition s
         bufferClear s
         bufferAppendStr s "0x"
@@ -377,7 +377,7 @@ module Lexer =
 
         numericHexLiteral()
 
-    let numericLiteral s =
+    let private numericLiteral s =
         storePosition s
         bufferClear s
         current s |> bufferAppend s
@@ -400,7 +400,7 @@ module Lexer =
         numericLiteral()
 
     // Short comment, such as --bla bla bla
-    let shortComment s =
+    let private shortComment s =
         let rec shortComment () =
             advance s
             match current s with
@@ -410,7 +410,7 @@ module Lexer =
             
 
     // Long comment, such as --[[bla bla bla]]
-    let longComment s =
+    let private longComment s =
         advance s
         let numEqualsStart = countEquals s '[' 0
 
@@ -440,7 +440,7 @@ module Lexer =
             longComment()
 
     // Punctuation
-    let punctuation s =
+    let private punctuation s =
         storePosition s
         let twoPunct c s1 s2 =
             advance s
@@ -489,7 +489,7 @@ module Lexer =
         | c  -> faillexer s (Message.unexpectedChar c)
 
     // Identifier or keyword
-    let identifier s =
+    let private identifier s =
         storePosition s
         bufferClear s
 
