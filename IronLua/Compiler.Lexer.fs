@@ -145,7 +145,7 @@ module Lexer =
                 Buffer = System.Text.StringBuilder(1024)
             }
 
-        let create source =
+        let inline create source =
             State(source)
 
         let inline getAt (s:State) i =
@@ -153,63 +153,63 @@ module Lexer =
             with | :? System.IndexOutOfRangeException ->  
                 raise <| CompileError(s.File, (s.Line, s.Column), Message.unexpectedEOF)
 
-        let current (s:State) =
+        let inline current (s:State) =
             getAt s s.Index
 
-        let canContinue (s:State) =
+        let inline canContinue (s:State) =
             s.Index < s.Source.Length
 
-        let advance (s:State) =
+        let inline advance (s:State) =
             s.Index <- s.Index + 1
             s.Column <- s.Column + 1
 
-        let skip (s:State) n =
+        let inline skip (s:State) n =
             s.Index <- s.Index + n
             s.Column <- s.Column + n
             
-        let back (s:State) =
+        let inline back (s:State) =
             s.Index <- s.Index - 1
             s.Column <- s.Column - 1
 
-        let storePosition (s:State) =
+        let inline storePosition (s:State) =
             s.StoredColumn <- s.Column
             s.StoredLine <- s.Line
 
-        let newline (s:State) =
+        let inline newline (s:State) =
             s.Line <- s.Line + 1
             s.Column <- 1
 
-        let peek (s:State) =
+        let inline peek (s:State) =
             getAt s (s.Index+1)
 
-        let canPeek (s:State) =
+        let inline canPeek (s:State) =
             s.Index+1 < s.Source.Length
 
-        let bufferAppend (s:State) (c:char) =
+        let inline bufferAppend (s:State) (c:char) =
             s.Buffer.Append(c) |> ignore
 
-        let bufferAppendStr (s:State) (str:string) =
+        let inline bufferAppendStr (s:State) (str:string) =
             s.Buffer.Append(str) |> ignore
 
-        let bufferRemoveStart (s:State) length =
+        let inline bufferRemoveStart (s:State) length =
             s.Buffer.Remove(0, length) |> ignore
 
-        let bufferRemoveEnd (s:State) length =
+        let inline bufferRemoveEnd (s:State) length =
             s.Buffer.Remove(s.Buffer.Length-length, length) |> ignore
 
-        let bufferClear (s:State) =
+        let inline bufferClear (s:State) =
             s.Buffer.Clear() |> ignore
 
-        let bufferLook (s:State) =
+        let inline bufferLook (s:State) =
             s.Buffer.ToString()
 
-        let output (s:State) sym : Lexeme =
+        let inline output (s:State) sym : Lexeme =
             sym, null, s.StoredLine, s.StoredColumn
 
-        let outputBuffer (s:State) sym : Lexeme =
+        let inline outputBuffer (s:State) sym : Lexeme =
             sym, s.Buffer.ToString(), s.StoredLine, s.StoredColumn
 
-        let outputEOF (s:State) : Lexeme =
+        let inline outputEOF (s:State) : Lexeme =
             Symbol.EOF, null, s.Line, s.Column
 
 
