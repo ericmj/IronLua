@@ -22,3 +22,4 @@ module Error =
         let unknownEscapeChar = sprintf "Unknown escape char '\%c'"
         let unexpectedEOF = "Unexpected end of file"
         let invalidLongStringDelimter = sprintf "Invalid long string delimter '%c'"
+        let unexpectedSymbol = sprintf "Unexpected symbol '%s'"
