@@ -38,9 +38,11 @@ module Ast =
         | For of Name * Expr * Expr * Expr list * Block
         | ForIn of Name list * Expr list * Block
         | Func of FuncName * FuncBody
-        | LocalFunc of Name * FuncBody
+        | LocalFunc of Name * FuncBody // TODO: Merge with Func
         | LocalAssign of Name list * Expr list
 
+    // TODO: Merge LastStatement and Statement but still make sure that LastStatement
+    // is at end of block
     and LastStatement
         = Return of Expr list
         | Break
@@ -49,7 +51,7 @@ module Ast =
         = FuncName of Name * Name list * Name
 
     and Var
-        = VarName of Name
+        = Name of Name
         | TableEntry of PrefixExpr * Expr
         | TableDot of PrefixExpr * Name
     
@@ -68,7 +70,7 @@ module Ast =
     and PrefixExpr
         = VarExpr of Var
         | FuncCall of FuncCall
-        | Expr of Expr
+        | ParenExpr of Expr
     
     and FuncCall
         = FuncCallNormal of PrefixExpr * Args
