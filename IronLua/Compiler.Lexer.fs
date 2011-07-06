@@ -64,8 +64,6 @@ module Lexer =
         // Markers
         | EOF           = 51
 
-    type Lexeme = Symbol * string * int * int
-
     let keywords =
         [
         "and", Symbol.And;
@@ -90,6 +88,12 @@ module Lexer =
         "until", Symbol.Until;
         "while", Symbol.While;
         ] |> dict
+
+    type Lexeme = Symbol * string * int * int
+
+    // TODO: Friendly names of symbols
+    let prettySymbol symbol =
+        string symbol
 
 
     module Char =
@@ -122,8 +126,8 @@ module Lexer =
 
     module internal Input =
         type State =
-            val mutable File : string
-            val mutable Source : string
+            val File : string
+            val Source : string
             val mutable Index : int
             val mutable Char : char
             val mutable Line : int
@@ -216,7 +220,8 @@ module Lexer =
     open Input
     open Char
 
-    let inline private faillexer (s:State) msg = raise <| CompileError(s.File, (s.Line, s.Column), msg)
+    let inline private faillexer (s:State) msg =
+        raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
     // Counts ='s until endChar [ or ], return -1 if unknown char found
     let rec private countEquals s endChar n =
