@@ -30,7 +30,7 @@ module Ast =
 
     and Statement
         = Assign of Var list * Expr list
-        | FuncCall of FuncCall
+        | StatFuncCall of FuncCall
         | Do of Block
         | While of Expr * Block
         | Repeat of Block * Expr
@@ -70,7 +70,7 @@ module Ast =
     and PrefixExpr
         = VarExpr of Var
         | FuncCall of FuncCall
-        | ParenExpr of Expr
+        | Expr of Expr
     
     and FuncCall
         = FuncCallNormal of PrefixExpr * Args

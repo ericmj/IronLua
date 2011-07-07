@@ -23,3 +23,4 @@ module Error =
         let unexpectedEOF = "Unexpected end of file"
         let invalidLongStringDelimter = sprintf "Invalid long string delimter '%c'"
         let unexpectedSymbol = sprintf "Unexpected symbol '%s'"
+        let expectedSymbol = sprintf "Unexpected symbol '%s', expected '%s'"
