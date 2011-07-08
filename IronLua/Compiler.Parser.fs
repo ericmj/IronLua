@@ -23,15 +23,15 @@ module Parser =
         let (_, _, line, column) = s.Lexeme
         raise <| CompileError(s.File, (line, column), msg)
     
-    let inline token (s:State) =
-        let (symbol, _, _, _) = s.Lexeme
-        symbol
+    let inline symbol (s:State) =
+        let (sym, _, _, _) = s.Lexeme
+        sym
 
-    let inline tokenData (s:State) =
+    let inline value (s:State) =
         let (_, data, _, _) = s.Lexeme
         data
 
-    let inline peekToken (s:State) =
+    let inline peekSymbol (s:State) =
         let (symbol, _, _, _) =
             match s.NextLexeme with
             | Some lexeme ->
@@ -49,17 +49,17 @@ module Parser =
         | None ->
             s.Lexeme <- s.Lexer()
 
-    let inline tryConsume (s:State) symbol =
-        let tok = token s
-        if tok = symbol then consume s
+    let inline tryConsume (s:State) sym =
+        let tok = symbol s
+        if tok = sym then consume s
 
     // TODO: Internal for now, should be wrapped into a submodule with other internal/private functions
-    let inline internal expect (s:State) symbol =
-        let tok = token s
+    let inline internal expect (s:State) sym =
+        let tok = symbol s
         consume s
-        if tok <> symbol then
+        if tok <> sym then
             failparser s <|
-            Message.expectedSymbol (Lexer.prettySymbol tok) (Lexer.prettySymbol symbol)
+            Message.expectedSymbol (Lexer.prettySymbol tok) (Lexer.prettySymbol sym)
 
     let explist s =
         failwith ""
@@ -92,16 +92,16 @@ module Parser =
         failwith ""
 
     let args s =
-        match token s with
+        match symbol s with
         | S.LeftParen -> failwith ""
         | S.LeftBrace -> failwith ""
-        | S.String -> let stringData = tokenData s
+        | S.String -> let stringData = value s
                       consume s
                       Ast.ArgString stringData
         | _ -> failwith "UNEXCPECTED"
 
     let name s =
-        let ident = tokenData s
+        let ident = value s
         consume s
         ident
 
@@ -119,7 +119,7 @@ module Parser =
         | _ -> failwith "UNEXCPECTED"
 
     let rec prefixExpr s prefixexpr =
-        match token s with
+        match symbol s with
         | S.LeftBrack ->
             consume s
             let entry = Ast.TableEntry (prefixexpr, expr s) |> Ast.VarExpr |> prefixExpr s
@@ -138,7 +138,7 @@ module Parser =
 
     let assignOrFunccall s =
         let preexpr =
-            match token s with
+            match symbol s with
             | S.Identifier ->
                 prefixExpr s (Ast.VarExpr <| Ast.Name (name s))
             | S.LeftParen ->
@@ -149,7 +149,7 @@ module Parser =
             | _ ->
                 failwith "FAIL THIS SHIET"
 
-        match token s with
+        match symbol s with
         | S.Comma ->
             varlist s [liftVarExpr preexpr]
         | S.Equal ->
@@ -160,7 +160,7 @@ module Parser =
             
 
     let statement s =
-        match token s with
+        match symbol s with
         | S.Do       -> Left  <| do' s
         | S.While    -> Left  <| while' s
         | S.Repeat   -> Left  <| repeat s
@@ -176,7 +176,7 @@ module Parser =
        {stat [';']} [laststat [';']] *)
     let block s =
         let rec block statements =
-            if token s = S.EOF then
+            if symbol s = S.EOF then
                 (statements, None) |> Ast.Block
             else
                 match statement s with
