@@ -122,63 +122,77 @@ module Parser =
         | sym ->
             failparserUnexpected s sym
 
-    let varlist s vars =
-        failwith ""
-
-    let liftVarExpr s prefixexpr =
+    let liftVarExpr prefixexpr =
         match prefixexpr with
         | Ast.VarExpr var -> Some var
         | _               -> None
 
-    let liftFuncCall s prefixexpr =
+    let liftFuncCall prefixexpr =
         match prefixexpr with
         | Ast.FuncCall funccall -> Some funccall
         | _                     -> None
 
-    let rec prefixExpr s prefixexpr =
-        match symbol s with
-        | S.LeftBrack ->
-            consume s
-            let entry = Ast.TableEntry (prefixexpr, expr s) |> Ast.VarExpr |> prefixExpr s
-            expect s S.RightBrack
-            entry
-        | S.Dot ->
-            consume s
-            Ast.TableDot (prefixexpr, consumeValue s) |> Ast.VarExpr |> prefixExpr s
-        | S.Colon ->
-            consume s
-            Ast.FuncCallObject (prefixexpr, consumeValue s, args s) |> Ast.FuncCall |> prefixExpr s
-        | S.LeftParen | S.LeftBrack | S.String ->
-            Ast.FuncCallNormal (prefixexpr, args s) |> Ast.FuncCall |> prefixExpr s
-        | _ ->
-            prefixexpr
-
-    let assignOrFunccall s =
-        let preexpr =
+    let prefixExpr s =
+        let rec prefixExpr leftAst =
             match symbol s with
-            | S.Identifier ->
-                prefixExpr s (Ast.VarExpr <| Ast.Name (consumeValue s))
-            | S.LeftParen ->
+            | S.LeftBrack ->
                 consume s
-                let pexpr = prefixExpr s (expr s)
-                expect s S.RightParen
-                pexpr
-            | sym ->
-                failparserUnexpected s sym
+                let entry = Ast.TableEntry (leftAst, expr s) |> Ast.VarExpr |> prefixExpr
+                expect s S.RightBrack
+                entry
+            | S.Dot ->
+                consume s
+                Ast.TableDot (leftAst, consumeValue s) |> Ast.VarExpr |> prefixExpr
+            | S.Colon ->
+                consume s
+                Ast.FuncCallObject (leftAst, consumeValue s, args s) |> Ast.FuncCall |> prefixExpr
+            | S.LeftParen | S.LeftBrack | S.String ->
+                Ast.FuncCallNormal (leftAst, args s) |> Ast.FuncCall |> prefixExpr
+            | _ ->
+                leftAst
+
+        match symbol s with
+        | S.Identifier ->
+            prefixExpr (Ast.VarExpr <| Ast.Name (consumeValue s))
+        | S.LeftParen ->
+            consume s
+            let pexpr = prefixExpr (expr s)
+            expect s S.RightParen
+            pexpr
+        | sym ->
+            failparserUnexpected s sym
+
+    let rec varlist s vars =
+        consume s
+        let preexpr = prefixExpr s
 
         match symbol s with
         | S.Comma ->
-            match liftVarExpr s preexpr with
-            | Some var -> varlist s [var]
+            match liftVarExpr preexpr with
+            | Some var -> varlist s (var :: vars)
             | None     -> failparserUnexpected s S.Comma
+        | _ ->
+            vars
+
+    let assignOrFunccall s =
+        let preexpr = prefixExpr s
+
+        match symbol s with
+        | S.Comma ->
+            let vars =
+                match liftVarExpr preexpr with
+                | Some var -> varlist s [var]
+                | None     -> failparserUnexpected s S.Comma
+            expect s S.Equal
+            Ast.Assign (vars, exprlist s)
         | S.Equal ->
             consume s
-            match liftVarExpr s preexpr with
+            match liftVarExpr preexpr with
             | Some var -> Ast.Assign ([var], exprlist s)
             | None     -> failparserUnexpected s S.Equal
 
         | sym ->
-            match liftFuncCall s preexpr with
+            match liftFuncCall preexpr with
             | Some funcCall -> Ast.StatFuncCall funcCall
             | None          -> failparserUnexpected s sym
             
