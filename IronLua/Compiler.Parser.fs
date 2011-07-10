@@ -3,6 +3,7 @@
 open IronLua.Error
 open IronLua.Utils
 
+// TODO: Fix access control
 module Parser =
     type S = Lexer.Symbol
 
@@ -22,6 +23,13 @@ module Parser =
     let inline failparser (s:State) msg =
         let (_, _, line, column) = s.Lexeme
         raise <| CompileError(s.File, (line, column), msg)
+
+    let inline internal failparserExpected (s:State) sym1 sym2 =
+        let msg = Message.expectedSymbol (Lexer.prettySymbol sym1) (Lexer.prettySymbol sym2)
+        failparser s msg
+
+    let inline internal failparserUnexpected (s:State) sym =
+        Lexer.prettySymbol sym |> Message.unexpectedSymbol |> failparser s
     
     let inline symbol (s:State) =
         let (sym, _, _, _) = s.Lexeme
@@ -53,13 +61,16 @@ module Parser =
         let tok = symbol s
         if tok = sym then consume s
 
-    // TODO: Internal for now, should be wrapped into a submodule with other internal/private functions
     let inline internal expect (s:State) sym =
-        let tok = symbol s
+        let sym2 = symbol s
         consume s
-        if tok <> sym then
-            failparser s <|
-            Message.expectedSymbol (Lexer.prettySymbol tok) (Lexer.prettySymbol sym)
+        if sym2 <> sym then
+            failparserExpected s sym2 sym
+
+    let consumeValue s =
+        let val' = value s
+        consume s
+        val'
 
     let explist s =
         failwith ""
@@ -91,32 +102,38 @@ module Parser =
     let expr s =
         failwith ""
 
+    let tableconstr s =
+        failwith ""
+
     let args s =
         match symbol s with
-        | S.LeftParen -> failwith ""
-        | S.LeftBrace -> failwith ""
-        | S.String -> let stringData = value s
-                      consume s
-                      Ast.ArgString stringData
-        | _ -> failwith "UNEXCPECTED"
-
-    let name s =
-        let ident = value s
-        consume s
-        ident
+        | S.LeftParen ->
+            consume s
+            let exp = expr s |> Ast.ArgsNormal 
+            expect s S.RightParen
+            exp
+        | S.LeftBrace ->
+            consume s
+            let table = tableconstr s |> Ast.ArgsTable
+            expect s S.RightBrack
+            table
+        | S.String ->
+            consumeValue s |> Ast.ArgString
+        | sym ->
+            failparserUnexpected s sym
 
     let varlist s vars =
         failwith ""
 
-    let liftVarExpr prefixexpr =
+    let liftVarExpr s prefixexpr =
         match prefixexpr with
-        | Ast.VarExpr var -> var
-        | _ -> failwith "UNEXCPECTED"
+        | Ast.VarExpr var -> Some var
+        | _               -> None
 
-    let liftFuncCall prefixexpr =
+    let liftFuncCall s prefixexpr =
         match prefixexpr with
-        | Ast.FuncCall funccall -> funccall
-        | _ -> failwith "UNEXCPECTED"
+        | Ast.FuncCall funccall -> Some funccall
+        | _                     -> None
 
     let rec prefixExpr s prefixexpr =
         match symbol s with
@@ -127,10 +144,10 @@ module Parser =
             entry
         | S.Dot ->
             consume s
-            Ast.TableDot (prefixexpr, name s) |> Ast.VarExpr |> prefixExpr s
+            Ast.TableDot (prefixexpr, consumeValue s) |> Ast.VarExpr |> prefixExpr s
         | S.Colon ->
             consume s
-            Ast.FuncCallObject (prefixexpr, name s, args s) |> Ast.FuncCall |> prefixExpr s
+            Ast.FuncCallObject (prefixexpr, consumeValue s, args s) |> Ast.FuncCall |> prefixExpr s
         | S.LeftParen | S.LeftBrack | S.String ->
             Ast.FuncCallNormal (prefixexpr, args s) |> Ast.FuncCall |> prefixExpr s
         | _ ->
@@ -140,23 +157,30 @@ module Parser =
         let preexpr =
             match symbol s with
             | S.Identifier ->
-                prefixExpr s (Ast.VarExpr <| Ast.Name (name s))
+                prefixExpr s (Ast.VarExpr <| Ast.Name (consumeValue s))
             | S.LeftParen ->
                 consume s
                 let pexpr = prefixExpr s (expr s)
                 expect s S.RightParen
                 pexpr
-            | _ ->
-                failwith "FAIL THIS SHIET"
+            | sym ->
+                failparserUnexpected s sym
 
         match symbol s with
         | S.Comma ->
-            varlist s [liftVarExpr preexpr]
+            match liftVarExpr s preexpr with
+            | Some var -> varlist s [var]
+            | None     -> failparserUnexpected s S.Comma
         | S.Equal ->
             consume s
-            Ast.Assign ([liftVarExpr preexpr], expr s)
-        | _ ->
-            liftFuncCall preexpr |> Ast.StatFuncCall
+            match liftVarExpr s preexpr with
+            | Some var -> Ast.Assign ([var], exprlist s)
+            | None     -> failparserUnexpected s S.Equal
+
+        | sym ->
+            match liftFuncCall s preexpr with
+            | Some funcCall -> Ast.StatFuncCall funcCall
+            | None          -> failparserUnexpected s sym
             
 
     let statement s =
