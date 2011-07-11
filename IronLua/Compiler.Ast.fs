@@ -26,7 +26,7 @@ module Ast =
         | Negative      = 17
 
     type Block
-        = Block of Statement list * LastStatement option
+        = Statement list * LastStatement option
 
     and Statement
         = Assign of Var list * Expr list
@@ -38,11 +38,9 @@ module Ast =
         | For of Name * Expr * Expr * Expr list * Block
         | ForIn of Name list * Expr list * Block
         | Func of FuncName * FuncBody
-        | LocalFunc of Name * FuncBody // TODO: Merge with Func
+        | LocalFunc of Name * FuncBody
         | LocalAssign of Name list * Expr list
 
-    // TODO: Merge LastStatement and Statement but still make sure that LastStatement
-    // is at end of block
     and LastStatement
         = Return of Expr list
         | Break
@@ -89,3 +87,12 @@ module Ast =
         = FieldExpr of Expr * Expr
         | FieldName of Name * Expr
         | FieldOnly of Expr
+
+    let rec formatTree indent (value:'T) = //' 
+        let info, args = Reflection.FSharpValue.GetUnionFields(value, typeof<'T>)
+        printfn "%s%s" indent info.Name
+        for a in args do
+        match box a with 
+        | :? 'T as v ->
+            formatTree (indent + "  ") v
+        | _ -> ()
