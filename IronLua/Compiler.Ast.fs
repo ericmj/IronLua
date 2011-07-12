@@ -3,30 +3,29 @@
 module Ast =
     type Name = string
 
-    type BinaryOp
-        = Or            = 0
-        | And           = 1
-        | Less          = 2
-        | Greater       = 3
-        | LessEquals    = 4
-        | GreaterEquals = 5
-        | NotEqual      = 6
-        | Equal         = 7
-        | Concat        = 8
-        | Add           = 9
-        | Subtract      = 10
-        | Multiply      = 11
-        | Divide        = 12
-        | Mod           = 13
-        | Raised        = 14
+    type BinaryOp =
+        | Or           = 0
+        | And          = 1
+        | Less         = 2
+        | Greater      = 3
+        | LessEqual    = 4
+        | GreaterEqual = 5
+        | NotEqual     = 6
+        | Equal        = 7
+        | Concat       = 8
+        | Add          = 9
+        | Subtract     = 10
+        | Multiply     = 11
+        | Divide       = 12
+        | Mod          = 13
+        | Raise        = 14
+                       
+    type UnaryOp =     
+        | Not          = 15
+        | Length       = 16
+        | Negative     = 17
 
-    type UnaryOp
-        = Not           = 15
-        | Hash          = 16
-        | Negative      = 17
-
-    type Block
-        = Statement list * LastStatement option
+    type Block = Statement list * LastStatement option
 
     and Statement
         = Assign of Var list * Expr list
@@ -59,11 +58,11 @@ module Ast =
         | Number of double
         | String of string
         | VarArgs
-        | Func of FuncBody
+        | FuncExpr of FuncBody
         | PrefixExpr of PrefixExpr
         | TableConstructor of Field * Field list
-        | BinaryOpExpr of Expr * BinaryOp * Expr
-        | UnaryOpExpr of UnaryOp * Expr
+        | BinaryOp of Expr * BinaryOp * Expr
+        | UnaryOp of UnaryOp * Expr
     
     and PrefixExpr
         = VarExpr of Var
@@ -87,12 +86,3 @@ module Ast =
         = FieldExpr of Expr * Expr
         | FieldName of Name * Expr
         | FieldOnly of Expr
-
-    let rec formatTree indent (value:'T) = //' 
-        let info, args = Reflection.FSharpValue.GetUnionFields(value, typeof<'T>)
-        printfn "%s%s" indent info.Name
-        for a in args do
-        match box a with 
-        | :? 'T as v ->
-            formatTree (indent + "  ") v
-        | _ -> ()

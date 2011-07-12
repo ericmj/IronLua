@@ -451,7 +451,7 @@ module Lexer =
             advance s
             if current s = c
                 then s1
-                else faillexer s (Message.unexpectedChar c)
+                else back s; s2
 
         match current s with
         | '+' -> Symbol.Plus

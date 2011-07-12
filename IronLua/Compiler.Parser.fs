@@ -6,6 +6,8 @@ open IronLua.Utils
 // TODO: Fix access control
 module Parser =
     type S = Lexer.Symbol
+    type UnaryOp = Ast.UnaryOp
+    type BinaryOp = Ast.BinaryOp
 
     type State =
         val File : string
@@ -67,13 +69,86 @@ module Parser =
         if sym2 <> sym then
             failparserExpected s sym2 sym
 
+    // NOTE: On second thought this shouldn't really be used
+    //       value s/consume s conveys what's happening better
     let consumeValue s =
         let val' = value s
         consume s
         val'
 
-    let explist s =
+
+    let isUnaryOp sym =
+        match sym with
+        | S.Minus | S.Not | S.Hash -> true
+        | _ -> false
+
+    let isBinaryOp sym =
+        match sym with
+        | S.Plus | S.Minus | S.Star | S.Slash | S.Carrot | S.Percent
+        | S.DotDot | S.Less | S.LessEqual | S.Greater | S.GreaterEqual
+        | S.EqualEqual | S.TildeEqual | S.And | S.Or -> true
+        | _ -> false
+
+    let unaryOpPriority =
+        8
+    
+    let binaryOpPriority sym =
+        match sym with
+        | S.Or -> (1, 1)
+        | S.And -> (2, 2)
+        | S.Less | S.Greater | S.LessEqual | S.GreaterEqual
+        | S.TildeEqual | S.Equal -> (3, 3)
+        | S.DotDot -> (5, 4) // right assoc
+        | S.Plus | S.Minus -> (6, 6)
+        | S.Star | S.Slash | S.Percent -> (7, 7)
+        | S.Carrot -> (10, 9) // right assoc
+        | _ -> (-1, -1)
+        
+
+    let parseNumber str =
         failwith ""
+
+    let unaryOp s =
+        let sym = symbol s
+        consume s
+        match sym with
+        | S.Minus -> UnaryOp.Negative
+        | S.Not   -> UnaryOp.Not
+        | S.Hash  -> UnaryOp.Length
+        | _       -> Unchecked.defaultof<UnaryOp>
+
+    let binaryOp s =
+        let sym = symbol s
+        consume s
+        match sym with
+        | S.Or           -> BinaryOp.Or
+        | S.And          -> BinaryOp.And
+        | S.Less         -> BinaryOp.Less
+        | S.Greater      -> BinaryOp.Greater
+        | S.LessEqual    -> BinaryOp.LessEqual
+        | S.GreaterEqual -> BinaryOp.GreaterEqual
+        | S.TildeEqual   -> BinaryOp.NotEqual
+        | S.Equal        -> BinaryOp.Equal
+        | S.DotDot       -> BinaryOp.Concat
+        | S.Plus         -> BinaryOp.Add
+        | S.Minus        -> BinaryOp.Subtract
+        | S.Star         -> BinaryOp.Multiply
+        | S.Slash        -> BinaryOp.Divide
+        | S.Percent      -> BinaryOp.Mod
+        | S.Carrot       -> BinaryOp.Raise
+        | _              -> Unchecked.defaultof<BinaryOp>
+
+    // Tries to lift Ast.VarExpr from Ast.PrefixExpr
+    let liftVarExpr prefixexpr =
+        match prefixexpr with
+        | Ast.VarExpr var -> Some var
+        | _               -> None
+
+    // Tries to lift Ast.FuncCall from Ast.PrefixExpr
+    let liftFuncCall prefixexpr =
+        match prefixexpr with
+        | Ast.FuncCall funccall -> Some funccall
+        | _                     -> None
 
     let do' s =
         failwith ""
@@ -96,45 +171,59 @@ module Parser =
     let local s =
         failwith ""
 
-    let exprlist s =
-        failwith ""
-
-    let expr s =
-        failwith ""
-
     let tableconstr s =
         failwith ""
 
-    (* Parses args
-       '(' [explist] ')' | '{' [fieldlist] '}' | String *)
-    let args s =
-        match symbol s with
-        | S.LeftParen ->
-            consume s
-            let exprs = exprlist s |> Ast.ArgsNormal 
-            expect s S.RightParen
-            exprs
-        | S.LeftBrace ->
-            consume s
-            let table = tableconstr s |> Ast.ArgsTable
-            expect s S.RightBrack
-            table
-        | S.String ->
-            consumeValue s |> Ast.ArgString
-        | sym ->
-            failparserUnexpected s sym
+    (* Parses an expr
+       nil | false | true | Number | String | '...' | function |
+       prefixexp | tableconstr | expr binaryop expr | unaryop expr *)
+    let rec expr s =
+        // Terminals
+        let rec simpleExpr () =
+            match symbol s with
+            | S.Nil ->
+                consume s
+                Ast.Nil
+            | S.False ->
+                consume s
+                Ast.Boolean false
+            | S.True ->
+                consume s
+                Ast.Boolean true
+            | S.Number ->
+                 consumeValue s |> parseNumber |> Ast.Number
+            | S.String ->
+                Ast.String (consumeValue s)
+            | S.DotDotDot ->
+                consume s
+                Ast.VarArgs
+            | S.Function ->
+                Ast.FuncExpr (function' s)
+            | S.Identifier | S.LeftParen ->
+                Ast.PrefixExpr (prefixExpr s)
+            | sym when isUnaryOp sym ->
+                Ast.UnaryOp (unaryOp s, binaryExpr (simpleExpr()) unaryOpPriority)
+            | sym ->
+                failparserUnexpected s sym
 
-    // Tries to lift Ast.VarExpr from Ast.PrefixExpr
-    let liftVarExpr prefixexpr =
-        match prefixexpr with
-        | Ast.VarExpr var -> Some var
-        | _               -> None
+        // Recurse while we have higher binding
+        and binaryExpr left limit =
+            if isBinaryOp (symbol s) && (symbol s |> binaryOpPriority |> fst  > limit) then
+                let prio = snd (binaryOpPriority (symbol s))
+                let op = binaryOp s
+                Ast.BinaryOp (left, op, binaryExpr (simpleExpr()) prio)
+            else
+                left
+        
+        // Left associative recursion
+        let rec expr left =
+            let binaryExpr = binaryExpr left 0
+            if isBinaryOp (symbol s) then
+                expr binaryExpr
+            else
+                binaryExpr
 
-    // Tries to lift Ast.FuncCall from Ast.PrefixExpr
-    let liftFuncCall prefixexpr =
-        match prefixexpr with
-        | Ast.FuncCall funccall -> Some funccall
-        | _                     -> None
+        expr (simpleExpr())
 
     (* Parses a prefixexpr, bottom-up parsing
        Finds the terminals Name or '(', if '(' is found parse an expr,
@@ -142,7 +231,7 @@ module Parser =
        prefixexp ::= var | functioncall | '(' exp ')'
        var ::= Name | prefixexp '[' exp ']' | prefixexp '.' Name
        functioncall ::= prefixexp args | prefixexp ':' Name args *)
-    let prefixExpr s =
+    and prefixExpr s =
         let rec prefixExpr leftAst =
             match symbol s with
             // Var
@@ -159,6 +248,7 @@ module Parser =
             | S.Colon ->
                 consume s
                 Ast.FuncCallObject (leftAst, consumeValue s, args s) |> Ast.FuncCall |> prefixExpr
+            // Args
             | S.LeftParen | S.LeftBrack | S.String ->
                 Ast.FuncCallNormal (leftAst, args s) |> Ast.FuncCall |> prefixExpr
 
@@ -169,27 +259,56 @@ module Parser =
         // Parse the terminal/bottom symbol of the prefix expression
         match symbol s with
         | S.Identifier ->
-            prefixExpr (Ast.VarExpr <| Ast.Name (consumeValue s))
+            consumeValue s |> Ast.Name |> Ast.VarExpr |> prefixExpr
         | S.LeftParen ->
             consume s
-            let pexpr = prefixExpr (expr s)
+            let pexpr = expr s |> Ast.Expr |> prefixExpr
             expect s S.RightParen
             pexpr
         | sym ->
             failparserUnexpected s sym
 
-    (* Parses a varlist
-       var {',' var} *)
+    (* Parses an exprlist
+       expr {',' expr} *)
+    and exprlist s =
+        let rec exprlist exprs =
+            if symbol s = S.Comma then
+                consume s
+                exprlist (expr s :: exprs)
+            else
+                exprs
+        exprlist [expr s]
+
+    (* Parses args
+       '(' [explist] ')' | '{' [fieldlist] '}' | String *)
+    and args s =
+        match symbol s with
+        | S.LeftParen ->
+            consume s
+            let exprs = exprlist s |> Ast.ArgsNormal 
+            expect s S.RightParen
+            exprs
+        | S.LeftBrace ->
+            consume s
+            let table = tableconstr s |> Ast.ArgsTable
+            expect s S.RightBrack
+            table
+        | S.String ->
+            consumeValue s |> Ast.ArgString
+        | sym ->
+            failparserUnexpected s sym
+
+    (* Parses a varlist, starts at first comma after parsing one var
+       ',' var {',' var} *)
     let rec varlist s vars =
         consume s
         let preexpr = prefixExpr s
 
-        match symbol s with
-        | S.Comma ->
+        if symbol s = S.Comma then
             match liftVarExpr preexpr with
             | Some var -> varlist s (var :: vars)
             | None     -> failparserUnexpected s S.Comma
-        | _ ->
+        else
             vars
 
     (* Parses either an assignment or a function call 
@@ -225,16 +344,21 @@ module Parser =
     (* Parses a statement (Left) or a last statement (Right) *)
     let statement s =
         match symbol s with
-        | S.Do       -> Left  <| do' s
-        | S.While    -> Left  <| while' s
-        | S.Repeat   -> Left  <| repeat s
-        | S.If       -> Left  <| if' s
-        | S.For      -> Left  <| for' s
+        // Statements
+        | S.Do -> Left  <| do' s
+        | S.While -> Left  <| while' s
+        | S.Repeat -> Left  <| repeat s
+        | S.If -> Left  <| if' s
+        | S.For -> Left  <| for' s
         | S.Function -> Left  <| function' s
-        | S.Local    -> Left  <| local s
-        | S.Return   -> Right <| exprlist s
-        | S.Break    -> Right <| Ast.Break 
-        | _          -> Left  <| assignOrFunccall s
+        | S.Local -> Left  <| local s
+        // Assignment or function call starts with terminals Name or '('
+        | S.Identifier | S.LeftParen -> Left  <| assignOrFunccall s
+        // Last statements
+        | S.Return -> Right <| (Ast.Return <| exprlist s)
+        | S.Break -> Right <| Ast.Break
+        // Unexpected
+        | sym -> failparserUnexpected s sym
 
     (* Parses a block
        {stat [';']} [laststat [';']] *)
