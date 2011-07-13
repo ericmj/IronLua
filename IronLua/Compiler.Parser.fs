@@ -8,6 +8,9 @@ module Parser =
     type S = Lexer.Symbol
     type UnaryOp = Ast.UnaryOp
     type BinaryOp = Ast.BinaryOp
+    type NumStyles = System.Globalization.NumberStyles
+
+    let cultureInfo = System.Globalization.CultureInfo("en-US")
 
     type State =
         val File : string
@@ -103,10 +106,18 @@ module Parser =
         | S.Star | S.Slash | S.Percent -> (7, 7)
         | S.Carrot -> (10, 9) // right assoc
         | _ -> (-1, -1)
-        
 
-    let parseNumber str =
-        failwith ""
+    // Tries to lift Ast.VarExpr from Ast.PrefixExpr
+    let liftVarExpr prefixexpr =
+        match prefixexpr with
+        | Ast.VarExpr var -> Some var
+        | _               -> None
+
+    // Tries to lift Ast.FuncCall from Ast.PrefixExpr
+    let liftFuncCall prefixexpr =
+        match prefixexpr with
+        | Ast.FuncCall funccall -> Some funccall
+        | _                     -> None
 
     let unaryOp s =
         let sym = symbol s
@@ -138,17 +149,33 @@ module Parser =
         | S.Carrot       -> BinaryOp.Raise
         | _              -> Unchecked.defaultof<BinaryOp>
 
-    // Tries to lift Ast.VarExpr from Ast.PrefixExpr
-    let liftVarExpr prefixexpr =
-        match prefixexpr with
-        | Ast.VarExpr var -> Some var
-        | _               -> None
+    let hexNumber (str: string) =
+        let styles = NumStyles.AllowHexSpecifier
+        let expIndex = str.IndexOfAny([|'p'; 'P'|])
+        let decimal, exp =
+            if expIndex = -1 then
+                System.UInt64.Parse(str, styles, cultureInfo), 0UL
+            else
+                let decimalPart, expPart = str.Substring(0, expIndex), str.Substring(expIndex+1)
+                System.UInt64.Parse(decimalPart, styles, cultureInfo),
+                System.UInt64.Parse(expPart, styles, cultureInfo)
 
-    // Tries to lift Ast.FuncCall from Ast.PrefixExpr
-    let liftFuncCall prefixexpr =
-        match prefixexpr with
-        | Ast.FuncCall funccall -> Some funccall
-        | _                     -> None
+        float decimal * 2.0 ** float exp
+
+    let decimalNumber str =
+        let styles = NumStyles.AllowDecimalPoint
+                 ||| NumStyles.AllowExponent
+                 ||| NumStyles.AllowTrailingSign
+        System.Double.Parse(str, styles, cultureInfo)
+
+    let number s =
+        let str = consumeValue s
+        let num =
+            if str.StartsWith("0x")  then
+                hexNumber (str.Substring(2))
+            else    
+                decimalNumber str
+        num |> Ast.Number
 
     let do' s =
         failwith ""
@@ -191,7 +218,7 @@ module Parser =
                 consume s
                 Ast.Boolean true
             | S.Number ->
-                 consumeValue s |> parseNumber |> Ast.Number
+                 number s
             | S.String ->
                 Ast.String (consumeValue s)
             | S.DotDotDot ->

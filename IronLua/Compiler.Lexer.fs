@@ -57,12 +57,11 @@ module Lexer =
 
         // Literals
         | Number        = 47
-        | HexNumber     = 48
-        | String        = 49
-        | Identifier    = 50
+        | String        = 48
+        | Identifier    = 49
 
         // Markers
-        | EOF           = 51
+        | EOF           = 50
 
     let keywords =
         [
@@ -373,12 +372,12 @@ module Lexer =
                 match current s with
                 | 'p' | 'P' ->
                     bufferExponent s
-                    outputBuffer s Symbol.HexNumber
+                    outputBuffer s Symbol.Number
                 | c when isHex c ->
                     current s |> bufferAppend s
                     numericHexLiteral()
                 | _ ->
-                    outputBuffer s Symbol.HexNumber
+                    outputBuffer s Symbol.Number
 
         numericHexLiteral()
 
@@ -557,7 +556,7 @@ module Lexer =
                 | '0' when canPeek s && (peek s = 'X' || peek s = 'x') ->
                     numericHexLiteral s
                 // Numeric
-                | c when isDecimal c ->
+                | c when isDecimal c || (c = '.' && (canPeek s && isDecimal (peek s))) ->
                     numericLiteral s
 
                 // Identifier or keyword
