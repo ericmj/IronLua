@@ -34,7 +34,7 @@ module Ast =
         | While of Expr * Block
         | Repeat of Block * Expr
         | If of Expr * Block * (Expr * Block) list * Block option  
-        | For of Name * Expr * Expr * Expr list * Block
+        | For of Name * Expr * Expr * Expr option * Block
         | ForIn of Name list * Expr list * Block
         | Func of FuncName * FuncBody
         | LocalFunc of Name * FuncBody

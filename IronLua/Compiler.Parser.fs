@@ -243,8 +243,47 @@ module Parser =
 
         Ast.If (test, block', elifs, elseBlock)
 
+    (* Parses a namelist
+       {',' name} *)
+    and namelist s =
+        let rec namelist names =
+            if symbol s = S.Comma then
+                consume s
+                namelist (consumeValue s :: names)
+            else
+                names
+        List.rev (namelist [])
+
     and for' s =
-        failwith ""
+        let for' name = 
+            consume s
+            let expr1 = expr s
+            expect s S.Comma
+            let expr2 = expr s
+            let expr3 =
+                match symbol s with
+                | S.Comma -> consume s; Some(expr s)
+                | _       -> None
+            expect s S.Do
+            let block' = block s
+            expect s S.End
+            Ast.For (name, expr1, expr2, expr3, block')
+
+        let forin name =
+            let names = (name :: namelist s)
+            expect s S.In
+            let exprs = exprlist s
+            expect s S.Do
+            let block' = block s
+            expect s S.End
+            Ast.ForIn (names, exprs, block')
+
+        expect s S.For
+        let name = expectValue s S.Identifier
+        match symbol s with
+        | S.Equal        -> for' name
+        | S.Comma | S.In -> forin name
+        | sym            -> failparserUnexpected s sym
 
     and function' s =
         failwith ""
