@@ -39,10 +39,6 @@ module Parser =
         let (sym, _, _, _) = s.Lexeme
         sym
 
-    let inline value (s:State) =
-        let (_, data, _, _) = s.Lexeme
-        data
-
     let inline peekSymbol (s:State) =
         let (symbol, _, _, _) =
             match s.NextLexeme with
@@ -71,12 +67,15 @@ module Parser =
         if sym2 <> sym then
             failparserExpected s sym2 sym
 
-    // NOTE: On second thought this shouldn't really be used
-    //       value s/consume s conveys what's happening better
-    let consumeValue s =
-        let val' = value s
+    let inline consumeValue (s:State) =
+        let (_, value, _, _) = s.Lexeme
         consume s
-        val'
+        value
+
+    let inline internal expectValue (s:State) sym =
+        let (_, value, _, _) = s.Lexeme
+        expect s sym
+        value
 
 
     let isUnaryOp sym =
@@ -187,7 +186,7 @@ module Parser =
 
 
     let number s =
-        let str = consumeValue s
+        let str = expectValue s S.Number
         let num =
             if str.StartsWith("0x")  then
                 hexNumber (str.Substring(2))
@@ -376,12 +375,12 @@ module Parser =
                 entry
             | S.Dot ->
                 consume s
-                Ast.TableDot (leftAst, consumeValue s) |> Ast.VarExpr |> prefixExpr
+                Ast.TableDot (leftAst, expectValue s S.Identifier) |> Ast.VarExpr |> prefixExpr
 
             // Function call
             | S.Colon ->
                 consume s
-                Ast.FuncCallObject (leftAst, consumeValue s, args s) |> Ast.FuncCall |> prefixExpr
+                Ast.FuncCallObject (leftAst, expectValue s S.Identifier, args s) |> Ast.FuncCall |> prefixExpr
             // Args
             | S.LeftParen | S.LeftBrack | S.String ->
                 Ast.FuncCallNormal (leftAst, args s) |> Ast.FuncCall |> prefixExpr
