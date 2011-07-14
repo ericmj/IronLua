@@ -107,6 +107,12 @@ module Parser =
         | S.Carrot -> (10, 9) // right assoc
         | _ -> (-1, -1)
 
+    // Helpers for binary op priority
+    let leftBinaryPrio s =
+        symbol s |> binaryOpPriority |> fst
+    let rightBinaryPrio s =
+        symbol s |> binaryOpPriority |> snd
+
     // Tries to lift Ast.VarExpr from Ast.PrefixExpr
     let liftVarExpr prefixexpr =
         match prefixexpr with
@@ -167,6 +173,7 @@ module Parser =
                  ||| NumStyles.AllowExponent
                  ||| NumStyles.AllowTrailingSign
         System.Double.Parse(str, styles, cultureInfo)
+
 
     let number s =
         let str = consumeValue s
@@ -229,16 +236,19 @@ module Parser =
             | S.Identifier | S.LeftParen ->
                 Ast.PrefixExpr (prefixExpr s)
             | sym when isUnaryOp sym ->
-                Ast.UnaryOp (unaryOp s, binaryExpr (simpleExpr()) unaryOpPriority)
+                let op = unaryOp s
+                let expr = binaryExpr (simpleExpr()) unaryOpPriority
+                Ast.UnaryOp (op, expr)
             | sym ->
                 failparserUnexpected s sym
 
         // Recurse while we have higher binding
         and binaryExpr left limit =
-            if isBinaryOp (symbol s) && (symbol s |> binaryOpPriority |> fst  > limit) then
-                let prio = snd (binaryOpPriority (symbol s))
+            if isBinaryOp (symbol s) && (leftBinaryPrio s > limit) then
+                let prio = rightBinaryPrio s
                 let op = binaryOp s
-                Ast.BinaryOp (left, op, binaryExpr (simpleExpr()) prio)
+                let right = binaryExpr (simpleExpr()) prio
+                Ast.BinaryOp (left, op, right)
             else
                 left
         
@@ -304,7 +314,7 @@ module Parser =
                 exprlist (expr s :: exprs)
             else
                 exprs
-        exprlist [expr s]
+        List.rev (exprlist [expr s])
 
     (* Parses args
        '(' [explist] ')' | '{' [fieldlist] '}' | String *)
@@ -336,7 +346,7 @@ module Parser =
             | Some var -> varlist s (var :: vars)
             | None     -> failparserUnexpected s S.Comma
         else
-            vars
+            List.rev vars
 
     (* Parses either an assignment or a function call 
        var {',' var} '=' expr {',' expr} |
@@ -392,7 +402,7 @@ module Parser =
     let block s =
         let rec block statements =
             if symbol s = S.EOF then
-                (statements, None)
+                (List.rev statements, None)
             else
                 match statement s with
                 // Statement
@@ -403,7 +413,7 @@ module Parser =
                 | Right lastStat ->
                     tryConsume s S.SemiColon
                     expect s S.EOF
-                    (statements, Some lastStat)
+                    (List.rev statements, Some lastStat)
 
         block []
                 
