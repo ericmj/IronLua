@@ -60,7 +60,7 @@ module Ast =
         | VarArgs
         | FuncExpr of FuncBody
         | PrefixExpr of PrefixExpr
-        | TableConstructor of Field * Field list
+        | TableConstr of Field list
         | BinaryOp of Expr * BinaryOp * Expr
         | UnaryOp of UnaryOp * Expr
     
@@ -83,6 +83,6 @@ module Ast =
     and ParamList = Name list * bool // varargs
 
     and Field
-        = FieldExpr of Expr * Expr
-        | FieldName of Name * Expr
-        | FieldOnly of Expr
+        = FieldExprAssign of Expr * Expr
+        | FieldNameAssign of Name * Expr
+        | FieldExpr of Expr

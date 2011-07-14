@@ -124,6 +124,18 @@ module Parser =
         match prefixexpr with
         | Ast.FuncCall funccall -> Some funccall
         | _                     -> None
+        
+    // Tries to lift Ast.Name from Ast.Expr
+    let liftName expr =
+        let liftName var =
+            match var with
+            | Some (Ast.Name name) -> Some name
+            | _ -> None
+
+        match expr with
+        | Ast.PrefixExpr prefixexpr ->
+            prefixexpr |> liftVarExpr |> liftName
+        | _ -> None
 
     let unaryOp s =
         let sym = symbol s
@@ -205,13 +217,60 @@ module Parser =
     let local s =
         failwith ""
 
-    let tableconstr s =
-        failwith ""
+    (* Parses a field
+       '[' expr ']' '=' expr | Name '=' expr | expr *)
+    let rec field s =
+        match symbol s with
+        | S.LeftBrack ->
+            consume s
+            let index = expr s
+            expect s S.RightBrack
+            expect s S.Equal
+            let value = expr s
+            Ast.FieldExprAssign (index, value)
+        | _ ->
+            let exp = expr s
+            // If '=' is found, exp should be a Name
+            if symbol s = S.Equal then
+                consume s
+                match liftName exp with
+                | Some name -> Ast.FieldNameAssign (name, expr s)
+                | None      -> failparserUnexpected s S.Equal
+            else
+                Ast.FieldExpr exp
+
+    (* Parses a tableconstr
+       [field {fieldsep field} [fieldsep]] *)
+    and fieldlist s =
+        let rec fieldlist fields =
+            // We know fieldlist is inside a tableconstr which ends with a '}'
+            if symbol s = S.RightBrace then
+                fields
+            else
+                let fields' = (field s :: fields)
+                match symbol s with
+                | S.Comma | S.SemiColon ->
+                    consume s
+                    fieldlist fields'
+                | S.RightBrace ->
+                    fields'
+                | sym ->
+                    failparserUnexpected s sym
+
+        List.rev (fieldlist [])
+
+    (* Parses a tableconstr
+       '{' fieldlist '}' *)
+    and tableconstr s =
+        consume s
+        let fields = fieldlist s
+        expect s S.RightBrace 
+        fields
 
     (* Parses an expr
        nil | false | true | Number | String | '...' | function |
        prefixexp | tableconstr | expr binaryop expr | unaryop expr *)
-    let rec expr s =
+    and expr s =
         // Terminals
         let rec simpleExpr () =
             match symbol s with
@@ -235,6 +294,8 @@ module Parser =
                 Ast.FuncExpr (function' s)
             | S.Identifier | S.LeftParen ->
                 Ast.PrefixExpr (prefixExpr s)
+            | S.LeftBrace ->
+                Ast.TableConstr (tableconstr s)
             | sym when isUnaryOp sym ->
                 let op = unaryOp s
                 let expr = binaryExpr (simpleExpr()) unaryOpPriority
@@ -317,7 +378,7 @@ module Parser =
         List.rev (exprlist [expr s])
 
     (* Parses args
-       '(' [explist] ')' | '{' [fieldlist] '}' | String *)
+       '(' [explist] ')' | tableconstr | String *)
     and args s =
         match symbol s with
         | S.LeftParen ->
@@ -326,10 +387,7 @@ module Parser =
             expect s S.RightParen
             exprs
         | S.LeftBrace ->
-            consume s
-            let table = tableconstr s |> Ast.ArgsTable
-            expect s S.RightBrack
-            table
+            tableconstr s |> Ast.ArgsTable
         | S.String ->
             consumeValue s |> Ast.ArgString
         | sym ->
