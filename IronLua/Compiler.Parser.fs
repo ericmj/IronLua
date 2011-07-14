@@ -1,7 +1,6 @@
 ﻿namespace IronLua.Compiler
 
 open IronLua.Error
-open IronLua.Utils
 
 // TODO: Fix access control
 module Parser =
@@ -198,7 +197,7 @@ module Parser =
 
     let rec do' s =
         expect s S.Do
-        let block' = block s S.End
+        let block' = block s
         expect s S.End
         Ast.Do block'
 
@@ -206,13 +205,13 @@ module Parser =
         expect s S.While
         let test = expr s
         expect s S.Do
-        let block' = block s S.End
+        let block' = block s
         expect s S.End
         Ast.While (test, block')
 
     and repeat s =
         expect s S.Repeat
-        let block' = block s S.Until
+        let block' = block s
         expect s S.Until
         let test = expr s
         Ast.Repeat (block', test)
@@ -447,49 +446,39 @@ module Parser =
             match liftFuncCall preexpr with
             | Some funcCall -> Ast.StatFuncCall funcCall
             | None          -> failparserUnexpected s sym
-            
-    (* Parses a statement (Left) or a last statement (Right) *)
-    and statement s =
-        match symbol s with
-        // Statements
-        | S.Do -> Left  <| do' s
-        | S.While -> Left  <| while' s
-        | S.Repeat -> Left  <| repeat s
-        | S.If -> Left  <| if' s
-        | S.For -> Left  <| for' s
-        | S.Function -> Left  <| function' s
-        | S.Local -> Left  <| local s
-        // Assignment or function call starts with terminals Name or '('
-        | S.Identifier | S.LeftParen -> Left  <| assignOrFunccall s
-        // Last statements
-        | S.Return -> Right <| (Ast.Return <| exprlist s)
-        | S.Break -> Right <| Ast.Break
-        // Unexpected
-        | sym -> failparserUnexpected s sym
 
     (* Parses a block
-       {stat [';']} [laststat [';']] *)
-    and block s endSymbol =
-        let rec block statements =
-            if symbol s = endSymbol then
-                (List.rev statements, None)
-            else
-                match statement s with
-                // Statement
-                | Left stat ->
-                    tryConsume s S.SemiColon
-                    block (stat :: statements)
-                // Last statement
-                | Right lastStat ->
-                    tryConsume s S.SemiColon
-                    expect s endSymbol
-                    (List.rev statements, Some lastStat)
+       {statement [';']} [laststatement [';']] *)
+    and block s =
+        let rec statements stats =
+            // Watch out for raptors while editing this try/finally
+            try
+                match symbol s with
+                // Statements
+                | S.Do -> statements (do' s :: stats)
+                | S.While -> statements (while' s :: stats)
+                | S.Repeat -> statements (repeat s :: stats)
+                | S.If -> statements (if' s :: stats)
+                | S.For -> statements (for' s :: stats)
+                | S.Function -> statements (function' s :: stats)
+                | S.Local -> statements (local s :: stats)
+                // Assignment or function call starts with terminals Name or '('
+                | S.Identifier | S.LeftParen -> statements (assignOrFunccall s :: stats)
+                // Last statements
+                | S.Return -> (stats, exprlist s |> Ast.Return |> Some)
+                | S.Break -> (stats, Some Ast.Break)
+                // Unexpected
+                | sym -> (stats, None)
+            finally
+                 tryConsume s S.SemiColon
 
-        block []
+        statements []
                 
 
     let parse source : Ast.Block =
         let lexer = Lexer.create source
         let s = State(lexer)
         consume s
-        block s S.EOF
+        let block' = block s
+        expect s S.EOF
+        block'
