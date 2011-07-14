@@ -535,7 +535,7 @@ module Lexer =
                 | '\'' | '"' ->
                     stringLiteral s (current s)
                 // Long string
-                | '[' ->
+                | '[' when canPeek s && (peek s = '[' || peek s = '=') ->
                     longStringLiteral s
 
                 // Comment or minus
