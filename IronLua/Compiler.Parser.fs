@@ -100,7 +100,7 @@ module Parser =
         | S.Or -> (1, 1)
         | S.And -> (2, 2)
         | S.Less | S.Greater | S.LessEqual | S.GreaterEqual
-        | S.TildeEqual | S.Equal -> (3, 3)
+        | S.TildeEqual | S.EqualEqual -> (3, 3)
         | S.DotDot -> (5, 4) // right assoc
         | S.Plus | S.Minus -> (6, 6)
         | S.Star | S.Slash | S.Percent -> (7, 7)
@@ -157,7 +157,7 @@ module Parser =
         | S.LessEqual    -> BinaryOp.LessEqual
         | S.GreaterEqual -> BinaryOp.GreaterEqual
         | S.TildeEqual   -> BinaryOp.NotEqual
-        | S.Equal        -> BinaryOp.Equal
+        | S.EqualEqual   -> BinaryOp.EqualEqual
         | S.DotDot       -> BinaryOp.Concat
         | S.Plus         -> BinaryOp.Add
         | S.Minus        -> BinaryOp.Subtract
@@ -197,13 +197,25 @@ module Parser =
         num |> Ast.Number
 
     let rec do' s =
-        failwith ""
+        expect s S.Do
+        let block' = block s S.End
+        expect s S.End
+        Ast.Do block'
 
     and while' s =
-        failwith ""
+        expect s S.While
+        let test = expr s
+        expect s S.Do
+        let block' = block s S.End
+        expect s S.End
+        Ast.While (test, block')
 
     and repeat s =
-        failwith ""
+        expect s S.Repeat
+        let block' = block s S.Until
+        expect s S.Until
+        let test = expr s
+        Ast.Repeat (block', test)
 
     and if' s =
         failwith ""
@@ -457,9 +469,9 @@ module Parser =
 
     (* Parses a block
        {stat [';']} [laststat [';']] *)
-    and block s =
+    and block s endSymbol =
         let rec block statements =
-            if symbol s = S.EOF then
+            if symbol s = endSymbol then
                 (List.rev statements, None)
             else
                 match statement s with
@@ -470,7 +482,7 @@ module Parser =
                 // Last statement
                 | Right lastStat ->
                     tryConsume s S.SemiColon
-                    expect s S.EOF
+                    expect s endSymbol
                     (List.rev statements, Some lastStat)
 
         block []
@@ -480,4 +492,4 @@ module Parser =
         let lexer = Lexer.create source
         let s = State(lexer)
         consume s
-        block s
+        block s S.EOF
