@@ -217,7 +217,32 @@ module Parser =
         Ast.Repeat (block', test)
 
     and if' s =
-        failwith ""
+        let rec elseifs elifs =
+            if symbol s = S.Elseif then
+                consume s
+                let test = expr s
+                expect s S.Then
+                let block' = block s
+                elseifs ((test, block') :: elifs)
+            else
+                elifs
+
+        let else' () =
+            if symbol s = S.Else then
+                consume s
+                Some (block s)
+            else
+                None
+
+        expect s S.If
+        let test = expr s
+        expect s S.Then
+        let block' = block s 
+        let elifs = List.rev (elseifs [])
+        let elseBlock = else'()
+        expect s S.End
+
+        Ast.If (test, block', elifs, elseBlock)
 
     and for' s =
         failwith ""
