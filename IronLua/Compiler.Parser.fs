@@ -196,30 +196,30 @@ module Parser =
                 decimalNumber str
         num |> Ast.Number
 
-    let do' s =
+    let rec do' s =
         failwith ""
 
-    let while' s =
+    and while' s =
         failwith ""
 
-    let repeat s =
+    and repeat s =
         failwith ""
 
-    let if' s =
+    and if' s =
         failwith ""
 
-    let for' s =
+    and for' s =
         failwith ""
 
-    let function' s =
+    and function' s =
         failwith ""
 
-    let local s =
+    and local s =
         failwith ""
 
     (* Parses a field
        '[' expr ']' '=' expr | Name '=' expr | expr *)
-    let rec field s =
+    and field s =
         match symbol s with
         | S.LeftBrack ->
             consume s
@@ -395,7 +395,7 @@ module Parser =
 
     (* Parses a varlist, starts at first comma after parsing one var
        ',' var {',' var} *)
-    let rec varlist s vars =
+    and varlist s vars =
         consume s
         let preexpr = prefixExpr s
 
@@ -409,7 +409,7 @@ module Parser =
     (* Parses either an assignment or a function call 
        var {',' var} '=' expr {',' expr} |
        functioncall *)
-    let assignOrFunccall s =
+    and assignOrFunccall s =
         let preexpr = prefixExpr s
 
         match symbol s with
@@ -437,7 +437,7 @@ module Parser =
             | None          -> failparserUnexpected s sym
             
     (* Parses a statement (Left) or a last statement (Right) *)
-    let statement s =
+    and statement s =
         match symbol s with
         // Statements
         | S.Do -> Left  <| do' s
@@ -457,7 +457,7 @@ module Parser =
 
     (* Parses a block
        {stat [';']} [laststat [';']] *)
-    let block s =
+    and block s =
         let rec block statements =
             if symbol s = S.EOF then
                 (List.rev statements, None)
