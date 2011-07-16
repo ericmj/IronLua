@@ -480,9 +480,9 @@ module Lexer =
                 advance s
                 if current s = '.'
                     then Symbol.DotDotDot
-                    else Symbol.DotDot
+                    else back s; Symbol.DotDot
             else
-                Symbol.Dot
+                back s; Symbol.Dot
 
         | '~' ->
             advance s
