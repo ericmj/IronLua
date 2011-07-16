@@ -44,8 +44,7 @@ module Ast =
         = Return of Expr list
         | Break
 
-    and FuncName
-        = FuncName of Name * Name list * Name
+    and FuncName = Name list * Name option
 
     and Var
         = Name of Name

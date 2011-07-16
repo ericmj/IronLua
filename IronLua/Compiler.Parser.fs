@@ -63,9 +63,9 @@ module Parser =
 
     let inline internal expect (s:State) sym =
         let sym2 = symbol s
-        consume s
-        if sym2 <> sym then
-            failparserExpected s sym2 sym
+        if sym2 = sym
+            then consume s
+            else failparserExpected s sym2 sym
 
     let inline consumeValue (s:State) =
         let (_, value, _, _) = s.Lexeme
@@ -244,15 +244,17 @@ module Parser =
         Ast.If (test, block', elifs, elseBlock)
 
     (* Parses a namelist
-       {',' name} *)
-    and namelist s =
+       name {sep name} *)
+    and namelist s sep =
         let rec namelist names =
-            if symbol s = S.Comma then
+            if symbol s = sep then
                 consume s
-                namelist (consumeValue s :: names)
+                if symbol s = S.Identifier
+                    then namelist (consumeValue s :: names)
+                    else names
             else
                 names
-        List.rev (namelist [])
+        List.rev (namelist [expectValue s S.Identifier])
 
     and for' s =
         let for' name = 
@@ -270,7 +272,7 @@ module Parser =
             Ast.For (name, expr1, expr2, expr3, block')
 
         let forin name =
-            let names = (name :: namelist s)
+            let names = namelist s S.Comma
             expect s S.In
             let exprs = exprlist s
             expect s S.Do
@@ -285,8 +287,44 @@ module Parser =
         | S.Comma | S.In -> forin name
         | sym            -> failparserUnexpected s sym
 
+    and funcname s =
+        let names = namelist s S.Dot
+        let name3 =
+            match symbol s with
+            | S.Colon -> consume s; Some (expectValue s S.Identifier)
+            | _       -> None
+
+        (names, name3)
+
+    and parlist s =
+        let rec parlist names =
+            if symbol s = S.Comma then
+                consume s
+                match symbol s with
+                | S.Identifier -> parlist (consumeValue s :: names)
+                | S.DotDotDot  -> consume s; (List.rev names, true)
+                | sym          -> failparserUnexpected s sym
+            else
+                (List.rev names, false)
+
+        match symbol s with
+        | S.DotDotDot -> ([], true)
+        | _           -> parlist [expectValue s S.Identifier]
+
+    and funcbody s =
+        expect s S.LeftParen
+        let parlist' =
+            match symbol s with
+            | S.RightParen -> ([], false)
+            | _            -> parlist s
+        expect s S.RightParen
+        let block' = block s
+        expect s S.End
+        (parlist', block')
+
     and function' s =
-        failwith ""
+        expect s S.Function
+        Ast.Func (funcname s, funcbody s)
 
     and local s =
         failwith ""
@@ -365,7 +403,8 @@ module Parser =
                 consume s
                 Ast.VarArgs
             | S.Function ->
-                Ast.FuncExpr (function' s)
+                consume s
+                Ast.FuncExpr (funcbody s)
             | S.Identifier | S.LeftParen ->
                 Ast.PrefixExpr (prefixExpr s)
             | S.LeftBrace ->
