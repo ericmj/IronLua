@@ -327,7 +327,22 @@ module Parser =
         Ast.Func (funcname s, funcbody s)
 
     and local s =
-        failwith ""
+        expect s S.Local
+        match symbol s with
+        | S.Function ->
+            consume s
+            let name = expectValue s S.Identifier
+            let funcbody' = funcbody s
+            Ast.LocalFunc (name, funcbody')
+        | S.Identifier ->
+            let names = namelist s S.Comma
+            let exprs =
+                match symbol s with
+                | S.Equal -> consume s; exprlist s
+                | _       -> []
+            Ast.LocalAssign(names, exprs)
+        | sym ->
+            failparserUnexpected s sym
 
     (* Parses a field
        '[' expr ']' '=' expr | Name '=' expr | expr *)
