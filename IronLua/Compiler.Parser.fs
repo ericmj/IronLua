@@ -2,8 +2,8 @@
 
 open IronLua.Error
 
-// TODO: Fix access control
-module Parser =
+// TODO: Move stuff out of the let rec .. and kerfuffle that doesn't need to be there
+module internal Parser =
     type S = Lexer.Symbol
     type UnaryOp = Ast.UnaryOp
     type BinaryOp = Ast.BinaryOp
@@ -11,130 +11,160 @@ module Parser =
 
     let cultureInfo = System.Globalization.CultureInfo("en-US")
 
-    type State =
-        val File : string
-        val Lexer : unit -> Lexer.Lexeme
-        val mutable Lexeme : Lexer.Lexeme
-        val mutable NextLexeme : Lexer.Lexeme option
 
-        new(lexer) = {
-            File = "<unknown>"
-            Lexer = lexer
-            Lexeme = Unchecked.defaultof<Lexer.Lexeme>
-            NextLexeme = None
-        }
+    module State =
+        type State =
+            val File : string
+            val Lexer : unit -> Lexer.Lexeme
+            val mutable Lexeme : Lexer.Lexeme
+            val mutable NextLexeme : Lexer.Lexeme option
 
-    let inline failparser (s:State) msg =
-        let (_, _, line, column) = s.Lexeme
-        raise <| CompileError(s.File, (line, column), msg)
+            new(lexer) = {
+                File = "<unknown>"
+                Lexer = lexer
+                Lexeme = Unchecked.defaultof<Lexer.Lexeme>
+                NextLexeme = None
+            }
 
-    let inline internal failparserExpected (s:State) sym1 sym2 =
-        let msg = Message.expectedSymbol (Lexer.prettySymbol sym1) (Lexer.prettySymbol sym2)
-        failparser s msg
+        let inline failparser (s:State) msg =
+            let (_, _, line, column) = s.Lexeme
+            raise <| CompileError(s.File, (line, column), msg)
 
-    let inline internal failparserUnexpected (s:State) sym =
-        Lexer.prettySymbol sym |> Message.unexpectedSymbol |> failparser s
+        let inline failparserExpected (s:State) sym1 sym2 =
+            let msg = Message.expectedSymbol (Lexer.prettySymbol sym1) (Lexer.prettySymbol sym2)
+            failparser s msg
+
+        let inline failparserUnexpected (s:State) sym =
+            Lexer.prettySymbol sym |> Message.unexpectedSymbol |> failparser s
     
-    let inline symbol (s:State) =
-        let (sym, _, _, _) = s.Lexeme
-        sym
+        let inline symbol (s:State) =
+            let (sym, _, _, _) = s.Lexeme
+            sym
 
-    let inline peekSymbol (s:State) =
-        let (symbol, _, _, _) =
+        let inline peekSymbol (s:State) =
+            let (symbol, _, _, _) =
+                match s.NextLexeme with
+                | Some lexeme ->
+                    lexeme
+                | None ->
+                    s.NextLexeme <- Some <| s.Lexer()
+                    s.NextLexeme.Value
+            symbol
+
+        let inline consume (s:State) =
             match s.NextLexeme with
             | Some lexeme ->
-                lexeme
+                s.Lexeme <- lexeme
+                s.NextLexeme <- None
             | None ->
-                s.NextLexeme <- Some <| s.Lexer()
-                s.NextLexeme.Value
-        symbol
+                s.Lexeme <- s.Lexer()
 
-    let inline consume (s:State) =
-        match s.NextLexeme with
-        | Some lexeme ->
-            s.Lexeme <- lexeme
-            s.NextLexeme <- None
-        | None ->
-            s.Lexeme <- s.Lexer()
+        let inline tryConsume (s:State) sym =
+            let tok = symbol s
+            if tok = sym then consume s
 
-    let inline tryConsume (s:State) sym =
-        let tok = symbol s
-        if tok = sym then consume s
+        let inline expect (s:State) sym =
+            let sym2 = symbol s
+            if sym2 = sym
+                then consume s
+                else failparserExpected s sym2 sym
 
-    let inline internal expect (s:State) sym =
-        let sym2 = symbol s
-        if sym2 = sym
-            then consume s
-            else failparserExpected s sym2 sym
+        let inline consumeValue (s:State) =
+            let (_, value, _, _) = s.Lexeme
+            consume s
+            value
 
-    let inline consumeValue (s:State) =
-        let (_, value, _, _) = s.Lexeme
-        consume s
-        value
-
-    let inline internal expectValue (s:State) sym =
-        let (_, value, _, _) = s.Lexeme
-        expect s sym
-        value
+        let inline expectValue (s:State) sym =
+            let (_, value, _, _) = s.Lexeme
+            expect s sym
+            value
 
 
-    let isUnaryOp sym =
-        match sym with
-        | S.Minus | S.Not | S.Hash -> true
-        | _ -> false
+    open State
 
-    let isBinaryOp sym =
-        match sym with
-        | S.Plus | S.Minus | S.Star | S.Slash | S.Carrot | S.Percent
-        | S.DotDot | S.Less | S.LessEqual | S.Greater | S.GreaterEqual
-        | S.EqualEqual | S.TildeEqual | S.And | S.Or -> true
-        | _ -> false
+    module Util =
+        let isUnaryOp sym =
+            match sym with
+            | S.Minus | S.Not | S.Hash -> true
+            | _ -> false
 
-    let unaryOpPriority =
-        8
+        let isBinaryOp sym =
+            match sym with
+            | S.Plus | S.Minus | S.Star | S.Slash | S.Carrot | S.Percent
+            | S.DotDot | S.Less | S.LessEqual | S.Greater | S.GreaterEqual
+            | S.EqualEqual | S.TildeEqual | S.And | S.Or -> true
+            | _ -> false
+
+        let unaryOpPriority =
+            8
     
-    let binaryOpPriority sym =
-        match sym with
-        | S.Or -> (1, 1)
-        | S.And -> (2, 2)
-        | S.Less | S.Greater | S.LessEqual | S.GreaterEqual
-        | S.TildeEqual | S.EqualEqual -> (3, 3)
-        | S.DotDot -> (5, 4) // right assoc
-        | S.Plus | S.Minus -> (6, 6)
-        | S.Star | S.Slash | S.Percent -> (7, 7)
-        | S.Carrot -> (10, 9) // right assoc
-        | _ -> (-1, -1)
+        let binaryOpPriority sym =
+            match sym with
+            | S.Or -> (1, 1)
+            | S.And -> (2, 2)
+            | S.Less | S.Greater | S.LessEqual | S.GreaterEqual
+            | S.TildeEqual | S.EqualEqual -> (3, 3)
+            | S.DotDot -> (5, 4) // right assoc
+            | S.Plus | S.Minus -> (6, 6)
+            | S.Star | S.Slash | S.Percent -> (7, 7)
+            | S.Carrot -> (10, 9) // right assoc
+            | _ -> (-1, -1)
 
-    // Helpers for binary op priority
-    let leftBinaryPrio s =
-        symbol s |> binaryOpPriority |> fst
-    let rightBinaryPrio s =
-        symbol s |> binaryOpPriority |> snd
+        // Helpers for binary op priority
+        let leftBinaryPrio s =
+            symbol s |> binaryOpPriority |> fst
+        let rightBinaryPrio s =
+            symbol s |> binaryOpPriority |> snd
 
-    // Tries to lift Ast.VarExpr from Ast.PrefixExpr
-    let liftVarExpr prefixexpr =
-        match prefixexpr with
-        | Ast.VarExpr var -> Some var
-        | _               -> None
+        // Tries to lift Ast.VarExpr from Ast.PrefixExpr
+        let liftVarExpr prefixexpr =
+            match prefixexpr with
+            | Ast.VarExpr var -> Some var
+            | _               -> None
 
-    // Tries to lift Ast.FuncCall from Ast.PrefixExpr
-    let liftFuncCall prefixexpr =
-        match prefixexpr with
-        | Ast.FuncCall funccall -> Some funccall
-        | _                     -> None
+        // Tries to lift Ast.FuncCall from Ast.PrefixExpr
+        let liftFuncCall prefixexpr =
+            match prefixexpr with
+            | Ast.FuncCall funccall -> Some funccall
+            | _                     -> None
         
-    // Tries to lift Ast.Name from Ast.Expr
-    let liftName expr =
-        let liftName var =
-            match var with
-            | Some (Ast.Name name) -> Some name
+        // Tries to lift Ast.Name from Ast.Expr
+        let liftName expr =
+            let liftName var =
+                match var with
+                | Some (Ast.Name name) -> Some name
+                | _ -> None
+
+            match expr with
+            | Ast.PrefixExpr prefixexpr ->
+                prefixexpr |> liftVarExpr |> liftName
             | _ -> None
 
-        match expr with
-        | Ast.PrefixExpr prefixexpr ->
-            prefixexpr |> liftVarExpr |> liftName
-        | _ -> None
+        // Parses a hexadecimal number, not including starting '0x'
+        let hexNumber (str: string) =
+            let styles = NumStyles.AllowHexSpecifier
 
+            // Split integer and exponent part and parse seperately
+            let expIndex = str.IndexOfAny([|'p'; 'P'|])
+            if expIndex = -1 then
+                float <| System.UInt64.Parse(str, styles, cultureInfo)
+            else
+                let decimalPart, expPart = str.Substring(0, expIndex), str.Substring(expIndex+1)
+                let decimal = float <| System.UInt64.Parse(decimalPart, styles, cultureInfo)
+                let exponent = float <| System.UInt64.Parse(expPart, styles, cultureInfo)
+                decimal * 2.0 ** exponent
+
+        // Parses decimal number, integer or floating point including exponent
+        let decimalNumber str =
+            let styles = NumStyles.AllowDecimalPoint
+                     ||| NumStyles.AllowExponent
+                     ||| NumStyles.AllowTrailingSign
+            System.Double.Parse(str, styles, cultureInfo)
+
+
+    open Util
+
+    (* Parses a unary operation *)
     let unaryOp s =
         let sym = symbol s
         consume s
@@ -144,6 +174,7 @@ module Parser =
         | S.Hash  -> UnaryOp.Length
         | _       -> Unchecked.defaultof<UnaryOp>
 
+    (* Parses a binary operation *)
     let binaryOp s =
         let sym = symbol s
         consume s
@@ -165,26 +196,7 @@ module Parser =
         | S.Carrot       -> BinaryOp.Raise
         | _              -> Unchecked.defaultof<BinaryOp>
 
-    let hexNumber (str: string) =
-        let styles = NumStyles.AllowHexSpecifier
-        let expIndex = str.IndexOfAny([|'p'; 'P'|])
-        let decimal, exp =
-            if expIndex = -1 then
-                System.UInt64.Parse(str, styles, cultureInfo), 0UL
-            else
-                let decimalPart, expPart = str.Substring(0, expIndex), str.Substring(expIndex+1)
-                System.UInt64.Parse(decimalPart, styles, cultureInfo),
-                System.UInt64.Parse(expPart, styles, cultureInfo)
-
-        float decimal * 2.0 ** float exp
-
-    let decimalNumber str =
-        let styles = NumStyles.AllowDecimalPoint
-                 ||| NumStyles.AllowExponent
-                 ||| NumStyles.AllowTrailingSign
-        System.Double.Parse(str, styles, cultureInfo)
-
-
+    (* Parses a number *)
     let number s =
         let str = expectValue s S.Number
         let num =
@@ -194,12 +206,29 @@ module Parser =
                 decimalNumber str
         num |> Ast.Number
 
+    (* Parses a namelist
+       Name {sep Name} *)
+    let namelist s sep =
+        let rec namelist names =
+            if symbol s = sep then
+                consume s
+                if symbol s = S.Identifier
+                    then namelist (consumeValue s :: names)
+                    else names
+            else
+                names
+        List.rev (namelist [expectValue s S.Identifier])
+
+    (* Parses a do statement
+       'do' block 'end' *)
     let rec do' s =
         expect s S.Do
         let block' = block s
         expect s S.End
         Ast.Do block'
 
+    (* Parses a while statement
+       'while' expr 'do' block 'end' *)
     and while' s =
         expect s S.While
         let test = expr s
@@ -208,6 +237,8 @@ module Parser =
         expect s S.End
         Ast.While (test, block')
 
+    (* Parses a repeat statement 
+       'repeat' block 'until' expr *)
     and repeat s =
         expect s S.Repeat
         let block' = block s
@@ -215,6 +246,8 @@ module Parser =
         let test = expr s
         Ast.Repeat (block', test)
 
+    (* Parses an if statement 
+       'if' expr 'then' block {'elseif' expr then 'block'} ['else' block] 'end' *)
     and if' s =
         let rec elseifs elifs =
             if symbol s = S.Elseif then
@@ -243,19 +276,9 @@ module Parser =
 
         Ast.If (test, block', elifs, elseBlock)
 
-    (* Parses a namelist
-       name {sep name} *)
-    and namelist s sep =
-        let rec namelist names =
-            if symbol s = sep then
-                consume s
-                if symbol s = S.Identifier
-                    then namelist (consumeValue s :: names)
-                    else names
-            else
-                names
-        List.rev (namelist [expectValue s S.Identifier])
-
+    (* Parses a for statement 
+       'for' name '=' expr ',' expr [',' expr] 'do' block 'end' |
+       'for' namelist 'in' exprlist 'do' block 'end' *)
     and for' s =
         let for' name = 
             consume s
@@ -287,6 +310,8 @@ module Parser =
         | S.Comma | S.In -> forin name
         | sym            -> failparserUnexpected s sym
 
+    (* Parses a funcname
+       Name {'.' Name} [':' Name] *)
     and funcname s =
         let names = namelist s S.Dot
         let name3 =
@@ -296,6 +321,8 @@ module Parser =
 
         (names, name3)
 
+    (* Parses a parlist
+       namelist [',' '...'] | '...' *)
     and parlist s =
         let rec parlist names =
             if symbol s = S.Comma then
@@ -311,6 +338,8 @@ module Parser =
         | S.DotDotDot -> ([], true)
         | _           -> parlist [expectValue s S.Identifier]
 
+    (* Parses a funcbody
+       '(' [exprlist] ')' block 'end' *)
     and funcbody s =
         expect s S.LeftParen
         let parlist' =
@@ -322,10 +351,15 @@ module Parser =
         expect s S.End
         (parlist', block')
 
+    (* Parses a function statement
+       'function' funcname funcbody *)
     and function' s =
         expect s S.Function
         Ast.Func (funcname s, funcbody s)
 
+    (* Parses a local statement
+       'local' 'function' name funcbody |
+       'local' namelist ['=' exprlist] *)
     and local s =
         expect s S.Local
         match symbol s with

@@ -2,7 +2,7 @@
 
 open IronLua.Error
 
-module Lexer =
+module internal Lexer =
     type Symbol =
         // Keywords
         | And           = 0
@@ -123,7 +123,7 @@ module Lexer =
          || c = '_'
 
 
-    module internal Input =
+    module Input =
         type State =
             val File : string
             val Source : string
