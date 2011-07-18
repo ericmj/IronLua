@@ -1,6 +1,6 @@
 ﻿namespace IronLua.Compiler
 
-module Ast =
+module internal Ast =
     type Name = string
 
     type BinaryOp =
