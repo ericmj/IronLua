@@ -2,14 +2,13 @@
 
 open IronLua.Error
 
-// TODO: Move stuff out of the let rec .. and kerfuffle that doesn't need to be there
 module internal Parser =
     type S = Lexer.Symbol
     type UnaryOp = Ast.UnaryOp
     type BinaryOp = Ast.BinaryOp
     type NumStyles = System.Globalization.NumberStyles
 
-    let cultureInfo = System.Globalization.CultureInfo("en-US")
+    let cultureInfo = System.Globalization.CultureInfo.InvariantCulture
 
 
     module State =
@@ -219,6 +218,34 @@ module internal Parser =
                 names
         List.rev (namelist [expectValue s S.Identifier])
 
+    (* Parses a funcname
+       Name {'.' Name} [':' Name] *)
+    let funcname s =
+        let names = namelist s S.Dot
+        let name3 =
+            match symbol s with
+            | S.Colon -> consume s; Some (expectValue s S.Identifier)
+            | _       -> None
+
+        (names, name3)
+
+    (* Parses a parlist
+       Name {',' Name} [',' '...'] | '...' *)
+    let parlist s =
+        let rec parlist names =
+            if symbol s = S.Comma then
+                consume s
+                match symbol s with
+                | S.Identifier -> parlist (consumeValue s :: names)
+                | S.DotDotDot  -> consume s; (List.rev names, true)
+                | sym          -> failparserUnexpected s sym
+            else
+                (List.rev names, false)
+
+        match symbol s with
+        | S.DotDotDot -> ([], true)
+        | _           -> parlist [expectValue s S.Identifier]
+
     (* Parses a do statement
        'do' block 'end' *)
     let rec do' s =
@@ -309,34 +336,6 @@ module internal Parser =
         | S.Equal        -> for' name
         | S.Comma | S.In -> forin name
         | sym            -> failparserUnexpected s sym
-
-    (* Parses a funcname
-       Name {'.' Name} [':' Name] *)
-    and funcname s =
-        let names = namelist s S.Dot
-        let name3 =
-            match symbol s with
-            | S.Colon -> consume s; Some (expectValue s S.Identifier)
-            | _       -> None
-
-        (names, name3)
-
-    (* Parses a parlist
-       namelist [',' '...'] | '...' *)
-    and parlist s =
-        let rec parlist names =
-            if symbol s = S.Comma then
-                consume s
-                match symbol s with
-                | S.Identifier -> parlist (consumeValue s :: names)
-                | S.DotDotDot  -> consume s; (List.rev names, true)
-                | sym          -> failparserUnexpected s sym
-            else
-                (List.rev names, false)
-
-        match symbol s with
-        | S.DotDotDot -> ([], true)
-        | _           -> parlist [expectValue s S.Identifier]
 
     (* Parses a funcbody
        '(' [exprlist] ')' block 'end' *)
