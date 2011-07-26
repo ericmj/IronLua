@@ -95,7 +95,7 @@ module internal Lexer =
         string symbol
 
 
-    module Char =
+    module private Char =
         let isDecimal c =
             c >= '0' && c <= '9'
 
@@ -123,7 +123,7 @@ module internal Lexer =
          || c = '_'
 
 
-    module Input =
+    module private Input =
         type State =
             val File : string
             val Source : string
@@ -219,300 +219,302 @@ module internal Lexer =
     open Input
     open Char
 
-    let inline private faillexer (s:State) msg =
-        raise <| CompileError(s.File, (s.Line, s.Column), msg)
+    module private Lexer = 
+        let inline faillexer (s:State) msg =
+            raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
-    // Counts ='s until endChar [ or ], return -1 if unknown char found
-    let rec private countEquals s endChar n =
-        match current s with
-        | '='                -> current s |> bufferAppend s
-                                advance s
-                                countEquals s endChar (n+1)
-        | c when c = endChar -> n
-        | c                  -> -1
-
-    // Parses a newline
-    let private nextLine s =
-        // Handle windows-style newline
-        if current s = '\r' && canPeek s && peek s = '\n' then
-            advance s
-        advance s
-        newline s
-
-    // Parses a numeric escape in a string, 
-    // such as \X \XX \XXX where X is a decimal number
-    let private bufferNumericEscape s =
-        let rec bufferNumericEscape value n =
-            if n >= 3 || (current s |> isDecimal |> not) then
-                value
-            else
-                let newValue = 10*value + int (current s) - int '0'
-                advance s
-                bufferNumericEscape newValue (n+1)
-        bufferNumericEscape 0 0 |> char |> bufferAppend s
-
-    // Parses a long string literal, such as [[bla bla]]
-    let private longStringLiteral s =
-        storePosition s
-        bufferClear s
-        advance s
-
-        let numEqualsStart = countEquals s '[' 0
-        if numEqualsStart = -1 then
-            faillexer s (Message.invalidLongStringDelimter (current s))
-
-        // Skip immediately following newline
-        match peek s with
-        | '\r' | '\n' -> nextLine s
-        | _           -> ()
-
-        let rec longStringLiteral () =
-            advance s
-            current s |> bufferAppend s
+        // Counts ='s until endChar [ or ], return -1 if unknown char found
+        let rec countEquals s endChar n =
             match current s with
-            | ']' ->
-                // Output string if matching ='s found
-                advance s
-                let numEqualsEnd = countEquals s ']' 0
+            | '='                -> current s |> bufferAppend s
+                                    advance s
+                                    countEquals s endChar (n+1)
+            | c when c = endChar -> n
+            | c                  -> -1
 
-                if numEqualsStart = numEqualsEnd then
-                    // Trim long string delimters
-                    numEqualsStart |> bufferRemoveStart s
-                    numEqualsEnd + 1 |> bufferRemoveEnd s
-                    advance s
-                    outputBuffer s Symbol.String
-                elif numEqualsEnd = -1 then
-                    current s |> bufferAppend s
-                    longStringLiteral()
+        // Parses a newline
+        let nextLine s =
+            // Handle windows-style newline
+            if current s = '\r' && canPeek s && peek s = '\n' then
+                advance s
+            advance s
+            newline s
+
+        // Parses a numeric escape in a string, 
+        // such as \X \XX \XXX where X is a decimal number
+        let bufferNumericEscape s =
+            let rec bufferNumericEscape value n =
+                if n >= 3 || (current s |> isDecimal |> not) then
+                    value
                 else
-                    // Parse ']' again because it can be the start of another long string delimeter
-                    back s
-                    longStringLiteral()
-            
-            | _ ->
-                longStringLiteral()
+                    let newValue = 10*value + int (current s) - int '0'
+                    advance s
+                    bufferNumericEscape newValue (n+1)
+            bufferNumericEscape 0 0 |> char |> bufferAppend s
 
-        longStringLiteral()
-
-    // Parses a string literal, such as "bla bla"
-    let private stringLiteral s endChar =
-        storePosition s
-        bufferClear s
-
-        let rec stringLiteral () =
+        // Parses a long string literal, such as [[bla bla]]
+        let longStringLiteral s =
+            storePosition s
+            bufferClear s
             advance s
-            match current s with
-            // Escape chars
-            | '\\' ->
+
+            let numEqualsStart = countEquals s '[' 0
+            if numEqualsStart = -1 then
+                faillexer s (Message.invalidLongStringDelimter (current s))
+
+            // Skip immediately following newline
+            match peek s with
+            | '\r' | '\n' -> nextLine s
+            | _           -> ()
+
+            let rec longStringLiteral () =
+                advance s
+                current s |> bufferAppend s
+                match current s with
+                | ']' ->
+                    // Output string if matching ='s found
+                    advance s
+                    let numEqualsEnd = countEquals s ']' 0
+
+                    if numEqualsStart = numEqualsEnd then
+                        // Trim long string delimters
+                        numEqualsStart |> bufferRemoveStart s
+                        numEqualsEnd + 1 |> bufferRemoveEnd s
+                        advance s
+                        outputBuffer s Symbol.String
+                    elif numEqualsEnd = -1 then
+                        current s |> bufferAppend s
+                        longStringLiteral()
+                    else
+                        // Parse ']' again because it can be the start of another long string delimeter
+                        back s
+                        longStringLiteral()
+            
+                | _ ->
+                    longStringLiteral()
+
+            longStringLiteral()
+
+        // Parses a string literal, such as "bla bla"
+        let stringLiteral s endChar =
+            storePosition s
+            bufferClear s
+
+            let rec stringLiteral () =
                 advance s
                 match current s with
-                | 'a'  -> '\a' |> bufferAppend s
-                | 'b'  -> '\b' |> bufferAppend s
-                | 'f'  -> '\f' |> bufferAppend s
-                | 'n'  -> '\n' |> bufferAppend s
-                | 'r'  -> '\r' |> bufferAppend s
-                | 't'  -> '\t' |> bufferAppend s
-                | 'v'  -> '\v' |> bufferAppend s
-                | '\"' -> '\"' |> bufferAppend s
-                | '\'' -> '\'' |> bufferAppend s
-                | '\\' -> '\\' |> bufferAppend s
-                | '\r' -> '\r' |> bufferAppend s; nextLine s
-                | '\n' -> '\n' |> bufferAppend s; nextLine s
-                | c when isDecimal c -> bufferNumericEscape s
-                // Lua manual says  ", ' and \ can be escaped outside of the above chars
-                // but Luac allows any char to be escaped
-                | c -> c |> bufferAppend s 
-                stringLiteral()
+                // Escape chars
+                | '\\' ->
+                    advance s
+                    match current s with
+                    | 'a'  -> '\a' |> bufferAppend s
+                    | 'b'  -> '\b' |> bufferAppend s
+                    | 'f'  -> '\f' |> bufferAppend s
+                    | 'n'  -> '\n' |> bufferAppend s
+                    | 'r'  -> '\r' |> bufferAppend s
+                    | 't'  -> '\t' |> bufferAppend s
+                    | 'v'  -> '\v' |> bufferAppend s
+                    | '\"' -> '\"' |> bufferAppend s
+                    | '\'' -> '\'' |> bufferAppend s
+                    | '\\' -> '\\' |> bufferAppend s
+                    | '\r' -> '\r' |> bufferAppend s; nextLine s
+                    | '\n' -> '\n' |> bufferAppend s; nextLine s
+                    | c when isDecimal c -> bufferNumericEscape s
+                    // Lua manual says  ", ' and \ can be escaped outside of the above chars
+                    // but Luac allows any char to be escaped
+                    | c -> c |> bufferAppend s 
+                    stringLiteral()
 
-            | '\r' | '\n' ->
-                faillexer s Message.unexpectedEOS
+                | '\r' | '\n' ->
+                    faillexer s Message.unexpectedEOS
                 
-            | c when c = endChar ->
-                skip s 2
-                outputBuffer s Symbol.String
+                | c when c = endChar ->
+                    skip s 2
+                    outputBuffer s Symbol.String
 
-            | c ->
-                bufferAppend s c
-                stringLiteral()
+                | c ->
+                    bufferAppend s c
+                    stringLiteral()
         
-        stringLiteral()
+            stringLiteral()
 
-    // Parses the exponent part of a numeric literal,
-    // such as e+5 p8 e2
-    let private bufferExponent s =
-        current s |> bufferAppend s
-        advance s
-
-        if canContinue s && (current s = '-' || current s = '+') then
+        // Parses the exponent part of a numeric literal,
+        // such as e+5 p8 e2
+        let bufferExponent s =
             current s |> bufferAppend s
             advance s
 
-        let rec bufferExponent () =
-            if canContinue s && current s |> isDecimal then
+            if canContinue s && (current s = '-' || current s = '+') then
                 current s |> bufferAppend s
                 advance s
-                bufferExponent()
-            else ()
 
-        bufferExponent()
-
-    // Parses a hex literal, such as 0xFF or 0x10p4
-    // Can be malformed, parser handles that
-    let private numericHexLiteral s =
-        storePosition s
-        bufferClear s
-        bufferAppendStr s "0x"
-        advance s
-
-        let rec numericHexLiteral () =
-            advance s
-            if not (canContinue s) then
-                outputBuffer s Symbol.Number
-            else
-                match current s with
-                | 'p' | 'P' ->
-                    bufferExponent s
-                    outputBuffer s Symbol.Number
-                | c when isHex c ->
+            let rec bufferExponent () =
+                if canContinue s && current s |> isDecimal then
                     current s |> bufferAppend s
-                    numericHexLiteral()
-                | _ ->
-                    outputBuffer s Symbol.Number
+                    advance s
+                    bufferExponent()
+                else ()
 
-        numericHexLiteral()
+            bufferExponent()
 
-    let private numericLiteral s =
-        storePosition s
-        bufferClear s
-        current s |> bufferAppend s
-
-        let rec numericLiteral () =
+        // Parses a hex literal, such as 0xFF or 0x10p4
+        // Can be malformed, parser handles that
+        let numericHexLiteral s =
+            storePosition s
+            bufferClear s
+            bufferAppendStr s "0x"
             advance s
-            if not (canContinue s) then
-                outputBuffer s Symbol.Number
-            else
+
+            let rec numericHexLiteral () =
+                advance s
+                if not (canContinue s) then
+                    outputBuffer s Symbol.Number
+                else
+                    match current s with
+                    | 'p' | 'P' ->
+                        bufferExponent s
+                        outputBuffer s Symbol.Number
+                    | c when isHex c ->
+                        current s |> bufferAppend s
+                        numericHexLiteral()
+                    | _ ->
+                        outputBuffer s Symbol.Number
+
+            numericHexLiteral()
+
+        let numericLiteral s =
+            storePosition s
+            bufferClear s
+            current s |> bufferAppend s
+
+            let rec numericLiteral () =
+                advance s
+                if not (canContinue s) then
+                    outputBuffer s Symbol.Number
+                else
+                    match current s with
+                    | 'e' | 'E' ->
+                        bufferExponent s
+                        outputBuffer s Symbol.Number
+                    | c when isDecimal c || c = '.' ->
+                        current s |> bufferAppend s
+                        numericLiteral()
+                    | _ ->
+                        outputBuffer s Symbol.Number
+
+            numericLiteral()
+
+        // Short comment, such as --bla bla bla
+        let shortComment s =
+            let rec shortComment () =
+                advance s
                 match current s with
-                | 'e' | 'E' ->
-                    bufferExponent s
-                    outputBuffer s Symbol.Number
-                | c when isDecimal c || c = '.' ->
-                    current s |> bufferAppend s
-                    numericLiteral()
-                | _ ->
-                    outputBuffer s Symbol.Number
-
-        numericLiteral()
-
-    // Short comment, such as --bla bla bla
-    let private shortComment s =
-        let rec shortComment () =
-            advance s
-            match current s with
-            | '\r' | '\n' -> nextLine s
-            | _           -> shortComment()
-        shortComment()
+                | '\r' | '\n' -> nextLine s
+                | _           -> shortComment()
+            shortComment()
             
 
-    // Long comment, such as --[[bla bla bla]]
-    let private longComment s =
-        advance s
-        let numEqualsStart = countEquals s '[' 0
-
-        let rec longComment () =
+        // Long comment, such as --[[bla bla bla]]
+        let longComment s =
             advance s
-            match current s with
-            | ']' ->
+            let numEqualsStart = countEquals s '[' 0
+
+            let rec longComment () =
                 advance s
-                let numEqualsEnd = countEquals s ']' 0
-
-                if numEqualsStart = numEqualsEnd then
+                match current s with
+                | ']' ->
                     advance s
-                elif numEqualsEnd = -1 then
-                    longComment()
-                else
-                    // Parse ']' again because it can be the start of another long string delimeter
-                    back s
+                    let numEqualsEnd = countEquals s ']' 0
+
+                    if numEqualsStart = numEqualsEnd then
+                        advance s
+                    elif numEqualsEnd = -1 then
+                        longComment()
+                    else
+                        // Parse ']' again because it can be the start of another long string delimeter
+                        back s
+                        longComment()
+
+                | _ ->
                     longComment()
 
-            | _ ->
+            // Not a valid long string delimter handle as a short comment
+            if numEqualsStart = -1 then
+                shortComment s
+            else
                 longComment()
 
-        // Not a valid long string delimter handle as a short comment
-        if numEqualsStart = -1 then
-            shortComment s
-        else
-            longComment()
-
-    // Punctuation
-    let private punctuation s =
-        storePosition s
-        let twoPunct c s1 s2 =
-            advance s
-            if current s = c
-                then s1
-                else back s; s2
-
-        match current s with
-        | '+' -> Symbol.Plus
-        | '-' -> Symbol.Minus
-        | '*' -> Symbol.Star
-        | '/' -> Symbol.Slash
-        | '%' -> Symbol.Percent
-        | '^' -> Symbol.Carrot
-        | '#' -> Symbol.Hash
-        | '(' -> Symbol.LeftParen
-        | ')' -> Symbol.RightParen
-        | '{' -> Symbol.LeftBrace
-        | '}' -> Symbol.RightBrace
-        | '[' -> Symbol.LeftBrack
-        | ']' -> Symbol.RightBrack
-        | ';' -> Symbol.SemiColon
-        | ':' -> Symbol.Colon
-        | ',' -> Symbol.Comma
-
-        | '=' -> twoPunct '=' Symbol.EqualEqual Symbol.Equal
-        | '<' -> twoPunct '=' Symbol.LessEqual Symbol.Less
-        | '>' -> twoPunct '=' Symbol.GreaterEqual Symbol.Greater
-        
-        | '.' ->
-            advance s
-            if current s = '.' then
+        // Punctuation
+        let punctuation s =
+            storePosition s
+            let twoPunct c s1 s2 =
                 advance s
-                if current s = '.'
-                    then Symbol.DotDotDot
-                    else back s; Symbol.DotDot
-            else
-                back s; Symbol.Dot
+                if current s = c
+                    then s1
+                    else back s; s2
 
-        | '~' ->
-            advance s
             match current s with
-            | '=' -> Symbol.TildeEqual
-            | c   -> faillexer s (Message.unexpectedChar c)
+            | '+' -> Symbol.Plus
+            | '-' -> Symbol.Minus
+            | '*' -> Symbol.Star
+            | '/' -> Symbol.Slash
+            | '%' -> Symbol.Percent
+            | '^' -> Symbol.Carrot
+            | '#' -> Symbol.Hash
+            | '(' -> Symbol.LeftParen
+            | ')' -> Symbol.RightParen
+            | '{' -> Symbol.LeftBrace
+            | '}' -> Symbol.RightBrace
+            | '[' -> Symbol.LeftBrack
+            | ']' -> Symbol.RightBrack
+            | ';' -> Symbol.SemiColon
+            | ':' -> Symbol.Colon
+            | ',' -> Symbol.Comma
 
-        | c  -> faillexer s (Message.unexpectedChar c)
-
-    // Identifier or keyword
-    let private identifier s =
-        storePosition s
-        bufferClear s
-
-        let rec identifier () =
-            if canContinue s && current s |> isIdentifier then
-                current s |> bufferAppend s
+            | '=' -> twoPunct '=' Symbol.EqualEqual Symbol.Equal
+            | '<' -> twoPunct '=' Symbol.LessEqual Symbol.Less
+            | '>' -> twoPunct '=' Symbol.GreaterEqual Symbol.Greater
+        
+            | '.' ->
                 advance s
-                identifier()
+                if current s = '.' then
+                    advance s
+                    if current s = '.'
+                        then Symbol.DotDotDot
+                        else back s; Symbol.DotDot
+                else
+                    back s; Symbol.Dot
 
-        identifier()
+            | '~' ->
+                advance s
+                match current s with
+                | '=' -> Symbol.TildeEqual
+                | c   -> faillexer s (Message.unexpectedChar c)
 
-        // Keyword or identifier?
-        let mutable symbol = Symbol.EOF
-        if keywords.TryGetValue(bufferLook s, &symbol) then
-            output s symbol
-        else
-            outputBuffer s Symbol.Identifier
+            | c  -> faillexer s (Message.unexpectedChar c)
 
-    // Create lexer - not thread safe, use multiple instances for concurrency
+        // Identifier or keyword
+        let identifier s =
+            storePosition s
+            bufferClear s
+
+            let rec identifier () =
+                if canContinue s && current s |> isIdentifier then
+                    current s |> bufferAppend s
+                    advance s
+                    identifier()
+
+            identifier()
+
+            // Keyword or identifier?
+            let mutable symbol = Symbol.EOF
+            if keywords.TryGetValue(bufferLook s, &symbol) then
+                output s symbol
+            else
+                outputBuffer s Symbol.Identifier
+
+    open Lexer
+
     let create source =
         let s = Input.create source
 
