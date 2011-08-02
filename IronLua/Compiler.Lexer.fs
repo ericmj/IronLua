@@ -124,7 +124,7 @@ module internal Lexer =
 
 
     module private Input =
-        type State =
+        type T =
             val File : string
             val Source : string
             val mutable Index : int
@@ -149,70 +149,70 @@ module internal Lexer =
             }
 
         let inline create source =
-            State(source)
+            T(source)
 
-        let inline getAt (s:State) i =
+        let inline getAt (s:T) i =
             try s.Source.[i]
             with | :? System.IndexOutOfRangeException ->  
                 raise <| CompileError(s.File, (s.Line, s.Column), Message.unexpectedEOF)
 
-        let inline current (s:State) =
+        let inline current (s:T) =
             getAt s s.Index
 
-        let inline canContinue (s:State) =
+        let inline canContinue (s:T) =
             s.Index < s.Source.Length
 
-        let inline advance (s:State) =
+        let inline advance (s:T) =
             s.Index <- s.Index + 1
             s.Column <- s.Column + 1
 
-        let inline skip (s:State) n =
+        let inline skip (s:T) n =
             s.Index <- s.Index + n
             s.Column <- s.Column + n
             
-        let inline back (s:State) =
+        let inline back (s:T) =
             s.Index <- s.Index - 1
             s.Column <- s.Column - 1
 
-        let inline storePosition (s:State) =
+        let inline storePosition (s:T) =
             s.StoredColumn <- s.Column
             s.StoredLine <- s.Line
 
-        let inline newline (s:State) =
+        let inline newline (s:T) =
             s.Line <- s.Line + 1
             s.Column <- 1
 
-        let inline peek (s:State) =
+        let inline peek (s:T) =
             getAt s (s.Index+1)
 
-        let inline canPeek (s:State) =
+        let inline canPeek (s:T) =
             s.Index+1 < s.Source.Length
 
-        let inline bufferAppend (s:State) (c:char) =
+        let inline bufferAppend (s:T) (c:char) =
             s.Buffer.Append(c) |> ignore
 
-        let inline bufferAppendStr (s:State) (str:string) =
+        let inline bufferAppendStr (s:T) (str:string) =
             s.Buffer.Append(str) |> ignore
 
-        let inline bufferRemoveStart (s:State) length =
+        let inline bufferRemoveStart (s:T) length =
             s.Buffer.Remove(0, length) |> ignore
 
-        let inline bufferRemoveEnd (s:State) length =
+        let inline bufferRemoveEnd (s:T) length =
             s.Buffer.Remove(s.Buffer.Length-length, length) |> ignore
 
-        let inline bufferClear (s:State) =
+        let inline bufferClear (s:T) =
             s.Buffer.Clear() |> ignore
 
-        let inline bufferLook (s:State) =
+        let inline bufferLook (s:T) =
             s.Buffer.ToString()
 
-        let inline output (s:State) sym : Lexeme =
+        let inline output (s:T) sym : Lexeme =
             sym, null, s.StoredLine, s.StoredColumn
 
-        let inline outputBuffer (s:State) sym : Lexeme =
+        let inline outputBuffer (s:T) sym : Lexeme =
             sym, s.Buffer.ToString(), s.StoredLine, s.StoredColumn
 
-        let inline outputEOF (s:State) : Lexeme =
+        let inline outputEOF (s:T) : Lexeme =
             Symbol.EOF, null, s.Line, s.Column
 
 
@@ -220,7 +220,7 @@ module internal Lexer =
     open Char
 
     module private Lexer = 
-        let inline faillexer (s:State) msg =
+        let inline faillexer (s:T) msg =
             raise <| CompileError(s.File, (s.Line, s.Column), msg)
 
         // Counts ='s until endChar [ or ], return -1 if unknown char found

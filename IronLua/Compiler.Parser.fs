@@ -12,7 +12,7 @@ module internal Parser =
 
 
     module private State =
-        type State =
+        type T =
             val File : string
             val Lexer : unit -> Lexer.Lexeme
             val mutable Lexeme : Lexer.Lexeme
@@ -25,22 +25,25 @@ module internal Parser =
                 NextLexeme = None
             }
 
-        let inline failparser (s:State) msg =
+        let inline failparser (s:T) msg =
             let (_, _, line, column) = s.Lexeme
             raise <| CompileError(s.File, (line, column), msg)
 
-        let inline failparserExpected (s:State) sym1 sym2 =
+        let inline failparserExpected (s:T) sym1 sym2 =
             let msg = Message.expectedSymbol (Lexer.prettySymbol sym1) (Lexer.prettySymbol sym2)
             failparser s msg
 
-        let inline failparserUnexpected (s:State) sym =
+        let inline failparserUnexpected (s:T) sym =
             Lexer.prettySymbol sym |> Message.unexpectedSymbol |> failparser s
     
-        let inline symbol (s:State) =
+        let inline create lexer =
+            T(lexer)
+
+        let inline symbol (s:T) =
             let (sym, _, _, _) = s.Lexeme
             sym
 
-        let inline peekSymbol (s:State) =
+        let inline peekSymbol (s:T) =
             let (symbol, _, _, _) =
                 match s.NextLexeme with
                 | Some lexeme ->
@@ -50,7 +53,7 @@ module internal Parser =
                     s.NextLexeme.Value
             symbol
 
-        let inline consume (s:State) =
+        let inline consume (s:T) =
             match s.NextLexeme with
             | Some lexeme ->
                 s.Lexeme <- lexeme
@@ -58,22 +61,22 @@ module internal Parser =
             | None ->
                 s.Lexeme <- s.Lexer()
 
-        let inline tryConsume (s:State) sym =
+        let inline tryConsume (s:T) sym =
             let tok = symbol s
             if tok = sym then consume s
 
-        let inline expect (s:State) sym =
+        let inline expect (s:T) sym =
             let sym2 = symbol s
             if sym2 = sym
                 then consume s
                 else failparserExpected s sym2 sym
 
-        let inline consumeValue (s:State) =
+        let inline consumeValue (s:T) =
             let (_, value, _, _) = s.Lexeme
             consume s
             value
 
-        let inline expectValue (s:State) sym =
+        let inline expectValue (s:T) sym =
             let (_, value, _, _) = s.Lexeme
             expect s sym
             value
@@ -628,7 +631,7 @@ module internal Parser =
 
     let parse source : Ast.Block =
         let lexer = Lexer.create source
-        let s = State(lexer)
+        let s = State.create lexer
         consume s
         let block' = Parser.block s
         expect s S.EOF
