@@ -16,18 +16,24 @@ module internal Parser =
             val File : string
             val Lexer : unit -> Lexer.Lexeme
             val mutable Lexeme : Lexer.Lexeme
-            val mutable NextLexeme : Lexer.Lexeme option
+            val mutable LastLexeme : Lexer.Lexeme
+            val mutable NextLexeme : Lexer.Lexeme
 
             new(lexer) = {
                 File = "<unknown>"
                 Lexer = lexer
                 Lexeme = Unchecked.defaultof<Lexer.Lexeme>
-                NextLexeme = None
+                LastLexeme = Unchecked.defaultof<Lexer.Lexeme>
+                NextLexeme = lexer()
             }
 
         let inline failparser (s:T) msg =
             let (_, _, line, column) = s.Lexeme
             raise <| CompileError(s.File, (line, column), msg)
+
+        let inline failparserNear (s:T) msg =
+            let (sym, _, _, _) = s.Lexeme
+            failparser s <| msg (Lexer.prettySymbol sym)
 
         let inline failparserExpected (s:T) sym1 sym2 =
             let msg = Message.expectedSymbol (Lexer.prettySymbol sym1) (Lexer.prettySymbol sym2)
@@ -44,22 +50,17 @@ module internal Parser =
             sym
 
         let inline peekSymbol (s:T) =
-            let (symbol, _, _, _) =
-                match s.NextLexeme with
-                | Some lexeme ->
-                    lexeme
-                | None ->
-                    s.NextLexeme <- Some <| s.Lexer()
-                    s.NextLexeme.Value
+            let (symbol, _, _, _) = s.NextLexeme
             symbol
 
         let inline consume (s:T) =
+            s.LastLexeme <- s.Lexeme
             match s.NextLexeme with
-            | Some lexeme ->
-                s.Lexeme <- lexeme
-                s.NextLexeme <- None
-            | None ->
-                s.Lexeme <- s.Lexer()
+            | (S.EOF, _, _, _) ->
+                s.Lexeme <- s.NextLexeme
+            | lexeme -> 
+                s.Lexeme <- s.NextLexeme
+                s.NextLexeme <- s.Lexer()
 
         let inline tryConsume (s:T) sym =
             let tok = symbol s
@@ -80,6 +81,14 @@ module internal Parser =
             let (_, value, _, _) = s.Lexeme
             expect s sym
             value
+
+        let inline line (s:T) =
+            let (_, _, line, _) = s.Lexeme
+            line
+
+        let inline lastLine (s:T) =
+            let (_, _, line, _) = s.LastLexeme
+            line
 
 
     open State
@@ -547,6 +556,8 @@ module internal Parser =
         and args s =
             match symbol s with
             | S.LeftParen ->
+                if line s <> lastLine s then
+                    failparserNear s Message.ambiguousFuncCall
                 consume s
                 let exprs = exprlist s |> Ast.ArgsNormal 
                 expect s S.RightParen

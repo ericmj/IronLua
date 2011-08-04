@@ -24,3 +24,4 @@ module Error =
         let invalidLongStringDelimter = sprintf "Invalid long string delimter '%c'"
         let unexpectedSymbol = sprintf "Unexpected symbol '%s'"
         let expectedSymbol = sprintf "Unexpected symbol '%s', expected '%s'"
+        let ambiguousFuncCall = sprintf "Ambiguous syntax (function call or new statement) near '%s'"
