@@ -1,81 +1,106 @@
 ﻿namespace IronLua.Compiler
 
+open IronLua
+open IronLua.Helper
+
 module internal Gen =
     module private Compiler =
-        let rec block scope (stats, lastStat) =
-            let statExprs = List.map (statement scope) stats
-            let lastStatExpr = lastStatement scope lastStat
-            Dlr.block statExprs lastStatExpr
+        let rec block s (stats, lastStat) : Expr =
+            let allStats =
+                   List.map (statement s)
+                |> List.append [ lastStatement s lastStat ]
 
-        and statement scope stat =
+            Dlr.simpleBlock allStats
+
+        and statement s stat : Expr =
             match stat with
             | Ast.Assign(vars, exprs) ->
-                assign scope vars exprs
+                assign s vars exprs
             | Ast.StatFuncCall funccall ->
-                statFuncCall scope funccall
+                statFuncCall s funccall
             | Ast.Do block' ->
-                do' scope block
+                do' s block
             | Ast.While(test, block') ->
-                while' scope test block'
+                while' s test block'
             | Ast.Repeat(block', test) ->
-                repeat scope block' test
+                repeat s block' test
             | Ast.If(test, block', elseifs, else') ->
-                if' scope test block' elseifs else'
+                if' s test block' elseifs else'
             | Ast.For(name, var, limit, step, block') ->
-                for' scope name var limit step block'
+                for' s name var limit step block'
             | Ast.ForIn(names, exprs, block') ->
-                forin scope names exprs block'
+                forin s names exprs block'
             | Ast.Func(funcname, funcbody) ->
-                func scope funcname funcbody
+                func s funcname funcbody
             | Ast.LocalFunc(name, funcbody) ->
-                localFunc scope name funcbody
+                localFunc s name funcbody
             | Ast.LocalAssign(names, exprs) ->
-                localAssign scope names exprs
+                localAssign s names exprs
 
-        and lastStatement scope stat =
+        and lastStatement s stat : Expr =
             match stat with
             | Ast.Return exprs ->
-                return' scope exprs
+                return' s exprs
             | Ast.Break ->
-                break' scope
+                break' s
 
-        and assign scope vars exprs =
+        and assign s vars exprs : Expr =
+            let assign var value =
+                match var with
+                | Ast.Name name ->
+                    match Scope.findId s name with
+                    | Some paramExpr -> Dlr.assign paramExpr value
+                    | None           -> Dlr.assign (Scope.addGlobal s name) value
+                | Ast.TableEntry(prefix, index) ->
+                    Dlr.dynamic (failwith "new CallInfo(1)") [prefixExpr s prefix; expr s index; value]
+                | Ast.TableDot(prefix, name) ->
+                    Dlr.dynamic2 (failwith name) (prefixExpr s prefix) value
+
+            let tempVars = Dlr.vars exprs.Length
+            let tempAssigns = exprs |> List.mapi (fun i e -> Dlr.assign tempVars.[i] (expr s e))
+            Dlr.simpleBlock <|
+                Array.map2 assign (List.toArray vars) (Array.resize<Expr> (Seq.cast<Expr> tempVars) (List.length vars) (Dlr.const' null))
+
+        and statFuncCall s funccall : Expr =
             failwith ""
 
-        and statFuncCall scope funccall =
+        and do' s block : Expr =
             failwith ""
 
-        and do' scope block =
+        and while' s test block' : Expr =
             failwith ""
 
-        and while' scope test block' =
+        and repeat s block' test : Expr =
             failwith ""
 
-        and repeat scope block' test =
-            failwith ""
-
-        and if' scope test block' elseifs else' =
+        and if' s test block' elseifs else' : Expr =
             failwith ""
         
-        and for' scope name var limit step block' =
+        and for' s name var limit step block' : Expr =
             failwith ""
 
-        and forin scope names exprs block' =
+        and forin s names exprs block' : Expr =
             failwith ""
 
-        and func scope funcname funcbody =
+        and func s funcname funcbody : Expr =
             failwith ""
 
-        and localFunc scope name funcbody =
+        and localFunc s name funcbody : Expr =
             failwith ""
 
-        and localAssign scope names exprs =
+        and localAssign s names exprs : Expr =
             failwith ""
 
-        and return' scope exprs =
+        and return' s exprs : Expr =
             failwith ""
 
-        and break' scope =
+        and break' s : Expr =
+            failwith ""
+
+        and expr s exprs : Expr =
+            failwith ""
+
+        and prefixExpr s prefix : Expr =
             failwith ""
         
 

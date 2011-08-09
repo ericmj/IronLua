@@ -1,4 +1,4 @@
-﻿namespace IronLua.Compiler
+﻿namespace IronLua
 
 open System.Linq.Expressions
 
@@ -6,15 +6,16 @@ type Expr = Expression
 type ParamExpr = ParameterExpression
 
 module Dlr =
-    let expr expr = expr :> Expr
-    let exprs exprs = Array.map expr exprs
+    let null' : Expr = upcast Expr.Constant(null)
+    let const' v : Expr = upcast Expr.Constant(v)
 
-    let void' = Expr.Empty()
+    let block (params':ParamExpr seq) stats : Expr = upcast Expr.Block(params', stats)
+    let simpleBlock stats : Expr = upcast Expr.Block(stats)
 
-    let block stats lastStat =
-        let all =
-            List.toArray stats
-         |> Array.append [| lastStat; void' |]
-         |> exprs
+    let var () = Expr.Variable(typeof<obj>)
+    let vars n = Array.init n (fun _ -> var())
 
-        Expr.Block(all)
+    let assign var expr : Expr = upcast Expr.Assign(var, expr)
+
+    let dynamic binder (es:Expr seq) : Expr = upcast Expr.Dynamic(binder, typeof<obj>, es)
+    let dynamic2 binder e1 e2 : Expr = upcast Expr.Dynamic(binder, typeof<obj>, e1, e2)
