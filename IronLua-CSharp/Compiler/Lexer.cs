@@ -143,17 +143,77 @@ namespace IronLua_CSharp.Compiler
             throw new NotImplementedException();
         }
 
+        // Numeric literal, such as 12345 or 45e+1
         Token NumericLiteral()
         {
-            throw new NotImplementedException();
+            input.StorePosition();
+            input.BufferClear();
+            input.BufferAppend(input.Current);
+
+            while (input.CanContinue)
+            {
+                input.Advance();
+
+                if (input.Current == 'e' || input.Current == 'E')
+                {
+                    BufferExponent();
+                    break;
+                }
+                if (input.Current.IsDecimal())
+                    input.BufferAppend(input.Current);
+                else
+                    break;
+            }
         }
 
+        // Buffers the exponent part of a numeric literal,
+        // such as e+5 p8 e2
+        void BufferExponent()
+        {
+            input.BufferAppend(input.Current);
+            input.Advance();
+
+            if (input.CanContinue && (input.Current == '-' || input.Current == '+'))
+            {
+                input.BufferAppend(input.Current);
+                input.Advance();
+            }
+
+            while (input.CanContinue && input.Current.IsDecimal())
+            {
+                input.BufferAppend(input.Current);
+                input.Advance();
+            }
+        }
+
+        // Hex literal, such as 0xFF or 0x10p4
+        // Can be malformed, parser handles that
         Token NumericHexLiteral()
         {
-            throw new NotImplementedException();
+            input.StorePosition();
+            input.BufferClear();
+            input.BufferAppend("0x");
+            input.Advance();
+
+            while (input.CanContinue)
+            {
+                input.Advance();
+
+                if (input.Current == 'p' || input.Current == 'P')
+                {
+                    BufferExponent();
+                    break;
+                }
+                if (input.Current.IsHex())
+                    input.BufferAppend(input.Current);
+                else
+                    break;
+            }
+
+            return input.OutputBuffer(Symbol.Number);
         }
 
-        // Parses a long string literal, such as [[bla bla]]
+        // Long string literal, such as [[bla bla]]
         Token LongStringLiteral()
         {
             input.StorePosition();
