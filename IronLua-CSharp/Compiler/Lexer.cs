@@ -34,7 +34,7 @@ namespace IronLua_CSharp.Compiler
                 };
 
         static readonly Dictionary<string, Symbol> punctuations =
-            new Dictionary<string,Symbol>()
+            new Dictionary<string,Symbol>
                 {
                     {"+",   Symbol.Plus},
                     {"-",   Symbol.Minus},
@@ -135,12 +135,26 @@ namespace IronLua_CSharp.Compiler
 
                 }
             }
-            throw new NotImplementedException();
+            return input.Output(Symbol.Eof);
         }
 
+        // Identifier or keyword
         Token IdentifierOrKeyword()
         {
-            throw new NotImplementedException();
+            input.StorePosition();
+            input.BufferClear();
+
+            while (input.CanContinue && input.Current.IsIdentifier())
+            {
+                input.BufferAppend(input.Current);
+                input.Advance();
+            }
+
+            // Keyword or identifier?
+            Symbol symbol;
+            if (keywords.TryGetValue(input.Buffer, out symbol))
+                return input.Output(symbol);
+            return input.OutputBuffer(Symbol.Identifier);
         }
 
         // Numeric literal, such as 12345 or 45e+1
@@ -164,6 +178,8 @@ namespace IronLua_CSharp.Compiler
                 else
                     break;
             }
+
+            return input.OutputBuffer(Symbol.Number);
         }
 
         // Buffers the exponent part of a numeric literal,
