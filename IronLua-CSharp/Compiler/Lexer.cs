@@ -33,6 +33,37 @@ namespace IronLua_CSharp.Compiler
                     {"while", Symbol.While}
                 };
 
+        static readonly Dictionary<string, Symbol> punctuations =
+            new Dictionary<string,Symbol>()
+                {
+                    {"+",   Symbol.Plus},
+                    {"-",   Symbol.Minus},
+                    {"*",   Symbol.Star},
+                    {"/",   Symbol.Slash},
+                    {"%",   Symbol.Percent},
+                    {"^",   Symbol.Carrot},
+                    {"#",   Symbol.Hash},
+                    {"==",  Symbol.EqualEqual},
+                    {"~=",  Symbol.TildeEqual},
+                    {"<=",  Symbol.LessEqual},
+                    {">=",  Symbol.GreaterEqual},
+                    {"<",   Symbol.Less},
+                    {">",   Symbol.Greater},
+                    {"=",   Symbol.Equal},
+                    {"(",   Symbol.LeftParen},
+                    {")",   Symbol.RightParen},
+                    {"{",   Symbol.LeftBrace},
+                    {"}",   Symbol.RightBrace},
+                    {"[",   Symbol.LeftBrack},
+                    {"]",   Symbol.RightBrack},
+                    {";",   Symbol.SemiColon},
+                    {":",   Symbol.Colon},
+                    {",",   Symbol.Comma},
+                    {".",   Symbol.Dot},
+                    {"..",  Symbol.DotDot},
+                    {"...", Symbol.DotDotDot},
+                };
+
         Input input;
 
         public Lexer(Input input)
@@ -174,10 +205,17 @@ namespace IronLua_CSharp.Compiler
 
         Token Punctuation()
         {
-            // let symbol = punctuation s
-            // advance s
-            // output s symbol
-            throw new NotImplementedException();
+            var punctuationBuilder = new StringBuilder(3);
+            while (input.CanContinue && input.Current.IsPunctuation())
+                punctuationBuilder.Append(input.Current);
+
+            var punctuation = punctuationBuilder.ToString();
+            Symbol symbol;
+            if (punctuations.TryGetValue(punctuation, out symbol))
+                return input.Output(symbol);
+
+            throw new CompileException(input.File, input.Line, input.Column,
+                                       String.Format(ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation));
         }
 
         // String literal, such as "bla bla"

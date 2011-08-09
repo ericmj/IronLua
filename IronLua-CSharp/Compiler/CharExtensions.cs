@@ -14,12 +14,13 @@ namespace IronLua_CSharp.Compiler
 
         public static bool IsHex(this char c)
         {
-            return (c >= '0' && c <= '9') ||
-                    (c >= 'a' && c <= 'f') ||
-                    (c >= 'A' && c <= 'F');
+            return
+                (c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'f') ||
+                (c >= 'A' && c <= 'F');
         }
 
-        public static bool IsFirstPunctuation(this char c)
+        public static bool IsPunctuation(this char c)
         {
             switch (c)
             {
@@ -33,6 +34,7 @@ namespace IronLua_CSharp.Compiler
                 case '~':
                 case '<':
                 case '>':
+                case '=':
                 case '(':
                 case ')':
                 case '{':
@@ -51,17 +53,19 @@ namespace IronLua_CSharp.Compiler
 
         public static bool IsIdentifierStart(this char c)
         {
-            return (c >= 'a' && c <= 'z') ||
-                    (c >= 'A' && c <= 'Z') ||
-                    (c == '_');
+            return
+                (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c == '_');
         }
 
         public static bool IsIdentifier(this char c)
         {
-            return (c >= 'a' && c <= 'z') ||
-                    (c >= 'A' && c <= 'Z') ||
-                    (c >= '0' && c <= '9') ||
-                    (c == '_');
+            return
+                (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c >= '0' && c <= '9') ||
+                (c == '_');
         }
     }
 }
