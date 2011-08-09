@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "IronLua", "IronLua\IronLua.fsproj", "{9EE2CF11-D44B-4EEF-B589-C3EA31AD6563}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IronLua-CSharp", "IronLua-CSharp\IronLua-CSharp.csproj", "{F166178F-729B-4DB5-8D7C-13C269FB5039}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -10,9 +12,11 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9EE2CF11-D44B-4EEF-B589-C3EA31AD6563}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9EE2CF11-D44B-4EEF-B589-C3EA31AD6563}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EE2CF11-D44B-4EEF-B589-C3EA31AD6563}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9EE2CF11-D44B-4EEF-B589-C3EA31AD6563}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F166178F-729B-4DB5-8D7C-13C269FB5039}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F166178F-729B-4DB5-8D7C-13C269FB5039}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F166178F-729B-4DB5-8D7C-13C269FB5039}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F166178F-729B-4DB5-8D7C-13C269FB5039}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
