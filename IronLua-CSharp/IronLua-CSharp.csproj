@@ -43,6 +43,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompileException.cs" />
+    <Compile Include="Compiler\CharExtensions.cs" />
+    <Compile Include="ExceptionMessage.cs" />
+    <Compile Include="IronLuaException.cs" />
+    <Compile Include="Compiler\Input.cs" />
+    <Compile Include="Compiler\Lexer.cs" />
     <Compile Include="Compiler\Symbol.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
