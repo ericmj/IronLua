@@ -62,7 +62,18 @@ namespace IronLua_CSharp.Compiler
 
                     // Comment or minus
                     case '-':
-                        return CommentOrMinus();
+                        input.StorePosition();
+                        input.Advance();
+
+                        if (input.Current != '-')
+                            return input.Output(Symbol.Minus);
+
+                        if (input.CanPeek && input.Peek == '[')
+                            LongComment();
+                        else
+                            ShortComment();
+
+                        break;
 
                     default:
                         // Long string
@@ -116,20 +127,49 @@ namespace IronLua_CSharp.Compiler
             throw new NotImplementedException();
         }
 
-        Token CommentOrMinus()
+        int CountEquals()
         {
-            //storePosition s
-            //advance s
+            int count = 0;
+            while (input.Current == '=')
+            {
+                count++;
+                input.Advance();
+            }
 
-            //match current s with
-            //| '-' ->
-            //    if canPeek s && peek s = '['
-            //        then longComment s
-            //        else shortComment s
-            //    lexer()
-            //| _   ->
-            //    Symbol.Minus |> output s
-            throw new NotImplementedException();
+            return count;
+        }
+
+        // Long comment, such as --[[bla bla bla]]
+        void LongComment()
+        {
+            input.Advance();
+            int numEqualsStart = CountEquals();
+
+            while (true)
+            {
+                while (input.Current != ']')
+                    input.Advance();
+
+                input.Advance();
+                int numEqualsEnd = CountEquals();
+
+                if (numEqualsStart == numEqualsEnd && input.Current == ']')
+                {
+                    input.Advance();
+                    break;
+                }
+                // Parse ']' again because it can be the start of another long string delimeter
+                if (input.Current == ']')
+                    input.Back();
+
+            }
+        }
+
+        // Short comment, such as --bla bla
+        void ShortComment()
+        {
+            while (input.CanContinue && input.Current != '\r' && input.Current != '\n')
+                input.Advance();
         }
 
         Token Punctuation()
@@ -140,6 +180,7 @@ namespace IronLua_CSharp.Compiler
             throw new NotImplementedException();
         }
 
+        // String literal, such as "bla bla"
         Token StringLiteral(char end)
         {
             input.StorePosition();
@@ -195,6 +236,7 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        // Buffer a numeric escape, such as \012 or \9
         void BufferNumericEscape()
         {
             int value = 0;
