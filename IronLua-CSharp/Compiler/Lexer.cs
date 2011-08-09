@@ -127,7 +127,7 @@ namespace IronLua_CSharp.Compiler
                             return IdentifierOrKeyword();
 
                         // Punctuation
-                        if (input.Current.IsFirstPunctuation())
+                        if (input.Current.IsPunctuation())
                             return Punctuation();
 
                         throw new CompileException(input.File, input.Line, input.Column,
@@ -153,9 +153,45 @@ namespace IronLua_CSharp.Compiler
             throw new NotImplementedException();
         }
 
+        // Parses a long string literal, such as [[bla bla]]
         Token LongStringLiteral()
         {
-            throw new NotImplementedException();
+            input.StorePosition();
+            input.BufferClear();
+
+            int numEqualsStart = CountEquals();
+            if (input.Current != '[')
+                throw new CompileException(input.File, input.Line, input.Column,
+                                           String.Format(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current));
+
+            // Skip immediately following newline
+            if (input.Current == '\r' || input.Current == '\n')
+                NextLine();
+
+            while (true)
+            {
+                while (input.Current != ']')
+                    input.Advance();
+
+                input.Advance();
+                int numEqualsEnd = CountEquals();
+
+                // Output string if matching ='s found
+
+                if (numEqualsStart == numEqualsEnd && input.Current == ']')
+                {
+                    // Trim long string delimters
+                    input.BufferRemove(0, numEqualsStart);
+                    input.BufferRemove(numEqualsEnd + 1);
+                    input.Advance();
+                    return input.OutputBuffer(Symbol.String);
+                }
+                if (input.Current == ']')
+                    // Parse ']' again because it can be the start of another long string delimeter
+                    input.Back();
+                else
+                    input.BufferAppend(input.Current);
+            }
         }
 
         int CountEquals()
@@ -175,6 +211,9 @@ namespace IronLua_CSharp.Compiler
         {
             input.Advance();
             int numEqualsStart = CountEquals();
+            if (input.Current != '[')
+                throw new CompileException(input.File, input.Line, input.Column,
+                                           String.Format(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current));
 
             while (true)
             {
@@ -189,7 +228,7 @@ namespace IronLua_CSharp.Compiler
                     input.Advance();
                     break;
                 }
-                // Parse ']' again because it can be the start of another long string delimeter
+                // Parse ']' again because it can be the start of another long comment delimeter
                 if (input.Current == ']')
                     input.Back();
 

@@ -11,5 +11,6 @@ namespace IronLua_CSharp
         public const string UNEXPECTED_EOS = "Unexpected end of string";
         public const string UNEXPECTED_CHAR = "Unexpected '{0}'";
         public const string UNKNOWN_PUNCTUATION = "Unknown punctuation '{0}";
+        public const string INVALID_LONG_STRING_DELIMTER = "Invalid long string delimter '{0}'";
     }
 }
