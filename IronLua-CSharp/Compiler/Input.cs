@@ -7,12 +7,12 @@ namespace IronLua_CSharp.Compiler
 {
     class Input
     {
-        readonly string file;
         readonly string source;
         int index;
 
-        int line;
-        int column;
+        public string File { get; private set; }
+        public int Line { get; private set; }
+        public int Column { get; private set; }
 
         int storedLine;
         int storedColumn;
@@ -21,7 +21,7 @@ namespace IronLua_CSharp.Compiler
         public Input(string source)
         {
             this.source = source;
-            file = "<unknown>";
+            File = "<unknown>";
             index = 0;
             buffer = new StringBuilder(1024);
         }
@@ -36,7 +36,7 @@ namespace IronLua_CSharp.Compiler
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(file, line, column, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new CompileException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -51,7 +51,7 @@ namespace IronLua_CSharp.Compiler
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(file, line, column, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new CompileException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -74,31 +74,31 @@ namespace IronLua_CSharp.Compiler
         public void Advance()
         {
             index += 1;
-            column += 1;
+            Column = Column + 1;
         }
 
         public void Skip(int n)
         {
             index += n;
-            column += n;
+            Column = Column + n;
         }
 
         public void Back()
         {
             index -= 1;
-            column -= 1;
+            Column = Column - 1;
         }
 
         public void StorePosition()
         {
-            storedLine = line;
-            storedColumn = column;
+            storedLine = Line;
+            storedColumn = Column;
         }
 
         public void Newline()
         {
-            line += 1;
-            column = 1;
+            Line += 1;
+            Column = 1;
         }
 
         public void BufferAppend(char c)
@@ -128,12 +128,12 @@ namespace IronLua_CSharp.Compiler
 
         public Lexer.Token Output(Symbol symbol)
         {
-            return new Lexer.Token(symbol, line, column);
+            return new Lexer.Token(symbol, Line, Column);
         }
 
         public Lexer.Token OutputBuffer(Symbol symbol)
         {
-            return new Lexer.Token(symbol, line, column, buffer.ToString());
+            return new Lexer.Token(symbol, Line, Column, buffer.ToString());
         }
     }
 }
