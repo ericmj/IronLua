@@ -44,6 +44,21 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CompileException.cs" />
+    <Compile Include="Compiler\Ast\Arguments.cs" />
+    <Compile Include="Compiler\Ast\BinaryOp.cs" />
+    <Compile Include="Compiler\Ast\Block.cs" />
+    <Compile Include="Compiler\Ast\FunctionBody.cs" />
+    <Compile Include="Compiler\Ast\Elseif.cs" />
+    <Compile Include="Compiler\Ast\Expression.cs" />
+    <Compile Include="Compiler\Ast\Field.cs" />
+    <Compile Include="Compiler\Ast\FunctionCall.cs" />
+    <Compile Include="Compiler\Ast\FunctionName.cs" />
+    <Compile Include="Compiler\Ast\LastStatement.cs" />
+    <Compile Include="Compiler\Ast\Node.cs" />
+    <Compile Include="Compiler\Ast\PrefixExpression.cs" />
+    <Compile Include="Compiler\Ast\Statement.cs" />
+    <Compile Include="Compiler\Ast\UnaryOp.cs" />
+    <Compile Include="Compiler\Ast\Variable.cs" />
     <Compile Include="Compiler\CharExtensions.cs" />
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="IronLuaException.cs" />
