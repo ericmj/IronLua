@@ -8,7 +8,7 @@ namespace IronLua_CSharp.Compiler
     class Lexer
     {
         static readonly Dictionary<string, Symbol> keywords =
-            new Dictionary<string, Symbol>()
+            new Dictionary<string, Symbol>
                 {
                     {"and", Symbol.And},
                     {"break", Symbol.Break},
@@ -66,12 +66,44 @@ namespace IronLua_CSharp.Compiler
 
         Input input;
 
+        public Token Last { get; private set; }
+        public Token Current { get; private set; }
+        public Token Next { get; private set; }
+
         public Lexer(Input input)
         {
             this.input = input;
+            Current = NextToken();
+            Next = NextToken();
         }
 
-        public Token Next()
+        public void Consume()
+        {
+            Last = Current;
+            Current = Next;
+            Next = NextToken();
+        }
+
+        public bool TryConsume(Symbol symbol)
+        {
+            if (Current.Symbol == symbol)
+            {
+                Consume();
+                return true;
+            }
+            return false;
+        }
+
+        public void Expect(Symbol symbol)
+        {
+            if (Current.Symbol == symbol)
+                Consume();
+            else
+                throw new CompileException(input.File, input.Line, input.Column,
+                                           String.Format(ExceptionMessage.UNEXPECTED_SYMBOL, symbol));
+        }
+
+        private Token NextToken()
         {
             while (!input.CanContinue)
             {
