@@ -133,7 +133,7 @@ namespace IronLua_CSharp.Compiler
 
         public Lexer.Token OutputBuffer(Symbol symbol)
         {
-            return new Lexer.Token(symbol, Line, Column, buffer.ToString());
+            return new Lexer.Token(symbol, storedLine, storedColumn, buffer.ToString());
         }
     }
 }
