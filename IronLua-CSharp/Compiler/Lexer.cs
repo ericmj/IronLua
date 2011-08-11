@@ -357,7 +357,7 @@ namespace IronLua_CSharp.Compiler
             if (punctuations.TryGetValue(punctuation, out symbol))
                 return input.Output(symbol);
 
-            throw new CompileException(input.File, String.Format(ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation));
+            throw new CompileException(input, String.Format(ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation));
         }
 
         // String literal, such as "bla bla"
