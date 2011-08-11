@@ -24,6 +24,14 @@ namespace IronLua_CSharp
             Column = column;
         }
 
+        internal CompileException(Compiler.Input input, string message, Exception inner = null)
+            : base(message, inner)
+        {
+            File = input.File;
+            Line = input.Line;
+            Column = input.Column;  
+        }
+
         protected CompileException(
             SerializationInfo info,
             StreamingContext context) : base(info, context)

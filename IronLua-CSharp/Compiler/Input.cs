@@ -36,7 +36,7 @@ namespace IronLua_CSharp.Compiler
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new CompileException(this, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -51,7 +51,7 @@ namespace IronLua_CSharp.Compiler
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new CompileException(this, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }

@@ -62,9 +62,8 @@ namespace IronLua_CSharp.Compiler
                     case Symbol.Break:
                         return new Block(statements.ToArray(), new LastStatement.Break());
                     default:
-                        throw new CompileException(input.File, input.Line, input.Column,
-                                                   String.Format(ExceptionMessage.UNEXPECTED_SYMBOL,
-                                                                 lexer.Current.Symbol));
+                        throw new CompileException(input, String.Format(ExceptionMessage.UNEXPECTED_SYMBOL,
+                                                                        lexer.Current.Symbol));
                 }
 
                 lexer.TryConsume(Symbol.SemiColon);
