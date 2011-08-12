@@ -2,13 +2,13 @@ namespace IronLua_CSharp.Compiler.Ast
 {
     class Variable : Node
     {
-        public class Name : Variable
+        public class Identifier : Variable
         {
-            public string Identifier { get; private set; }
+            public string Value { get; private set; }
 
-            public Name(string identifier)
+            public Identifier(string value)
             {
-                Identifier = identifier;
+                Value = value;
             }
         }
 

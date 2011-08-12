@@ -63,14 +63,14 @@ namespace IronLua_CSharp.Compiler.Ast
             public Expression Test { get; private set; }
             public Block Body { get; private set; }
             public Elseif[] Elseifs { get; private set; }
-            public Block Else { get; private set; }
+            public Block ElseBody { get; private set; }
 
-            public If(Expression test, Block body, Elseif[] elseifs, Block @else)
+            public If(Expression test, Block body, Elseif[] elseifs, Block elseBody)
             {
                 Test = test;
                 Body = body;
                 Elseifs = elseifs;
-                Else = @else;
+                ElseBody = elseBody;
             }
         }
 
@@ -95,13 +95,13 @@ namespace IronLua_CSharp.Compiler.Ast
         public class ForIn : Statement
         {
             public string[] Identifiers { get; private set; }
-            public Expression[] Expressions { get; private set; }
+            public Expression[] Values { get; private set; }
             public Block Body { get; private set; }
 
-            public ForIn(string[] identifiers, Expression[] expressions, Block body)
+            public ForIn(string[] identifiers, Expression[] values, Block body)
             {
                 Identifiers = identifiers;
-                Expressions = expressions;
+                Values = values;
                 Body = body;
             }
         }
