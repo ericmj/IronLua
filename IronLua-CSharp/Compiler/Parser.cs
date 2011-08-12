@@ -62,12 +62,55 @@ namespace IronLua_CSharp.Compiler
                     case Symbol.Break:
                         return new Block(statements.ToArray(), new LastStatement.Break());
                     default:
-                        throw new CompileException(input, String.Format(ExceptionMessage.UNEXPECTED_SYMBOL,
-                                                                        lexer.Current.Symbol));
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
                 }
 
                 lexer.TryConsume(Symbol.SemiColon);
             }
+        }
+
+        string[] IdentifierList()
+        {
+            throw new NotImplementedException();
+        }
+
+        Expression[] ExpressionList()
+        {
+            throw new NotImplementedException();
+        }
+
+        Variable[] VariableList(Variable variable = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        Elseif Elseif()
+        {
+            lexer.Expect(Symbol.Elseif);
+            var test = Expression();
+            lexer.Expect(Symbol.Then);
+            var body = Block();
+            return new Elseif(test, body);
+        }
+
+        PrefixExpression PrefixExpression()
+        {
+            throw new NotImplementedException();
+        }
+
+        Expression Expression()
+        {
+            throw new NotImplementedException();
+        }
+
+        FunctionBody FunctionBody()
+        {
+            throw new NotImplementedException();
+        }
+
+        FunctionName FunctionName()
+        {
+            throw new NotImplementedException();
         }
 
         LastStatement Return()
@@ -77,42 +120,155 @@ namespace IronLua_CSharp.Compiler
 
         Statement AssignOrFunctionCall()
         {
-            throw new NotImplementedException();
+            var prefixExpr = PrefixExpression();
+
+            switch (lexer.Current.Symbol)
+            {
+                case Symbol.Comma:
+                case Symbol.Equal:
+                    return Assign(prefixExpr);
+                case Symbol.Colon:
+                case Symbol.LeftParen:
+                case Symbol.LeftBrace:
+                case Symbol.String:
+                    return FunctionCall(prefixExpr);
+                default:
+                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            }
+        }
+
+        Statement FunctionCall(PrefixExpression prefixExpr)
+        {
+            var functionCall = prefixExpr.LiftFunctionCall();
+            if (functionCall == null)
+                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+
+            return new Statement.FunctionCall(functionCall);
+        }
+
+        Statement Assign(PrefixExpression prefixExpr)
+        {
+            var variable = prefixExpr.LiftVariable();
+            if (variable == null)
+                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+
+            var variables = lexer.Current.Symbol == Symbol.Comma ? VariableList(variable) : new[] { variable };
+            lexer.Expect(Symbol.Equal);
+            var expressions = ExpressionList();
+
+            return new Statement.Assign(variables, expressions);
         }
 
         Statement Local()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.Local);
+
+            if (lexer.Current.Symbol == Symbol.Function)
+                return LocalFunction();
+            if (lexer.Current.Symbol == Symbol.Identifier)
+                return LocalAssign();
+
+            throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+        }
+
+        Statement LocalAssign()
+        {
+            var identifiers = IdentifierList();
+            var values = lexer.Current.Symbol == Symbol.Equal ? ExpressionList() : null;
+            return new Statement.LocalAssign(identifiers, values);
+        }
+
+        Statement LocalFunction()
+        {
+            lexer.Expect(Symbol.Function);
+            var identifier = lexer.ExpectLexeme(Symbol.Identifier);
+            return new Statement.LocalFunction(identifier, FunctionBody());
         }
 
         Statement Function()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.Function);
+            return new Statement.Function(FunctionName(), FunctionBody());
         }
 
         Statement For()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.For);
+            if (lexer.Next.Symbol == Symbol.Comma || lexer.Next.Symbol == Symbol.In)
+                return ForIn();
+            return ForNormal();
+        }
+
+        Statement ForNormal()
+        {
+            var identifier = lexer.ExpectLexeme(Symbol.Identifier);
+            lexer.Expect(Symbol.Equal);
+            var var = Expression();
+            lexer.Expect(Symbol.Comma);
+            var limit = Expression();
+            var step = lexer.TryConsume(Symbol.Comma) ? Expression() : null;
+
+            lexer.Expect(Symbol.Do);
+            var body = Block();
+            lexer.Expect(Symbol.End);
+
+            return new Statement.For(identifier, var, limit, step, body);
+        }
+
+        Statement ForIn()
+        {
+            var identifiers = IdentifierList();
+            lexer.Expect(Symbol.In);
+            var values = ExpressionList();
+
+            lexer.Expect(Symbol.Do);
+            var body = Block();
+            lexer.Expect(Symbol.End);
+
+            return new Statement.ForIn(identifiers, values, body);
         }
 
         Statement If()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.If);
+            var test = Expression();
+            lexer.Expect(Symbol.Then);
+            var body = Block();
+
+            var elseifs = new List<Elseif>();
+            while (lexer.Current.Symbol == Symbol.Elseif)
+                elseifs.Add(Elseif());
+
+            var elseBody = lexer.TryConsume(Symbol.Else) ? Block() : null;
+
+            return new Statement.If(test, body, elseifs.ToArray(), elseBody);
         }
 
         Statement Repeat()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.Repeat);
+            var body = Block();
+            lexer.Expect(Symbol.Until);
+            var test = Expression();
+            return new Statement.Repeat(body, test);
         }
 
         Statement While()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.While);
+            var test = Expression();
+            lexer.Expect(Symbol.Do);
+            var body = Block();
+            lexer.Expect(Symbol.End);
+            return new Statement.While(test, body);
         }
 
         Statement Do()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.Do);
+            var body = Block();
+            lexer.Expect(Symbol.End);
+            return new Statement.Do(body);
         }
     }
 }

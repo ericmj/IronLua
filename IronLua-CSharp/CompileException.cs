@@ -25,11 +25,18 @@ namespace IronLua_CSharp
         }
 
         internal CompileException(Compiler.Input input, string message, Exception inner = null)
-            : base(message, inner)
+            : this(input.File, input.Line, input.Column, message, inner)
         {
-            File = input.File;
-            Line = input.Line;
-            Column = input.Column;  
+        }
+
+        internal CompileException(Compiler.Input input, string format, params object[] args)
+            : this(input, String.Format(format, args))
+        {
+        }
+
+        internal CompileException(Compiler.Input input, Exception inner, string format, params object[] args)
+            : this(input, String.Format(format, args), inner)
+        {
         }
 
         protected CompileException(

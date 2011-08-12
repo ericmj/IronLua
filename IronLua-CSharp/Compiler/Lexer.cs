@@ -99,7 +99,14 @@ namespace IronLua_CSharp.Compiler
             if (Current.Symbol == symbol)
                 Consume();
             else
-                throw new CompileException(input, String.Format(ExceptionMessage.UNEXPECTED_SYMBOL, symbol));
+                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, symbol);
+        }
+
+        public string ExpectLexeme(Symbol symbol)
+        {
+            var lexeme = Current.Lexeme;
+            Expect(symbol);
+            return lexeme;
         }
 
         private Token NextToken()
@@ -161,7 +168,7 @@ namespace IronLua_CSharp.Compiler
                         if (input.Current.IsPunctuation())
                             return Punctuation();
 
-                        throw new CompileException(input, String.Format(ExceptionMessage.UNEXPECTED_CHAR, input.Current));
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_CHAR, input.Current);
 
                 }
             }
@@ -267,7 +274,7 @@ namespace IronLua_CSharp.Compiler
 
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new CompileException(input, String.Format(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current));
+                throw new CompileException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
 
             // Skip immediately following newline
             if (input.Current == '\r' || input.Current == '\n')
@@ -317,7 +324,7 @@ namespace IronLua_CSharp.Compiler
             input.Advance();
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new CompileException(input, String.Format(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current));
+                throw new CompileException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
 
             while (true)
             {
@@ -357,7 +364,7 @@ namespace IronLua_CSharp.Compiler
             if (punctuations.TryGetValue(punctuation, out symbol))
                 return input.Output(symbol);
 
-            throw new CompileException(input, String.Format(ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation));
+            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation);
         }
 
         // String literal, such as "bla bla"
@@ -400,8 +407,7 @@ namespace IronLua_CSharp.Compiler
                         break;
 
                     case '\r': case '\n':
-                        throw new CompileException(input.File, input.Line, input.Column,
-                                                   ExceptionMessage.UNEXPECTED_EOS);
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_EOS);
 
                     default:
                         if (input.Current == end)
