@@ -8,6 +8,52 @@ namespace IronLua_CSharp.Compiler
 {
     class Parser
     {
+        const int UNARY_OP_PRIORITY = 8;
+
+        static readonly Dictionary<Symbol, UnaryOp> unaryOps =
+            new Dictionary<Symbol, UnaryOp>
+                {
+                    {Symbol.Minus, UnaryOp.Negative},
+                    {Symbol.Not,   UnaryOp.Not},
+                    {Symbol.Hash,  UnaryOp.Length}
+                };
+
+        static readonly Dictionary<Symbol, BinaryOp> binaryOps =
+            new Dictionary<Symbol, BinaryOp>
+                {
+                    {Symbol.Or,           BinaryOp.Or},
+                    {Symbol.And,          BinaryOp.And},
+                    {Symbol.Less,         BinaryOp.Less},
+                    {Symbol.Greater,      BinaryOp.Greater},
+                    {Symbol.LessEqual,    BinaryOp.LessEqual},
+                    {Symbol.GreaterEqual, BinaryOp.GreaterEqual},
+                    {Symbol.DotDot,       BinaryOp.Concat},
+                    {Symbol.Plus,         BinaryOp.Add},
+                    {Symbol.Minus,        BinaryOp.Subtract},
+                    {Symbol.Star,         BinaryOp.Multiply},
+                    {Symbol.Slash,        BinaryOp.Divide},
+                    {Symbol.Percent,      BinaryOp.Mod},
+                    {Symbol.Carrot,       BinaryOp.Raise}
+                };
+
+        static readonly Dictionary<BinaryOp, Tuple<int, int>> binaryOpPriorities =
+            new Dictionary<BinaryOp, Tuple<int, int>>
+                {
+                    {BinaryOp.Or,           new Tuple<int, int>(1, 1)},
+                    {BinaryOp.And,          new Tuple<int, int>(2, 2)},
+                    {BinaryOp.Less,         new Tuple<int, int>(3, 3)},
+                    {BinaryOp.Greater,      new Tuple<int, int>(3, 3)},
+                    {BinaryOp.LessEqual,    new Tuple<int, int>(3, 3)},
+                    {BinaryOp.GreaterEqual, new Tuple<int, int>(3, 3)},
+                    {BinaryOp.Concat,       new Tuple<int, int>(5, 4)}, // Left associative
+                    {BinaryOp.Add,          new Tuple<int, int>(6, 6)},
+                    {BinaryOp.Subtract,     new Tuple<int, int>(6, 6)},
+                    {BinaryOp.Multiply,     new Tuple<int, int>(7, 7)},
+                    {BinaryOp.Divide,       new Tuple<int, int>(7, 7)},
+                    {BinaryOp.Mod,          new Tuple<int, int>(7, 7)},
+                    {BinaryOp.Raise,        new Tuple<int, int>(9, 8)}  // Left associative
+                };
+
         Input input;
         Lexer lexer;
 
@@ -22,51 +68,6 @@ namespace IronLua_CSharp.Compiler
             var block = Block();
             lexer.Expect(Symbol.Eof);
             return block;
-        }
-
-        Block Block()
-        {
-            var statements = new List<Statement>();
-
-            while (true)
-            {
-                switch (lexer.Current.Symbol)
-                {
-                    case Symbol.Do:
-                        statements.Add(Do());
-                        break;
-                    case Symbol.While:
-                        statements.Add(While());
-                        break;
-                    case Symbol.Repeat:
-                        statements.Add(Repeat());
-                        break;
-                    case Symbol.If:
-                        statements.Add(If());
-                        break;
-                    case Symbol.For:
-                        statements.Add(For());
-                        break;
-                    case Symbol.Function:
-                        statements.Add(Function());
-                        break;
-                    case Symbol.Local:
-                        statements.Add(Local());
-                        break;
-                    case Symbol.Identifier:
-                    case Symbol.LeftParen:
-                        statements.Add(AssignOrFunctionCall());
-                        break;
-                    case Symbol.Return:
-                        return new Block(statements.ToArray(), Return());
-                    case Symbol.Break:
-                        return new Block(statements.ToArray(), new LastStatement.Break());
-                    default:
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
-                }
-
-                lexer.TryConsume(Symbol.SemiColon);
-            }
         }
 
         string[] IdentifierList()
@@ -96,6 +97,31 @@ namespace IronLua_CSharp.Compiler
         Arguments Arguments()
         {
             throw new NotImplementedException();
+        }
+
+        FunctionBody FunctionBody()
+        {
+            lexer.Expect(Symbol.LeftParen);
+            if (lexer.TryConsume(Symbol.RightParen))
+                return new FunctionBody(new string[] { }, false, Block());
+
+            var parameters = IdentifierList();
+            var varargs = lexer.TryConsume(Symbol.Comma);
+            if (varargs) lexer.Expect(Symbol.DotDotDot);
+            lexer.Expect(Symbol.RightParen);
+            return new FunctionBody(parameters, varargs, Block());
+        }
+
+        FunctionName FunctionName()
+        {
+            var identifiers = new List<string> { lexer.ExpectLexeme(Symbol.Identifier) };
+
+            while (lexer.TryConsume(Symbol.Comma))
+                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+
+            var table = lexer.TryConsume(Symbol.Colon) ? lexer.ExpectLexeme(Symbol.Identifier) : null;
+
+            return new FunctionName(identifiers.ToArray(), table);
         }
 
         PrefixExpression PrefixExpression()
@@ -155,32 +181,112 @@ namespace IronLua_CSharp.Compiler
 
         Expression Expression()
         {
-            throw new NotImplementedException();
+            var left = SimpleExpression();
+
+            while (true)
+            {
+                left = BinaryExpression(left, 0);
+                if (!binaryOps.ContainsKey(lexer.Current.Symbol))
+                    break;
+            }
         }
 
-        FunctionBody FunctionBody()
+        Expression SimpleExpression()
         {
-            lexer.Expect(Symbol.LeftParen);
-            if (lexer.TryConsume(Symbol.RightParen))
-                return new FunctionBody(new string[] {}, false, Block());
+            switch (lexer.Current.Symbol)
+            {
+                case Symbol.Nil:
+                    lexer.Consume();
+                    return new Expression.Nil();
+                case Symbol.True:
+                    lexer.Consume();
+                    return new Expression.Boolean(true);
+                case Symbol.False:
+                    lexer.Consume();
+                    return new Expression.Boolean(false);
+                case Symbol.Number:
+                    return Number();
+                case Symbol.String:
+                    return new Expression.String(lexer.ConsumeLexeme());
+                case Symbol.DotDotDot:
+                    lexer.Consume();
+                    return new Expression.Varargs();
+                case Symbol.Function:
+                    return new Expression.Function(FunctionBody());
+                case Symbol.Identifier:
+                case Symbol.LeftParen:
+                    return new Expression.Prefix(PrefixExpression());
+                case Symbol.LeftBrace:
+                    return new Expression.Table(Table());
+                
+                default:
+                    UnaryOp unaryOp;
+                    if (!unaryOps.TryGetValue(lexer.Current.Symbol, out unaryOp))
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
-            var parameters = IdentifierList();
-            var varargs = lexer.TryConsume(Symbol.Comma);
-            if (varargs) lexer.Expect(Symbol.DotDotDot);
-            lexer.Expect(Symbol.RightParen);
-            return new FunctionBody(parameters, varargs, Block());
+                    lexer.Consume();
+                    var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
+                    return new Expression.UnaryOp(unaryOp, expression);
+            }
         }
 
-        FunctionName FunctionName()
+        Expression BinaryExpression(Expression left, int limit)
         {
-            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.Identifier)};
+            BinaryOp binaryOp;
+            if (!binaryOps.TryGetValue(lexer.Current.Symbol, out binaryOp))
+                return left;
 
-            while (lexer.TryConsume(Symbol.Comma))
-                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+            var priority = binaryOpPriorities[binaryOp];
+            if (priority.Item1 < limit)
+                return left;
 
-            var table = lexer.TryConsume(Symbol.Colon) ? lexer.ExpectLexeme(Symbol.Identifier) : null;
+            var right = BinaryExpression(SimpleExpression(), priority.Item2);
+            return new Expression.BinaryOp(binaryOp, left, right);
+        }
 
-            return new FunctionName(identifiers.ToArray(), table);
+        Block Block()
+        {
+            var statements = new List<Statement>();
+
+            while (true)
+            {
+                switch (lexer.Current.Symbol)
+                {
+                    case Symbol.Do:
+                        statements.Add(Do());
+                        break;
+                    case Symbol.While:
+                        statements.Add(While());
+                        break;
+                    case Symbol.Repeat:
+                        statements.Add(Repeat());
+                        break;
+                    case Symbol.If:
+                        statements.Add(If());
+                        break;
+                    case Symbol.For:
+                        statements.Add(For());
+                        break;
+                    case Symbol.Function:
+                        statements.Add(Function());
+                        break;
+                    case Symbol.Local:
+                        statements.Add(Local());
+                        break;
+                    case Symbol.Identifier:
+                    case Symbol.LeftParen:
+                        statements.Add(AssignOrFunctionCall());
+                        break;
+                    case Symbol.Return:
+                        return new Block(statements.ToArray(), Return());
+                    case Symbol.Break:
+                        return new Block(statements.ToArray(), new LastStatement.Break());
+                    default:
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                }
+
+                lexer.TryConsume(Symbol.SemiColon);
+            }
         }
 
         LastStatement Return()
