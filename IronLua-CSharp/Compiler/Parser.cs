@@ -105,17 +105,33 @@ namespace IronLua_CSharp.Compiler
 
         FunctionBody FunctionBody()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.LeftParen);
+            if (lexer.TryConsume(Symbol.RightParen))
+                return new FunctionBody(new string[] {}, false, Block());
+
+            var parameters = IdentifierList();
+            var varargs = lexer.TryConsume(Symbol.Comma);
+            if (varargs) lexer.Expect(Symbol.DotDotDot);
+            lexer.Expect(Symbol.RightParen);
+            return new FunctionBody(parameters, varargs, Block());
         }
 
         FunctionName FunctionName()
         {
-            throw new NotImplementedException();
+            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.Identifier)};
+
+            while (lexer.TryConsume(Symbol.Comma))
+                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+
+            var table = lexer.TryConsume(Symbol.Colon) ? lexer.ExpectLexeme(Symbol.Identifier) : null;
+
+            return new FunctionName(identifiers.ToArray(), table);
         }
 
         LastStatement Return()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.Return);
+            return new LastStatement.Return(ExpressionList());
         }
 
         Statement AssignOrFunctionCall()
@@ -152,7 +168,7 @@ namespace IronLua_CSharp.Compiler
             if (variable == null)
                 throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
-            var variables = lexer.Current.Symbol == Symbol.Comma ? VariableList(variable) : new[] { variable };
+            var variables = lexer.TryConsume(Symbol.Comma) ? VariableList(variable) : new[] {variable};
             lexer.Expect(Symbol.Equal);
             var expressions = ExpressionList();
 
@@ -174,7 +190,7 @@ namespace IronLua_CSharp.Compiler
         Statement LocalAssign()
         {
             var identifiers = IdentifierList();
-            var values = lexer.Current.Symbol == Symbol.Equal ? ExpressionList() : null;
+            var values = lexer.TryConsume(Symbol.Equal) ? ExpressionList() : null;
             return new Statement.LocalAssign(identifiers, values);
         }
 
