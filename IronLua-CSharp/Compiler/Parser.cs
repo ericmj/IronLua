@@ -89,7 +89,32 @@ namespace IronLua_CSharp.Compiler
 
         Field[] Table()
         {
-            throw new NotImplementedException();
+            lexer.Expect(Symbol.LeftBrace);
+            var fields = new List<Field>();
+
+            var loop = true;
+            while (loop)
+            {
+                if (lexer.Current.Symbol == Symbol.RightBrace)
+                    break;
+                fields.Add(Field());
+
+                switch (lexer.Current.Symbol)
+                {
+                    case Symbol.Comma:
+                    case Symbol.SemiColon:
+                        lexer.Consume();
+                        break;
+                    case Symbol.RightBrace:
+                        loop = false;
+                        break;
+                    default:
+                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                }
+            }
+
+            lexer.Expect(Symbol.RightBrace);
+            return fields.ToArray();
         }
 
         double NumberLiteral()
@@ -101,11 +126,11 @@ namespace IronLua_CSharp.Compiler
                     return HexNumber(number.Substring(2));
                 return DecimalNumber(number);
             }
-            catch(FormatException e)
+            catch(FormatException)
             {
                 throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
             }
-            catch(OverflowException e)
+            catch(OverflowException)
             {
                 throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
             }
@@ -136,6 +161,31 @@ namespace IronLua_CSharp.Compiler
             return hexNumber * Math.Pow(exponentNumber, 2.0);
         }
 
+        Field Field()
+        {
+            switch (lexer.Current.Symbol)
+            {
+                case Symbol.LeftBrack:
+                    lexer.Consume();
+                    var member = Expression();
+                    lexer.Expect(Symbol.RightBrack);
+                    lexer.Expect(Symbol.Equal);
+                    var value = Expression();
+                    return new Field.MemberExpr(member, value);
+
+                default:
+                    var expression = Expression();
+                    if (lexer.Current.Symbol != Symbol.Equal)
+                        return new Field.Normal(expression);
+
+                    lexer.Consume();
+                    var memberId = expression.LiftIdentifier();
+                    if (memberId != null)
+                        return new Field.MemberId(memberId, Expression());
+                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            }
+        }
+
         Elseif Elseif()
         {
             lexer.Expect(Symbol.Elseif);
@@ -147,7 +197,25 @@ namespace IronLua_CSharp.Compiler
 
         Arguments Arguments()
         {
-            throw new NotImplementedException();
+            switch (lexer.Current.Symbol)
+            {
+                case Symbol.LeftParen:
+                    if (lexer.Current.Line != lexer.Last.Line)
+                        throw new CompileException(input, ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
+                    lexer.Consume();
+                    var arguments = ExpressionList();
+                    lexer.Expect(Symbol.RightParen);
+                    return new Arguments.Normal(arguments);
+
+                case Symbol.LeftBrace:
+                    return new Arguments.Table(Table());
+
+                case Symbol.String:
+                    return new Arguments.String(lexer.ExpectLexeme(Symbol.String));
+
+                default:
+                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            }
         }
 
         FunctionBody FunctionBody()
@@ -217,7 +285,9 @@ namespace IronLua_CSharp.Compiler
                         left = new PrefixExpression.FunctionCall(new FunctionCall.Table(left, identifier, arguments));
                         break;
 
-                    case Symbol.LeftParen: case Symbol.LeftBrace: case Symbol.String:
+                    case Symbol.LeftParen:
+                    case Symbol.LeftBrace:
+                    case Symbol.String:
                         left = new PrefixExpression.FunctionCall(new FunctionCall.Normal(left, Arguments()));
                         break;
 
