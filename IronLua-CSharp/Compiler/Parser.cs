@@ -146,6 +146,7 @@ namespace IronLua_CSharp.Compiler
 
                     default:
                         loop = false;
+                        break;
                 }
             }
 
