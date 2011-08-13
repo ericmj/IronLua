@@ -93,9 +93,63 @@ namespace IronLua_CSharp.Compiler
             return new Elseif(test, body);
         }
 
-        PrefixExpression PrefixExpression()
+        Arguments Arguments()
         {
             throw new NotImplementedException();
+        }
+
+        PrefixExpression PrefixExpression()
+        {
+            PrefixExpression left;
+            switch (lexer.Current.Symbol)
+            {
+                case Symbol.Identifier:
+                    left = new PrefixExpression.Variable(new Variable.Identifier(lexer.ConsumeLexeme()));
+                    break;
+                case Symbol.LeftParen:
+                    lexer.Consume();
+                    left = new PrefixExpression.Expression(Expression());
+                    lexer.ExpectLexeme(Symbol.RightParen);
+                    break;
+                default:
+                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            }
+
+            var loop = true;
+            while (loop)
+            {
+                string identifier;
+                switch (lexer.Current.Symbol)
+                {
+                    case Symbol.LeftBrack:
+                        lexer.Consume();
+                        left = new PrefixExpression.Variable(new Variable.MemberExpr(left, Expression()));
+                        lexer.Expect(Symbol.RightBrack);
+                        break;
+
+                    case Symbol.Dot:
+                        lexer.Consume();
+                        identifier = lexer.ExpectLexeme(Symbol.Identifier);
+                        left = new PrefixExpression.Variable(new Variable.MemberId(left, identifier));
+                        break;
+
+                    case Symbol.Colon:
+                        lexer.Consume();
+                        identifier = lexer.ExpectLexeme(Symbol.Identifier);
+                        var arguments = Arguments();
+                        left = new PrefixExpression.FunctionCall(new FunctionCall.Table(left, identifier, arguments));
+                        break;
+
+                    case Symbol.LeftParen: case Symbol.LeftBrace: case Symbol.String:
+                        left = new PrefixExpression.FunctionCall(new FunctionCall.Normal(left, Arguments()));
+                        break;
+
+                    default:
+                        loop = false;
+                }
+            }
+
+            return left;
         }
 
         Expression Expression()

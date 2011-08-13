@@ -17,14 +17,14 @@ namespace IronLua_CSharp.Compiler.Ast
         public class Table : FunctionCall
         {
             public PrefixExpression Prefix { get; private set; }
-            public Arguments Arguments { get; private set; }
             public string Name { get; private set; }
+            public Arguments Arguments { get; private set; }
 
-            public Table(PrefixExpression prefix, Arguments arguments, string name)
+            public Table(PrefixExpression prefix, string name, Arguments arguments)
             {
                 Prefix = prefix;
-                Arguments = arguments;
                 Name = name;
+                Arguments = arguments;
             }
         }
     }

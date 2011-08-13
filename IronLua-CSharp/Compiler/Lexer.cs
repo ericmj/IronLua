@@ -84,6 +84,13 @@ namespace IronLua_CSharp.Compiler
             Next = NextToken();
         }
 
+        public string ConsumeLexeme()
+        {
+            var lexeme = Current.Lexeme;
+            Consume();
+            return lexeme;
+        }
+
         public bool TryConsume(Symbol symbol)
         {
             if (Current.Symbol == symbol)
