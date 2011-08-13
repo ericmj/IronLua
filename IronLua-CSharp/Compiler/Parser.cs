@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using IronLua_CSharp.Compiler.Ast;
@@ -9,6 +10,7 @@ namespace IronLua_CSharp.Compiler
     class Parser
     {
         const int UNARY_OP_PRIORITY = 8;
+        static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture ;
 
         static readonly Dictionary<Symbol, UnaryOp> unaryOps =
             new Dictionary<Symbol, UnaryOp>
@@ -83,6 +85,55 @@ namespace IronLua_CSharp.Compiler
         Variable[] VariableList(Variable variable = null)
         {
             throw new NotImplementedException();
+        }
+
+        Field[] Table()
+        {
+            throw new NotImplementedException();
+        }
+
+        double NumberLiteral()
+        {
+            var number = lexer.ExpectLexeme(Symbol.String);
+            try
+            {
+                if (number.StartsWith("0x"))
+                    return HexNumber(number.Substring(2));
+                return DecimalNumber(number);
+            }
+            catch(FormatException e)
+            {
+                throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
+            }
+            catch(OverflowException e)
+            {
+                throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
+            }
+        }
+
+        double DecimalNumber(string number)
+        {
+            var numberStyles = NumberStyles.AllowDecimalPoint |
+                               NumberStyles.AllowExponent |
+                               NumberStyles.AllowTrailingSign;
+
+            return Double.Parse(number, numberStyles, cultureInfo);
+        }
+
+        double HexNumber(string number)
+        {
+            var numberStyles = NumberStyles.AllowHexSpecifier;
+
+            var exponentIndex = number.IndexOfAny(new[] { 'p', 'P' });
+            if (exponentIndex == -1)
+                return UInt64.Parse(number, numberStyles, cultureInfo);
+
+            var hexPart = number.Substring(0, exponentIndex);
+            var exponentPart = number.Substring(exponentIndex + 1);
+            var hexNumber = UInt64.Parse(hexPart, numberStyles, cultureInfo);
+            var exponentNumber = UInt64.Parse(exponentPart, numberStyles, cultureInfo);
+
+            return hexNumber * Math.Pow(exponentNumber, 2.0);
         }
 
         Elseif Elseif()
@@ -189,6 +240,8 @@ namespace IronLua_CSharp.Compiler
                 if (!binaryOps.ContainsKey(lexer.Current.Symbol))
                     break;
             }
+
+            return left;
         }
 
         Expression SimpleExpression()
@@ -205,7 +258,7 @@ namespace IronLua_CSharp.Compiler
                     lexer.Consume();
                     return new Expression.Boolean(false);
                 case Symbol.Number:
-                    return Number();
+                    return new Expression.Number(NumberLiteral());
                 case Symbol.String:
                     return new Expression.String(lexer.ConsumeLexeme());
                 case Symbol.DotDotDot:

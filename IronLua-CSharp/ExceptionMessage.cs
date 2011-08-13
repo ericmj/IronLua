@@ -13,5 +13,6 @@ namespace IronLua_CSharp
         public const string UNKNOWN_PUNCTUATION = "Unknown punctuation '{0}";
         public const string INVALID_LONG_STRING_DELIMTER = "Invalid long string delimter '{0}'";
         public const string UNEXPECTED_SYMBOL = "Unexpected symbol '{0}'";
+        public const string MALFORMED_NUMBER = "Malformed number '{0}'";
     }
 }
