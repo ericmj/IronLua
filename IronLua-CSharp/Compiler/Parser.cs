@@ -15,7 +15,7 @@ namespace IronLua_CSharp.Compiler
                                                   NumberStyles.AllowExponent |
                                                   NumberStyles.AllowTrailingSign;
 
-        static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture ;
+        static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture;
 
         static readonly Dictionary<Symbol, UnaryOp> unaryOps =
             new Dictionary<Symbol, UnaryOp>
@@ -77,6 +77,8 @@ namespace IronLua_CSharp.Compiler
             return block;
         }
 
+        /* Parses identifierList
+         * identifier {',' identifier} */
         string[] IdentifierList()
         {
             var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.String)};
@@ -87,6 +89,8 @@ namespace IronLua_CSharp.Compiler
             return identifiers.ToArray();
         }
 
+        /* Parses experssionList
+         * expression {',' expression } */
         Expression[] ExpressionList()
         {
             var expressions = new List<Expression> { Expression() };
@@ -97,6 +101,8 @@ namespace IronLua_CSharp.Compiler
             return expressions.ToArray();
         }
 
+        /* Parses variableList
+         * (oldVariable | variable) {',' variable } */
         Variable[] VariableList(Variable oldVariable = null)
         {
             var variables = new List<Variable> {oldVariable ?? Variable()};
@@ -107,6 +113,9 @@ namespace IronLua_CSharp.Compiler
             return variables.ToArray();
         }
 
+        /* Parses table
+         * [field {fieldsep field} [fieldsep]]
+         * fieldsep := ',' | ';' */
         Field[] Table()
         {
             lexer.Expect(Symbol.LeftBrace);
@@ -137,14 +146,13 @@ namespace IronLua_CSharp.Compiler
             return fields.ToArray();
         }
 
+        /* Parses Number */
         double NumberLiteral()
         {
             var number = lexer.ExpectLexeme(Symbol.String);
             try
             {
-                if (number.StartsWith("0x"))
-                    return HexNumber(number.Substring(2));
-                return DecimalNumber(number);
+                return number.StartsWith("0x") ? HexNumber(number.Substring(2)) : DecimalNumber(number);
             }
             catch(FormatException)
             {
@@ -156,25 +164,11 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
-        double DecimalNumber(string number)
-        {
-            return Double.Parse(number, DECIMAL_NUMBER_STYLE, cultureInfo);
-        }
 
-        double HexNumber(string number)
-        {
-            var exponentIndex = number.IndexOfAny(new[] { 'p', 'P' });
-            if (exponentIndex == -1)
-                return UInt64.Parse(number, HEX_NUMBER_STYLE, cultureInfo);
-
-            var hexPart = number.Substring(0, exponentIndex);
-            var exponentPart = number.Substring(exponentIndex + 1);
-            var hexNumber = UInt64.Parse(hexPart, HEX_NUMBER_STYLE, cultureInfo);
-            var exponentNumber = UInt64.Parse(exponentPart, HEX_NUMBER_STYLE, cultureInfo);
-
-            return hexNumber * Math.Pow(exponentNumber, 2.0);
-        }
-
+        /* Parses variable
+         * Identifier |
+         * prefixExpression '[' expression ']' |
+         * prefixExpression '.' Identifier */
         Variable Variable()
         {
             var variable = PrefixExpression().LiftVariable();
@@ -183,6 +177,10 @@ namespace IronLua_CSharp.Compiler
             return variable;
         }
 
+        /* Parses field
+         * '[' expression ']' '=' expression |
+         * Identifier '=' expression | 
+         * expression */
         Field Field()
         {
             switch (lexer.Current.Symbol)
@@ -208,6 +206,8 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Parses elseif
+         * 'elseif' expression 'then' block */
         Elseif Elseif()
         {
             lexer.Expect(Symbol.Elseif);
@@ -217,6 +217,8 @@ namespace IronLua_CSharp.Compiler
             return new Elseif(test, body);
         }
 
+        /* Parses arguments
+         * '(' expressionList ')' | table | String */
         Arguments Arguments()
         {
             switch (lexer.Current.Symbol)
@@ -240,6 +242,8 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Parses functionBody
+         * '(' [identifierList [',' '...'] | '...'] ')' block 'end' */
         FunctionBody FunctionBody()
         {
             lexer.Expect(Symbol.LeftParen);
@@ -263,6 +267,8 @@ namespace IronLua_CSharp.Compiler
             return new FunctionBody(parameters.ToArray(), varargs, Block());
         }
 
+        /* Parses functionName
+         * Identifier {'.' Identifier} [':' Identifer] */
         FunctionName FunctionName()
         {
             var identifiers = new List<string> { lexer.ExpectLexeme(Symbol.Identifier) };
@@ -275,8 +281,11 @@ namespace IronLua_CSharp.Compiler
             return new FunctionName(identifiers.ToArray(), table);
         }
 
+        /* Parses prefixExpression
+         * variable | functionCall | '(' expression ')' */
         PrefixExpression PrefixExpression()
         {
+            // Parse the terminal/first symbol of the prefixExpression
             PrefixExpression left;
             switch (lexer.Current.Symbol)
             {
@@ -292,8 +301,7 @@ namespace IronLua_CSharp.Compiler
                     throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             }
 
-            var loop = true;
-            while (loop)
+            while (true)
             {
                 string identifier;
                 switch (lexer.Current.Symbol)
@@ -323,15 +331,16 @@ namespace IronLua_CSharp.Compiler
                         left = new PrefixExpression.FunctionCall(new FunctionCall.Normal(left, Arguments()));
                         break;
 
+                    // Unrecognized symbol, return what we have so far
                     default:
-                        loop = false;
-                        break;
+                        return left;
                 }
             }
-
-            return left;
         }
 
+        /* Parses expression
+         * 'nil' | 'true' | 'false' | Number | String | '...' | function | prefixExpression |
+         * table | expression BinaryOp expression | UnaryOp expression */
         Expression Expression()
         {
             var left = SimpleExpression();
@@ -346,6 +355,7 @@ namespace IronLua_CSharp.Compiler
             return left;
         }
 
+        /* Helper for parsing expressions */
         Expression SimpleExpression()
         {
             switch (lexer.Current.Symbol)
@@ -385,20 +395,25 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Helper for parsing expressions */
         Expression BinaryExpression(Expression left, int limit)
         {
             BinaryOp binaryOp;
             if (!binaryOps.TryGetValue(lexer.Current.Symbol, out binaryOp))
                 return left;
 
+            // Recurse while having higher binding
             var priority = binaryOpPriorities[binaryOp];
             if (priority.Item1 < limit)
                 return left;
-
             var right = BinaryExpression(SimpleExpression(), priority.Item2);
+
             return new Expression.BinaryOp(binaryOp, left, right);
         }
 
+        /* Parses block
+         * {do | while | repeat | if | for | function | local | assignOrFunctionCall}
+         * [return | break] */
         Block Block()
         {
             var statements = new List<Statement>();
@@ -444,12 +459,16 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Parses return
+         * 'return' [expressionList] */
         LastStatement Return()
         {
             lexer.Expect(Symbol.Return);
             return new LastStatement.Return(ExpressionList());
         }
 
+        /* Parses assignOrFunctionCall
+         * assign | functionCall */
         Statement AssignOrFunctionCall()
         {
             var prefixExpr = PrefixExpression();
@@ -469,6 +488,9 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Parses functionCall
+         * prefixExpression arguments |
+         * prefixExpression ':' Identifier arguments */
         Statement FunctionCall(PrefixExpression prefixExpr)
         {
             var functionCall = prefixExpr.LiftFunctionCall();
@@ -478,6 +500,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.FunctionCall(functionCall);
         }
 
+        /* Parses assign
+         * variableList '=' expressionList */
         Statement Assign(PrefixExpression prefixExpr)
         {
             var variable = prefixExpr.LiftVariable();
@@ -491,6 +515,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.Assign(variables, expressions);
         }
 
+        /* Parses local
+         * 'local' (localFunction | localAssign) */
         Statement Local()
         {
             lexer.Expect(Symbol.Local);
@@ -503,6 +529,8 @@ namespace IronLua_CSharp.Compiler
             throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
         }
 
+        /* Parses localAssign
+         * identifierList ['=' expressionList] */
         Statement LocalAssign()
         {
             var identifiers = IdentifierList();
@@ -510,6 +538,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.LocalAssign(identifiers, values);
         }
 
+        /* Parses localFunction
+         * 'function' Identifier functionBody */
         Statement LocalFunction()
         {
             lexer.Expect(Symbol.Function);
@@ -517,12 +547,16 @@ namespace IronLua_CSharp.Compiler
             return new Statement.LocalFunction(identifier, FunctionBody());
         }
 
+        /* Parses function
+         * 'function' functionName functionBody */
         Statement Function()
         {
             lexer.Expect(Symbol.Function);
             return new Statement.Function(FunctionName(), FunctionBody());
         }
 
+        /* Parses for
+         * 'for' (forIn | forNormal) */
         Statement For()
         {
             lexer.Expect(Symbol.For);
@@ -531,6 +565,8 @@ namespace IronLua_CSharp.Compiler
             return ForNormal();
         }
 
+        /* Parses forNormal
+         * Identifier '=' expression ',' expression [',' expression] 'do' block 'end' */
         Statement ForNormal()
         {
             var identifier = lexer.ExpectLexeme(Symbol.Identifier);
@@ -547,6 +583,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.For(identifier, var, limit, step, body);
         }
 
+        /* Parses forIn
+         * identifierList 'in' expressionList 'do' block 'end' */
         Statement ForIn()
         {
             var identifiers = IdentifierList();
@@ -560,6 +598,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.ForIn(identifiers, values, body);
         }
 
+        /* Parses if
+         * 'if' expression 'then' block {elseif} ['else' block] 'end' */
         Statement If()
         {
             lexer.Expect(Symbol.If);
@@ -573,9 +613,13 @@ namespace IronLua_CSharp.Compiler
 
             var elseBody = lexer.TryConsume(Symbol.Else) ? Block() : null;
 
+            lexer.Expect(Symbol.End);
+
             return new Statement.If(test, body, elseifs.ToArray(), elseBody);
         }
 
+        /* Parses repeat
+         * 'repeat' block 'until' expression */
         Statement Repeat()
         {
             lexer.Expect(Symbol.Repeat);
@@ -585,6 +629,8 @@ namespace IronLua_CSharp.Compiler
             return new Statement.Repeat(body, test);
         }
 
+        /* Parses while
+         * 'while' expression 'do' block 'end' */
         Statement While()
         {
             lexer.Expect(Symbol.While);
@@ -595,12 +641,35 @@ namespace IronLua_CSharp.Compiler
             return new Statement.While(test, body);
         }
 
+        /* Parses do
+         * 'do' block 'end' */
         Statement Do()
         {
             lexer.Expect(Symbol.Do);
             var body = Block();
             lexer.Expect(Symbol.End);
             return new Statement.Do(body);
+        }
+
+        /* Parses a decimal number */
+        static double DecimalNumber(string number)
+        {
+            return Double.Parse(number, DECIMAL_NUMBER_STYLE, cultureInfo);
+        }
+
+        /* Parses a hex number */
+        static double HexNumber(string number)
+        {
+            var exponentIndex = number.IndexOfAny(new[] { 'p', 'P' });
+            if (exponentIndex == -1)
+                return UInt64.Parse(number, HEX_NUMBER_STYLE, cultureInfo);
+
+            var hexPart = number.Substring(0, exponentIndex);
+            var exponentPart = number.Substring(exponentIndex + 1);
+            var hexNumber = UInt64.Parse(hexPart, HEX_NUMBER_STYLE, cultureInfo);
+            var exponentNumber = UInt64.Parse(exponentPart, HEX_NUMBER_STYLE, cultureInfo);
+
+            return hexNumber * Math.Pow(exponentNumber, 2.0);
         }
     }
 }

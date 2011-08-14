@@ -182,7 +182,7 @@ namespace IronLua_CSharp.Compiler
             return input.Output(Symbol.Eof);
         }
 
-        // Identifier or keyword
+        /* Identifier or keyword */
         Token IdentifierOrKeyword()
         {
             input.StorePosition();
@@ -201,7 +201,7 @@ namespace IronLua_CSharp.Compiler
             return input.OutputBuffer(Symbol.Identifier);
         }
 
-        // Numeric literal, such as 12345 or 45e+1
+        /* Numeric literal, such as 12345 or 45e+1 */
         Token NumericLiteral()
         {
             input.StorePosition();
@@ -226,8 +226,8 @@ namespace IronLua_CSharp.Compiler
             return input.OutputBuffer(Symbol.Number);
         }
 
-        // Buffers the exponent part of a numeric literal,
-        // such as e+5 p8 e2
+        /* Buffers the exponent part of a numeric literal,
+         * such as e+5 p8 e2 */
         void BufferExponent()
         {
             input.BufferAppend(input.Current);
@@ -246,8 +246,8 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
-        // Hex literal, such as 0xFF or 0x10p4
-        // Can be malformed, parser handles that
+        /* Hex literal, such as 0xFF or 0x10p4
+         * Can be malformed, parser handles that */
         Token NumericHexLiteral()
         {
             input.StorePosition();
@@ -273,7 +273,7 @@ namespace IronLua_CSharp.Compiler
             return input.OutputBuffer(Symbol.Number);
         }
 
-        // Long string literal, such as [[bla bla]]
+        /* Long string literal, such as [[bla bla]] */
         Token LongStringLiteral()
         {
             input.StorePosition();
@@ -313,6 +313,7 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
+        /* Count amount of continous '=' */
         int CountEquals()
         {
             int count = 0;
@@ -325,7 +326,7 @@ namespace IronLua_CSharp.Compiler
             return count;
         }
 
-        // Long comment, such as --[[bla bla bla]]
+        /* Long comment, such as --[[bla bla bla]] */
         void LongComment()
         {
             input.Advance();
@@ -353,7 +354,7 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
-        // Short comment, such as --bla bla
+        /* Short comment, such as --bla bla */
         void ShortComment()
         {
             while (input.CanContinue && input.Current != '\r' && input.Current != '\n')
@@ -374,7 +375,7 @@ namespace IronLua_CSharp.Compiler
             throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation);
         }
 
-        // String literal, such as "bla bla"
+        /* String literal, such as "bla bla" */
         Token StringLiteral(char end)
         {
             input.StorePosition();
@@ -429,7 +430,7 @@ namespace IronLua_CSharp.Compiler
             }
         }
 
-        // Buffer a numeric escape, such as \012 or \9
+        /* Buffer a numeric escape, such as \012 or \9 */
         void BufferNumericEscape()
         {
             int value = 0;
@@ -446,6 +447,7 @@ namespace IronLua_CSharp.Compiler
             input.BufferAppend((char)value);
         }
 
+        /* New line, such as \r, \n or \r\n */
         void NextLine()
         {
             if (input.Current == '\r' && input.CanPeek && input.Peek == '\n')
