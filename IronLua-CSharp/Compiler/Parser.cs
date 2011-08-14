@@ -10,6 +10,11 @@ namespace IronLua_CSharp.Compiler
     class Parser
     {
         const int UNARY_OP_PRIORITY = 8;
+        const NumberStyles HEX_NUMBER_STYLE = NumberStyles.AllowHexSpecifier;
+        const NumberStyles DECIMAL_NUMBER_STYLE = NumberStyles.AllowDecimalPoint |
+                                                  NumberStyles.AllowExponent |
+                                                  NumberStyles.AllowTrailingSign;
+
         static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture ;
 
         static readonly Dictionary<Symbol, UnaryOp> unaryOps =
@@ -74,17 +79,32 @@ namespace IronLua_CSharp.Compiler
 
         string[] IdentifierList()
         {
-            throw new NotImplementedException();
+            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.String)};
+
+            while (lexer.TryConsume(Symbol.Comma))
+                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+
+            return identifiers.ToArray();
         }
 
         Expression[] ExpressionList()
         {
-            throw new NotImplementedException();
+            var expressions = new List<Expression> { Expression() };
+
+            while (lexer.TryConsume(Symbol.Comma))
+                expressions.Add(Expression());
+
+            return expressions.ToArray();
         }
 
-        Variable[] VariableList(Variable variable = null)
+        Variable[] VariableList(Variable oldVariable = null)
         {
-            throw new NotImplementedException();
+            var variables = new List<Variable> {oldVariable ?? Variable()};
+
+            while (lexer.Current.Symbol == Symbol.Comma)
+                variables.Add(Variable());
+
+            return variables.ToArray();
         }
 
         Field[] Table()
@@ -138,27 +158,29 @@ namespace IronLua_CSharp.Compiler
 
         double DecimalNumber(string number)
         {
-            var numberStyles = NumberStyles.AllowDecimalPoint |
-                               NumberStyles.AllowExponent |
-                               NumberStyles.AllowTrailingSign;
-
-            return Double.Parse(number, numberStyles, cultureInfo);
+            return Double.Parse(number, DECIMAL_NUMBER_STYLE, cultureInfo);
         }
 
         double HexNumber(string number)
         {
-            var numberStyles = NumberStyles.AllowHexSpecifier;
-
             var exponentIndex = number.IndexOfAny(new[] { 'p', 'P' });
             if (exponentIndex == -1)
-                return UInt64.Parse(number, numberStyles, cultureInfo);
+                return UInt64.Parse(number, HEX_NUMBER_STYLE, cultureInfo);
 
             var hexPart = number.Substring(0, exponentIndex);
             var exponentPart = number.Substring(exponentIndex + 1);
-            var hexNumber = UInt64.Parse(hexPart, numberStyles, cultureInfo);
-            var exponentNumber = UInt64.Parse(exponentPart, numberStyles, cultureInfo);
+            var hexNumber = UInt64.Parse(hexPart, HEX_NUMBER_STYLE, cultureInfo);
+            var exponentNumber = UInt64.Parse(exponentPart, HEX_NUMBER_STYLE, cultureInfo);
 
             return hexNumber * Math.Pow(exponentNumber, 2.0);
+        }
+
+        Variable Variable()
+        {
+            var variable = PrefixExpression().LiftVariable();
+            if (variable == null)
+                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            return variable;
         }
 
         Field Field()
@@ -222,13 +244,23 @@ namespace IronLua_CSharp.Compiler
         {
             lexer.Expect(Symbol.LeftParen);
             if (lexer.TryConsume(Symbol.RightParen))
-                return new FunctionBody(new string[] { }, false, Block());
+                return new FunctionBody(new string[] {}, false, Block());
 
-            var parameters = IdentifierList();
-            var varargs = lexer.TryConsume(Symbol.Comma);
-            if (varargs) lexer.Expect(Symbol.DotDotDot);
+            if (lexer.TryConsume(Symbol.DotDotDot))
+                return new FunctionBody(new string[] {}, true, Block());
+
+            var parameters = new List<string> {lexer.ExpectLexeme(Symbol.String)};
+            var varargs = false;
+            while (!varargs && lexer.TryConsume(Symbol.Comma))
+            {
+                if (lexer.Current.Symbol == Symbol.Identifier)
+                    parameters.Add(lexer.ConsumeLexeme());
+                else if (lexer.Current.Symbol == Symbol.DotDotDot)
+                    varargs = true;
+            }
+
             lexer.Expect(Symbol.RightParen);
-            return new FunctionBody(parameters, varargs, Block());
+            return new FunctionBody(parameters.ToArray(), varargs, Block());
         }
 
         FunctionName FunctionName()
