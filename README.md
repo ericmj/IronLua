@@ -20,3 +20,9 @@ Licensing has not been decided upon yet but it will be some form of [permissive 
 * 2011-07-17<br/>
   Can parse entire Lua. Probably have lots of minor bugs that will be fixed when I pull in the test suites.<br/>
   Have begun reading up on DLR. Will probably take some time reading documentation of the DLR before I start working on the runtime and translation of the AST to DLR expressions.
+
+* 2011-08-09<br/>
+  I have decided to rewrite the project in C#. It should be pretty straightforward to port.
+
+* 2011-08-15<br/>
+  Rewrite to C# is done. The rewrite was done for several reasons. The binary size is 4 times smaller, probably because of F#'s discriminated unions and closure's generated code among other things. Additionally tooling is alot better for C# and it is easier to reason about code performance because the IL generated is more easily mapped to C#.
