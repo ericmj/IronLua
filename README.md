@@ -2,7 +2,7 @@
 
 IronLua is intended to be a full implementation of Lua targeting .NET. Allowing easy embedding into applications and friction-less integration with .NET are key goals.
 
-It's built with F# on top of the Dynamic Language Runtime.
+It's built with C# on top of the Dynamic Language Runtime.
 
 Licensing has not been decided upon yet but it will be some form of [permissive free software license](http://en.wikipedia.org/wiki/Permissive_free_software_licence) for easy contribution and usage without any fuss.
 

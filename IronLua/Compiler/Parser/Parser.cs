@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using IronLua.Compiler.Ast;
 
-namespace IronLua.Compiler
+namespace IronLua.Compiler.Parser
 {
     class Parser
     {

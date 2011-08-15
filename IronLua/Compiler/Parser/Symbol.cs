@@ -1,4 +1,4 @@
-namespace IronLua.Compiler
+namespace IronLua.Compiler.Parser
 {
     enum Symbol
     {

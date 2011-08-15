@@ -60,15 +60,18 @@
     <Compile Include="Compiler\Ast\Statement.cs" />
     <Compile Include="Compiler\Ast\UnaryOp.cs" />
     <Compile Include="Compiler\Ast\Variable.cs" />
-    <Compile Include="Compiler\CharExtensions.cs" />
-    <Compile Include="Compiler\Parser.cs" />
+    <Compile Include="Compiler\Parser\CharExtensions.cs" />
+    <Compile Include="Compiler\Parser\Input.cs" />
+    <Compile Include="Compiler\Parser\Lexer.cs" />
+    <Compile Include="Compiler\Parser\Parser.cs" />
+    <Compile Include="Compiler\Parser\Symbol.cs" />
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="IronLuaException.cs" />
-    <Compile Include="Compiler\Input.cs" />
-    <Compile Include="Compiler\Lexer.cs" />
-    <Compile Include="Compiler\Symbol.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Compiler\Gen\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

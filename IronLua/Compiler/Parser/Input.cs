@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Text;
 
-namespace IronLua.Compiler
+namespace IronLua.Compiler.Parser
 {
     class Input
     {
@@ -126,14 +124,14 @@ namespace IronLua.Compiler
             buffer.Clear();
         }
 
-        public Lexer.Token Output(Symbol symbol)
+        public Token Output(Symbol symbol)
         {
-            return new Lexer.Token(symbol, Line, Column);
+            return new Token(symbol, Line, Column);
         }
 
-        public Lexer.Token OutputBuffer(Symbol symbol)
+        public Token OutputBuffer(Symbol symbol)
         {
-            return new Lexer.Token(symbol, storedLine, storedColumn, buffer.ToString());
+            return new Token(symbol, storedLine, storedColumn, buffer.ToString());
         }
     }
 }

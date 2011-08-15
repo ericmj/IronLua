@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using IronLua.Compiler.Parser;
 
 namespace IronLua
 {
@@ -24,17 +25,17 @@ namespace IronLua
             Column = column;
         }
 
-        internal CompileException(Compiler.Input input, string message, Exception inner = null)
+        internal CompileException(Input input, string message, Exception inner = null)
             : this(input.File, input.Line, input.Column, message, inner)
         {
         }
 
-        internal CompileException(Compiler.Input input, string format, params object[] args)
+        internal CompileException(Input input, string format, params object[] args)
             : this(input, String.Format(format, args))
         {
         }
 
-        internal CompileException(Compiler.Input input, Exception inner, string format, params object[] args)
+        internal CompileException(Input input, Exception inner, string format, params object[] args)
             : this(input, String.Format(format, args), inner)
         {
         }

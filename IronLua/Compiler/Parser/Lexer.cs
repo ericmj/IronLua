@@ -1,9 +1,7 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
-namespace IronLua.Compiler
+namespace IronLua.Compiler.Parser
 {
     class Lexer
     {
@@ -454,22 +452,6 @@ namespace IronLua.Compiler
                 input.Advance();
             input.Advance();
             input.Newline();
-        }
-
-        public class Token
-        {
-            public Symbol Symbol { get; private set; }
-            public int Line { get; private set; }
-            public int Column { get; private set; }
-            public string Lexeme { get; private set; }
-
-            public Token(Symbol symbol, int line, int column, string lexeme = null)
-            {
-                Symbol = symbol;
-                Lexeme = lexeme;
-                Line = line;
-                Column = column;
-            }
         }
     }
 }
