@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LinqExpression = System.Linq.Expressions.Expression;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
@@ -15,7 +15,7 @@ namespace IronLua.Compiler.Ast
                 Arguments = arguments;
             }
 
-            public override LinqExpression Compile(Scope scope)
+            public override Expr Compile(Scope scope)
             {
                 throw new NotImplementedException();
             }
@@ -30,7 +30,7 @@ namespace IronLua.Compiler.Ast
                 Fields = fields;
             }
 
-            public override LinqExpression Compile(Scope scope)
+            public override Expr Compile(Scope scope)
             {
                 throw new NotImplementedException();
             }
@@ -45,7 +45,7 @@ namespace IronLua.Compiler.Ast
                 Literal = literal;
             }
 
-            public override LinqExpression Compile(Scope scope)
+            public override Expr Compile(Scope scope)
             {
                 throw new NotImplementedException();
             }

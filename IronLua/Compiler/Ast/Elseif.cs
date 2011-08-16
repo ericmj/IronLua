@@ -1,5 +1,5 @@
 using System;
-using LinqExpression = System.Linq.Expressions.Expression;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
@@ -14,7 +14,7 @@ namespace IronLua.Compiler.Ast
             Body = body;
         }
 
-        public override LinqExpression Compile(Scope scope)
+        public override Expr Compile(Scope scope)
         {
             throw new NotImplementedException();
         }

@@ -1,9 +1,9 @@
-using LinqExpression = System.Linq.Expressions.Expression;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class Node
     {
-        public abstract LinqExpression Compile(Scope scope);
+        public abstract Expr Compile(Scope scope);
     }
 }

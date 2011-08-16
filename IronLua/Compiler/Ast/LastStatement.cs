@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LinqExpression = System.Linq.Expressions.Expression;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
@@ -15,7 +15,7 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
-            public override LinqExpression Compile(Scope scope)
+            public override Expr Compile(Scope scope)
             {
                 throw new NotImplementedException();
             }
@@ -24,7 +24,7 @@ namespace IronLua.Compiler.Ast
         public class Break : LastStatement
         {
 
-            public override LinqExpression Compile(Scope scope)
+            public override Expr Compile(Scope scope)
             {
                 throw new NotImplementedException();
             }
