@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
@@ -15,7 +16,7 @@ namespace IronLua.Compiler.Ast
         
         public class Boolean : Expression
         {
-            public bool Literal { get; private set; }
+            public bool Literal { get; set; }
             
             public Boolean(bool literal)
             {
@@ -30,7 +31,7 @@ namespace IronLua.Compiler.Ast
         
         public class Number : Expression
         {
-            public double Literal { get; private set; }
+            public double Literal { get; set; }
             
             public Number(double literal)
             {
@@ -45,7 +46,7 @@ namespace IronLua.Compiler.Ast
         
         public class String : Expression
         {
-            public string Literal { get; private set; }
+            public string Literal { get; set; }
             
             public String(string literal)
             {
@@ -68,7 +69,7 @@ namespace IronLua.Compiler.Ast
         
         public class Function : Expression
         {
-            public FunctionBody Body { get; private set; }
+            public FunctionBody Body { get; set; }
             
             public Function(FunctionBody body)
             {
@@ -83,7 +84,7 @@ namespace IronLua.Compiler.Ast
         
         public class Prefix : Expression
         {
-            public PrefixExpression Expression { get; private set; }
+            public PrefixExpression Expression { get; set; }
             
             public Prefix(PrefixExpression expression)
             {
@@ -98,9 +99,9 @@ namespace IronLua.Compiler.Ast
         
         public class Table : Expression
         {
-            public Field[] Fields { get; private set; }
+            public List<Field> Fields { get; set; }
             
-            public Table(Field[] fields)
+            public Table(List<Field> fields)
             {
                 Fields = fields;
             }
@@ -113,9 +114,9 @@ namespace IronLua.Compiler.Ast
         
         public class BinaryOp : Expression
         {
-            public Ast.BinaryOp Operation { get; private set; }
-            public Expression Left { get; private set; }
-            public Expression Right { get; private set; }
+            public Ast.BinaryOp Operation { get; set; }
+            public Expression Left { get; set; }
+            public Expression Right { get; set; }
             
             public BinaryOp(Ast.BinaryOp operation, Expression left, Expression right)
             {
@@ -132,8 +133,8 @@ namespace IronLua.Compiler.Ast
         
         public class UnaryOp : Expression
         {
-            public Ast.UnaryOp Operation { get; private set; }
-            public Expression Operand { get; private set; }
+            public Ast.UnaryOp Operation { get; set; }
+            public Expression Operand { get; set; }
             
             public UnaryOp(Ast.UnaryOp operation, Expression operand)
             {

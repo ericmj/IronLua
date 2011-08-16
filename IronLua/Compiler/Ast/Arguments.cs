@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
@@ -7,9 +8,9 @@ namespace IronLua.Compiler.Ast
     {
         public class Normal : Arguments
         {
-            public Expression[] Arguments { get; private set; }
+            public List<Expression> Arguments { get; set; }
 
-            public Normal(Expression[] arguments)
+            public Normal(List<Expression> arguments)
             {
                 Arguments = arguments;
             }
@@ -22,9 +23,9 @@ namespace IronLua.Compiler.Ast
 
         public class Table : Arguments
         {
-            public Field[] Fields { get; private set; }
+            public List<Field> Fields { get; set; }
 
-            public Table(Field[] fields)
+            public Table(List<Field> fields)
             {
                 Fields = fields;
             }
@@ -37,7 +38,7 @@ namespace IronLua.Compiler.Ast
 
         public class String : Arguments
         {
-            public string Literal { get; private set; }
+            public string Literal { get; set; }
 
             public String(string literal)
             {

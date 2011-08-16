@@ -7,8 +7,8 @@ namespace IronLua.Compiler.Ast
     {
         public class MemberExpr : Field
         {
-            public Expression Member { get; private set; }
-            public Expression Value { get; private set; }
+            public Expression Member { get; set; }
+            public Expression Value { get; set; }
 
             public MemberExpr(Expression member, Expression value)
             {
@@ -24,8 +24,8 @@ namespace IronLua.Compiler.Ast
 
         public class MemberId : Field
         {
-            public string Member { get; private set; }
-            public Expression Value { get; private set; }
+            public string Member { get; set; }
+            public Expression Value { get; set; }
 
             public MemberId(string member, Expression value)
             {
@@ -41,7 +41,7 @@ namespace IronLua.Compiler.Ast
 
         public class Normal : Field
         {
-            public Expression Value { get; private set; }
+            public Expression Value { get; set; }
 
             public Normal(Expression value)
             {

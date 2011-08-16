@@ -1,14 +1,15 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     class Block : Node
     {
-        public Statement[] Statements { get; private set; }
-        public LastStatement LastStatement { get; private set; }
+        public List<Statement> Statements { get; set; }
+        public LastStatement LastStatement { get; set; }
 
-        public Block(Statement[] statements, LastStatement lastStatement)
+        public Block(List<Statement> statements, LastStatement lastStatement)
         {
             Statements = statements;
             LastStatement = lastStatement;

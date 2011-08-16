@@ -7,8 +7,8 @@ namespace IronLua.Compiler.Ast
     {
         public class Normal : FunctionCall
         {
-            public PrefixExpression Prefix { get; private set; }
-            public Arguments Arguments { get; private set; }
+            public PrefixExpression Prefix { get; set; }
+            public Arguments Arguments { get; set; }
 
             public Normal(PrefixExpression prefix, Arguments arguments)
             {
@@ -24,9 +24,9 @@ namespace IronLua.Compiler.Ast
 
         public class Table : FunctionCall
         {
-            public PrefixExpression Prefix { get; private set; }
-            public string Name { get; private set; }
-            public Arguments Arguments { get; private set; }
+            public PrefixExpression Prefix { get; set; }
+            public string Name { get; set; }
+            public Arguments Arguments { get; set; }
 
             public Table(PrefixExpression prefix, string name, Arguments arguments)
             {

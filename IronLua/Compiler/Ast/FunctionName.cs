@@ -1,14 +1,15 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     class FunctionName : Node
     {
-        public string[] Identifiers { get; private set; }
-        public string Table { get; private set; }
+        public List<string> Identifiers { get; set; }
+        public string Table { get; set; }
 
-        public FunctionName(string[] identifiers, string table)
+        public FunctionName(List<string> identifiers, string table)
         {
             Identifiers = identifiers;
             Table = table;

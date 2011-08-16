@@ -7,7 +7,7 @@ namespace IronLua.Compiler.Ast
     {
         public class Identifier : Variable
         {
-            public string Value { get; private set; }
+            public string Value { get; set; }
 
             public Identifier(string value)
             {
@@ -22,8 +22,8 @@ namespace IronLua.Compiler.Ast
 
         public class MemberExpr : Variable
         {
-            public PrefixExpression Prefix { get; private set; }
-            public Expression Member { get; private set; }
+            public PrefixExpression Prefix { get; set; }
+            public Expression Member { get; set; }
 
             public MemberExpr(PrefixExpression prefix, Expression member)
             {
@@ -39,8 +39,8 @@ namespace IronLua.Compiler.Ast
 
         public class MemberId : Variable
         {
-            public PrefixExpression Prefix { get; private set; }
-            public string Member { get; private set; }
+            public PrefixExpression Prefix { get; set; }
+            public string Member { get; set; }
 
             public MemberId(PrefixExpression prefix, string member)
             {

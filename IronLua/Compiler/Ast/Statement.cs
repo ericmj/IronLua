@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
@@ -7,10 +8,10 @@ namespace IronLua.Compiler.Ast
     {
         public class Assign : Statement
         {
-            public Variable[] Variables { get; private set; }
-            public Expression[] Values { get; private set; }
+            public List<Variable> Variables { get; set; }
+            public List<Expression> Values { get; set; }
 
-            public Assign(Variable[] variables, Expression[] values)
+            public Assign(List<Variable> variables, List<Expression> values)
             {
                 Variables = variables;
                 Values = values;
@@ -24,7 +25,7 @@ namespace IronLua.Compiler.Ast
 
         public class FunctionCall : Statement
         {
-            public Ast.FunctionCall Call { get; private set; }
+            public Ast.FunctionCall Call { get; set; }
 
             public FunctionCall(Ast.FunctionCall call)
             {
@@ -39,7 +40,7 @@ namespace IronLua.Compiler.Ast
 
         public class Do : Statement
         {
-            public Block Body { get; private set; }
+            public Block Body { get; set; }
 
             public Do(Block body)
             {
@@ -54,8 +55,8 @@ namespace IronLua.Compiler.Ast
 
         public class While : Statement
         {
-            public Expression Test { get; private set; }
-            public Block Body { get; private set; }
+            public Expression Test { get; set; }
+            public Block Body { get; set; }
 
             public While(Expression test, Block body)
             {
@@ -71,8 +72,8 @@ namespace IronLua.Compiler.Ast
 
         public class Repeat : Statement
         {
-            public Block Body { get; private set; }
-            public Expression Test { get; private set; }
+            public Block Body { get; set; }
+            public Expression Test { get; set; }
 
             public Repeat(Block body, Expression test)
             {
@@ -88,12 +89,12 @@ namespace IronLua.Compiler.Ast
 
         public class If : Statement
         {
-            public Expression Test { get; private set; }
-            public Block Body { get; private set; }
-            public Elseif[] Elseifs { get; private set; }
-            public Block ElseBody { get; private set; }
+            public Expression Test { get; set; }
+            public Block Body { get; set; }
+            public List<Elseif> Elseifs { get; set; }
+            public Block ElseBody { get; set; }
 
-            public If(Expression test, Block body, Elseif[] elseifs, Block elseBody)
+            public If(Expression test, Block body, List<Elseif> elseifs, Block elseBody)
             {
                 Test = test;
                 Body = body;
@@ -109,11 +110,11 @@ namespace IronLua.Compiler.Ast
 
         public class For : Statement
         {
-            public string Identifier { get; private set; }
-            public Expression Var { get; private set; }
-            public Expression Limit { get; private set; }
-            public Expression Step { get; private set; }
-            public Block Body { get; private set; }
+            public string Identifier { get; set; }
+            public Expression Var { get; set; }
+            public Expression Limit { get; set; }
+            public Expression Step { get; set; }
+            public Block Body { get; set; }
 
             public For(string indentifier, Expression var, Expression limit, Expression step, Block body)
             {
@@ -132,11 +133,11 @@ namespace IronLua.Compiler.Ast
 
         public class ForIn : Statement
         {
-            public string[] Identifiers { get; private set; }
-            public Expression[] Values { get; private set; }
-            public Block Body { get; private set; }
+            public List<string> Identifiers { get; set; }
+            public List<Expression> Values { get; set; }
+            public Block Body { get; set; }
 
-            public ForIn(string[] identifiers, Expression[] values, Block body)
+            public ForIn(List<string> identifiers, List<Expression> values, Block body)
             {
                 Identifiers = identifiers;
                 Values = values;
@@ -151,8 +152,8 @@ namespace IronLua.Compiler.Ast
 
         public class Function : Statement
         {
-            public FunctionName Name { get; private set; }
-            public FunctionBody Body { get; private set; }
+            public FunctionName Name { get; set; }
+            public FunctionBody Body { get; set; }
 
             public Function(FunctionName name, FunctionBody body)
             {
@@ -168,8 +169,8 @@ namespace IronLua.Compiler.Ast
 
         public class LocalFunction : Statement
         {
-            public string Identifier { get; private set; }
-            public FunctionBody Body { get; private set; }
+            public string Identifier { get; set; }
+            public FunctionBody Body { get; set; }
 
             public LocalFunction(string identifier, FunctionBody body)
             {
@@ -185,10 +186,10 @@ namespace IronLua.Compiler.Ast
 
         public class LocalAssign : Statement
         {
-            public string[] Identifiers { get; private set; }
-            public Expression[] Values { get; private set; }
+            public List<string> Identifiers { get; set; }
+            public List<Expression> Values { get; set; }
 
-            public LocalAssign(string[] identifiers, Expression[] values)
+            public LocalAssign(List<string> identifiers, List<Expression> values)
             {
                 Identifiers = identifiers;
                 Values = values;

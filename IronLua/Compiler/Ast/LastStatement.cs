@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LinqExpression = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
@@ -7,9 +8,9 @@ namespace IronLua.Compiler.Ast
     {
         public class Return : LastStatement
         {
-            public Expression[] Values { get; private set; }
+            public List<Expression> Values { get; set; }
 
-            public Return(Expression[] values)
+            public Return(List<Expression> values)
             {
                 Values = values;
             }

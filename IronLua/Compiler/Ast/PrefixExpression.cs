@@ -7,7 +7,7 @@ namespace IronLua.Compiler.Ast
     {
         public class Variable : PrefixExpression
         {
-            public Ast.Variable Var { get; private set; }
+            public Ast.Variable Var { get; set; }
 
             public Variable(Ast.Variable variable)
             {
@@ -22,7 +22,7 @@ namespace IronLua.Compiler.Ast
 
         public class FunctionCall : PrefixExpression
         {
-            public Ast.FunctionCall Call { get; private set; }
+            public Ast.FunctionCall Call { get; set; }
 
             public FunctionCall(Ast.FunctionCall call)
             {
@@ -37,7 +37,7 @@ namespace IronLua.Compiler.Ast
 
         public class Expression : PrefixExpression
         {
-            public Ast.Expression Expr { get; private set; }
+            public Ast.Expression Expr { get; set; }
 
             public Expression(Ast.Expression expression)
             {
