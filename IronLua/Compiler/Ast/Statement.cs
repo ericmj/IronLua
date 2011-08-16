@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
@@ -197,7 +200,17 @@ namespace IronLua.Compiler.Ast
 
             public override Expr Compile(Scope scope)
             {
-                throw new NotImplementedException();
+                var tempVariables = ListUtil<ParameterExpression>.Init(Values.Count,
+                    () => Expr.Variable(typeof(object)));
+                var tempAssigns = tempVariables.Zip(Values,
+                    (var, expr) => Expr.Assign(var, expr.Compile(scope)));
+
+                var tempVariablesResized = tempVariables.Resize(Identifiers.Count, Expression.Nil.Constant.Compile(null));
+                var locals = Identifiers.Select(scope.AddLocal).ToList();
+
+                var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
+
+                return Expr.Block(tempVariables.Concat(locals), tempAssigns.Concat(realAssigns));
             }
         }
     }

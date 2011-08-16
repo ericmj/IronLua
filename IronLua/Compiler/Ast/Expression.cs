@@ -8,9 +8,16 @@ namespace IronLua.Compiler.Ast
     {
         public class Nil : Expression
         {
+            public static Nil Constant { get; private set; }
+
+            static Nil()
+            {
+                Constant = new Nil();
+            }
+
             public override Expr Compile(Scope scope)
             {
-                throw new NotImplementedException();
+                return Expr.Default(typeof(object));
             }
         }
         
