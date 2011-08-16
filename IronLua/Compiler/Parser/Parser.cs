@@ -79,7 +79,7 @@ namespace IronLua.Compiler.Parser
          * identifier {',' identifier} */
         List<string> IdentifierList()
         {
-            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.String)};
+            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.Identifier)};
 
             while (lexer.TryConsume(Symbol.Comma))
                 identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
@@ -450,7 +450,7 @@ namespace IronLua.Compiler.Parser
                     case Symbol.Break:
                         return new Block(statements, new LastStatement.Break());
                     default:
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                        return new Block(statements, null);
                 }
 
                 lexer.TryConsume(Symbol.SemiColon);

@@ -116,7 +116,7 @@ namespace IronLua.Compiler.Parser
 
         private Token NextToken()
         {
-            while (!input.CanContinue)
+            while (input.CanContinue)
             {
                 switch (input.Current)
                 {
@@ -363,7 +363,10 @@ namespace IronLua.Compiler.Parser
         {
             var punctuationBuilder = new StringBuilder(3);
             while (input.CanContinue && input.Current.IsPunctuation())
+            {
                 punctuationBuilder.Append(input.Current);
+                input.Advance();
+            }
 
             var punctuation = punctuationBuilder.ToString();
             Symbol symbol;
