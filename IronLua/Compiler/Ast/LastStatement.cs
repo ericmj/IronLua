@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class LastStatement : Node
+    abstract class LastStatement : Node
     {
         public class Return : LastStatement
         {

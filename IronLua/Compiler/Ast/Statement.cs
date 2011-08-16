@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class Statement : Node
+    abstract class Statement : Node
     {
         public class Assign : Statement
         {

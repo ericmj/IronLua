@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class Field : Node
+    abstract class Field : Node
     {
         public class MemberExpr : Field
         {

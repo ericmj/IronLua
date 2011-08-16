@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class PrefixExpression : Node
+    abstract class PrefixExpression : Node
     {
         public class Variable : PrefixExpression
         {

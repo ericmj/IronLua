@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class Expression : Node
+    abstract class Expression : Node
     {
         public class Nil : Expression
         {

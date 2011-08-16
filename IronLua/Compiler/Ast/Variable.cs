@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class Variable : Node
+    abstract class Variable : Node
     {
         public class Identifier : Variable
         {

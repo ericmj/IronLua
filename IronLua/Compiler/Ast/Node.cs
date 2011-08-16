@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class Node
+    abstract class Node
     {
     }
 }

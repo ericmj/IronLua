@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Ast
 {
-    class FunctionCall : Node
+    abstract class FunctionCall : Node
     {
         public class Normal : FunctionCall
         {
