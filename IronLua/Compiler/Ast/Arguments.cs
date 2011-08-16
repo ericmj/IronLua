@@ -1,6 +1,9 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
-    class Arguments : Node
+    abstract class Arguments : Node
     {
         public class Normal : Arguments
         {
@@ -9,6 +12,11 @@ namespace IronLua.Compiler.Ast
             public Normal(Expression[] arguments)
             {
                 Arguments = arguments;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -20,6 +28,11 @@ namespace IronLua.Compiler.Ast
             {
                 Fields = fields;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class String : Arguments
@@ -29,6 +42,11 @@ namespace IronLua.Compiler.Ast
             public String(string literal)
             {
                 Literal = literal;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

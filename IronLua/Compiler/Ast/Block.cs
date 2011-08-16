@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     class Block : Node
@@ -9,6 +12,11 @@ namespace IronLua.Compiler.Ast
         {
             Statements = statements;
             LastStatement = lastStatement;
+        }
+
+        public override LinqExpression Compile(Scope scope)
+        {
+            throw new NotImplementedException();
         }
     }
 }

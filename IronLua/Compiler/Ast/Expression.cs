@@ -1,9 +1,16 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class Expression : Node
     {
         public class Nil : Expression
         {
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class Boolean : Expression
@@ -13,6 +20,11 @@ namespace IronLua.Compiler.Ast
             public Boolean(bool literal)
             {
                 Literal = literal;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
         
@@ -24,6 +36,11 @@ namespace IronLua.Compiler.Ast
             {
                 Literal = literal;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class String : Expression
@@ -34,10 +51,19 @@ namespace IronLua.Compiler.Ast
             {
                 Literal = literal;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class Varargs : Expression
         {
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class Function : Expression
@@ -47,6 +73,11 @@ namespace IronLua.Compiler.Ast
             public Function(FunctionBody body)
             {
                 Body = body;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
         
@@ -58,6 +89,11 @@ namespace IronLua.Compiler.Ast
             {
                 Expression = expression;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class Table : Expression
@@ -67,6 +103,11 @@ namespace IronLua.Compiler.Ast
             public Table(Field[] fields)
             {
                 Fields = fields;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
         
@@ -82,6 +123,11 @@ namespace IronLua.Compiler.Ast
                 Left = left;
                 Right = right;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
         
         public class UnaryOp : Expression
@@ -93,6 +139,11 @@ namespace IronLua.Compiler.Ast
             {
                 Operation = operation;
                 Operand = operand;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

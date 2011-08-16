@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class Field : Node
@@ -12,6 +15,11 @@ namespace IronLua.Compiler.Ast
                 Member = member;
                 Value = value;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class MemberId : Field
@@ -24,6 +32,11 @@ namespace IronLua.Compiler.Ast
                 Member = member;
                 Value = value;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Normal : Field
@@ -33,6 +46,11 @@ namespace IronLua.Compiler.Ast
             public Normal(Expression value)
             {
                 Value = value;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

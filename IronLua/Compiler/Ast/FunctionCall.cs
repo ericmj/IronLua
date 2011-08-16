@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class FunctionCall : Node
@@ -12,6 +15,11 @@ namespace IronLua.Compiler.Ast
                 Prefix = prefix;
                 Arguments = arguments;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Table : FunctionCall
@@ -25,6 +33,11 @@ namespace IronLua.Compiler.Ast
                 Prefix = prefix;
                 Name = name;
                 Arguments = arguments;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

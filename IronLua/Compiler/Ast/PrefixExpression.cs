@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class PrefixExpression : Node
@@ -10,6 +13,11 @@ namespace IronLua.Compiler.Ast
             {
                 Var = variable;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class FunctionCall : PrefixExpression
@@ -20,6 +28,11 @@ namespace IronLua.Compiler.Ast
             {
                 Call = call;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Expression : PrefixExpression
@@ -29,6 +42,11 @@ namespace IronLua.Compiler.Ast
             public Expression(Ast.Expression expression)
             {
                 Expr = expression;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

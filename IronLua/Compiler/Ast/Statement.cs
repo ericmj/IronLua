@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class Statement : Node
@@ -12,6 +15,11 @@ namespace IronLua.Compiler.Ast
                 Variables = variables;
                 Values = values;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class FunctionCall : Statement
@@ -22,6 +30,11 @@ namespace IronLua.Compiler.Ast
             {
                 Call = call;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Do : Statement
@@ -31,6 +44,11 @@ namespace IronLua.Compiler.Ast
             public Do(Block body)
             {
                 Body = body;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -44,6 +62,11 @@ namespace IronLua.Compiler.Ast
                 Test = test;
                 Body = body;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Repeat : Statement
@@ -55,6 +78,11 @@ namespace IronLua.Compiler.Ast
             {
                 Body = body;
                 Test = test;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -71,6 +99,11 @@ namespace IronLua.Compiler.Ast
                 Body = body;
                 Elseifs = elseifs;
                 ElseBody = elseBody;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -90,6 +123,11 @@ namespace IronLua.Compiler.Ast
                 Step = step;
                 Body = body;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class ForIn : Statement
@@ -104,6 +142,11 @@ namespace IronLua.Compiler.Ast
                 Values = values;
                 Body = body;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Function : Statement
@@ -115,6 +158,11 @@ namespace IronLua.Compiler.Ast
             {
                 Name = name;
                 Body = body;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -128,6 +176,11 @@ namespace IronLua.Compiler.Ast
                 Identifier = identifier;
                 Body = body;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class LocalAssign : Statement
@@ -139,6 +192,11 @@ namespace IronLua.Compiler.Ast
             {
                 Identifiers = identifiers;
                 Values = values;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }

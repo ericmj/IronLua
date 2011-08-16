@@ -1,3 +1,6 @@
+using System;
+using LinqExpression = System.Linq.Expressions.Expression;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class Variable : Node
@@ -9,6 +12,11 @@ namespace IronLua.Compiler.Ast
             public Identifier(string value)
             {
                 Value = value;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -22,6 +30,11 @@ namespace IronLua.Compiler.Ast
                 Prefix = prefix;
                 Member = member;
             }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class MemberId : Variable
@@ -33,6 +46,11 @@ namespace IronLua.Compiler.Ast
             {
                 Prefix = prefix;
                 Member = member;
+            }
+
+            public override LinqExpression Compile(Scope scope)
+            {
+                throw new NotImplementedException();
             }
         }
     }
