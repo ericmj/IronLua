@@ -75,12 +75,6 @@ namespace IronLua.Compiler.Parser
             Column = Column + 1;
         }
 
-        public void Skip(int n)
-        {
-            index += n;
-            Column = Column + n;
-        }
-
         public void Back()
         {
             index -= 1;

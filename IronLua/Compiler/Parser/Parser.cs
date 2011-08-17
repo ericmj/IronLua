@@ -147,7 +147,7 @@ namespace IronLua.Compiler.Parser
         /* Parses Number */
         double NumberLiteral()
         {
-            var number = lexer.ExpectLexeme(Symbol.String);
+            var number = lexer.ExpectLexeme(Symbol.Number);
             try
             {
                 return number.StartsWith("0x") ? HexNumber(number.Substring(2)) : DecimalNumber(number);

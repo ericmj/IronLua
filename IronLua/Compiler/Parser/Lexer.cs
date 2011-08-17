@@ -104,7 +104,7 @@ namespace IronLua.Compiler.Parser
             if (Current.Symbol == symbol)
                 Consume();
             else
-                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, symbol);
+                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, Current.Symbol);
         }
 
         public string ExpectLexeme(Symbol symbol)
@@ -204,21 +204,20 @@ namespace IronLua.Compiler.Parser
         {
             input.StorePosition();
             input.BufferClear();
-            input.BufferAppend(input.Current);
 
             while (input.CanContinue)
             {
-                input.Advance();
-
                 if (input.Current == 'e' || input.Current == 'E')
                 {
                     BufferExponent();
                     break;
                 }
-                if (input.Current.IsDecimal())
+                if (input.Current.IsDecimal() || input.Current == '.')
                     input.BufferAppend(input.Current);
                 else
                     break;
+
+                input.Advance();
             }
 
             return input.OutputBuffer(Symbol.Number);
@@ -255,8 +254,6 @@ namespace IronLua.Compiler.Parser
 
             while (input.CanContinue)
             {
-                input.Advance();
-
                 if (input.Current == 'p' || input.Current == 'P')
                 {
                     BufferExponent();
@@ -266,6 +263,8 @@ namespace IronLua.Compiler.Parser
                     input.BufferAppend(input.Current);
                 else
                     break;
+                
+                input.Advance();
             }
 
             return input.OutputBuffer(Symbol.Number);
@@ -421,7 +420,7 @@ namespace IronLua.Compiler.Parser
                     default:
                         if (input.Current == end)
                         {
-                            input.Skip(2);
+                            input.Advance();
                             return input.OutputBuffer(Symbol.String);
                         }
 
