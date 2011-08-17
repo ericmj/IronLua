@@ -32,7 +32,7 @@ namespace IronLua.Compiler.Ast
 
             public override Expr Compile(Scope scope)
             {
-                throw new NotImplementedException();
+                return Expr.Constant(Literal);
             }
         }
         
@@ -47,7 +47,7 @@ namespace IronLua.Compiler.Ast
 
             public override Expr Compile(Scope scope)
             {
-                throw new NotImplementedException();
+                return Expr.Constant(Literal);
             }
         }
         
@@ -62,7 +62,7 @@ namespace IronLua.Compiler.Ast
 
             public override Expr Compile(Scope scope)
             {
-                throw new NotImplementedException();
+                return Expr.Constant(Literal);
             }
         }
         
