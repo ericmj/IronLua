@@ -200,16 +200,20 @@ namespace IronLua.Compiler.Ast
 
             public override Expr Compile(Scope scope)
             {
-                var tempVariables = ListUtil<ParameterExpression>.Init(Values.Count,
-                    () => Expr.Variable(typeof(object)));
-                var tempAssigns = tempVariables.Zip(Values,
-                    (var, expr) => Expr.Assign(var, expr.Compile(scope)));
+                // Assign values to temporaries
+                var valuesCompiled = Values.Select(val => val.Compile(scope)).ToList();
+                var tempVariables = valuesCompiled.Select(expr => Expr.Variable(expr.Type)).ToList();
+                var tempAssigns = tempVariables.Zip(valuesCompiled, Expr.Assign);
 
-                var tempVariablesResized = tempVariables.Resize(Identifiers.Count, Expression.Nil.Constant.Compile(null));
+                // Shrink or pad temporary's list with nil to match local's list length
+                // and cast temporaries to locals type
                 var locals = Identifiers.Select(scope.AddLocal).ToList();
+                var tempVariablesResized = tempVariables
+                    .Resize(Identifiers.Count, Expression.Nil.Constant.Compile(null))
+                    .Zip(locals, (tempVar, local) => Expr.Convert(tempVar, local.Type));
 
+                // Assign temporaries to locals
                 var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
-
                 return Expr.Block(tempVariables.Concat(locals), tempAssigns.Concat(realAssigns));
             }
         }
