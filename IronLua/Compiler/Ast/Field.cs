@@ -1,10 +1,9 @@
-using System;
-using Expr = System.Linq.Expressions.Expression;
-
 namespace IronLua.Compiler.Ast
 {
     abstract class Field : Node
     {
+        public abstract T Visit<T>(IFieldVisitor<T> visitor);
+
         public class MemberExpr : Field
         {
             public Expression Member { get; set; }
@@ -16,9 +15,9 @@ namespace IronLua.Compiler.Ast
                 Value = value;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IFieldVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -33,9 +32,9 @@ namespace IronLua.Compiler.Ast
                 Value = value;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IFieldVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -48,9 +47,9 @@ namespace IronLua.Compiler.Ast
                 Value = value;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IFieldVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

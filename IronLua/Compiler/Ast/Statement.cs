@@ -1,14 +1,11 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using IronLua.Util;
-using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class Statement : Node
     {
+        public abstract T Visit<T>(IStatementVisitor<T> visitor);
+
         public class Assign : Statement
         {
             public List<Variable> Variables { get; set; }
@@ -20,9 +17,9 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -35,9 +32,9 @@ namespace IronLua.Compiler.Ast
                 Call = call;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -50,9 +47,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -67,9 +64,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -84,9 +81,9 @@ namespace IronLua.Compiler.Ast
                 Test = test;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -105,9 +102,9 @@ namespace IronLua.Compiler.Ast
                 ElseBody = elseBody;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -128,9 +125,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -147,9 +144,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -164,9 +161,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -181,9 +178,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -198,23 +195,9 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                // Assign values to temporaries
-                var valuesCompiled = Values.Select(val => val.Compile(scope)).ToList();
-                var tempVariables = valuesCompiled.Select(expr => Expr.Variable(expr.Type)).ToList();
-                var tempAssigns = tempVariables.Zip(valuesCompiled, Expr.Assign);
-
-                // Shrink or pad temporary's list with nil to match local's list length
-                // and cast temporaries to locals type
-                var locals = Identifiers.Select(scope.AddLocal).ToList();
-                var tempVariablesResized = tempVariables
-                    .Resize(Identifiers.Count, Expression.Nil.Constant.Compile(null))
-                    .Zip(locals, (tempVar, local) => Expr.Convert(tempVar, local.Type));
-
-                // Assign temporaries to locals
-                var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
-                return Expr.Block(tempVariables.Concat(locals), tempAssigns.Concat(realAssigns));
+                return visitor.Visit(this);
             }
         }
     }

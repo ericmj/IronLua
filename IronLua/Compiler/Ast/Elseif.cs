@@ -1,6 +1,3 @@
-using System;
-using Expr = System.Linq.Expressions.Expression;
-
 namespace IronLua.Compiler.Ast
 {
     class Elseif : Node
@@ -12,11 +9,6 @@ namespace IronLua.Compiler.Ast
         {
             Test = test;
             Body = body;
-        }
-
-        public override Expr Compile(Scope scope)
-        {
-            throw new NotImplementedException();
         }
     }
 }

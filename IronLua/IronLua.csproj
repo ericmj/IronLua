@@ -57,12 +57,14 @@
     <Compile Include="Compiler\Ast\Field.cs" />
     <Compile Include="Compiler\Ast\FunctionCall.cs" />
     <Compile Include="Compiler\Ast\FunctionName.cs" />
+    <Compile Include="Compiler\Ast\IVisitor.cs" />
     <Compile Include="Compiler\Ast\LastStatement.cs" />
     <Compile Include="Compiler\Ast\Node.cs" />
     <Compile Include="Compiler\Ast\PrefixExpression.cs" />
     <Compile Include="Compiler\Ast\Statement.cs" />
     <Compile Include="Compiler\Ast\UnaryOp.cs" />
     <Compile Include="Compiler\Ast\Variable.cs" />
+    <Compile Include="Compiler\Generator.cs" />
     <Compile Include="Compiler\Parser\CharExtensions.cs" />
     <Compile Include="Compiler\Parser\Input.cs" />
     <Compile Include="Compiler\Parser\Lexer.cs" />

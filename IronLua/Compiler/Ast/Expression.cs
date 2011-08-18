@@ -1,23 +1,16 @@
-using System;
 using System.Collections.Generic;
-using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class Expression : Node
     {
+        public abstract T Visit<T>(IExpressionVisitor<T> visitor);
+
         public class Nil : Expression
         {
-            public static Nil Constant { get; private set; }
-
-            static Nil()
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                Constant = new Nil();
-            }
-
-            public override Expr Compile(Scope scope)
-            {
-                return Expr.Default(typeof(object));
+                return visitor.Visit(this);
             }
         }
         
@@ -30,9 +23,9 @@ namespace IronLua.Compiler.Ast
                 Literal = literal;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                return Expr.Constant(Literal);
+                return visitor.Visit(this);
             }
         }
         
@@ -45,9 +38,9 @@ namespace IronLua.Compiler.Ast
                 Literal = literal;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                return Expr.Constant(Literal);
+                return visitor.Visit(this);
             }
         }
         
@@ -60,17 +53,17 @@ namespace IronLua.Compiler.Ast
                 Literal = literal;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                return Expr.Constant(Literal);
+                return visitor.Visit(this);
             }
         }
         
         public class Varargs : Expression
         {
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
         
@@ -83,9 +76,9 @@ namespace IronLua.Compiler.Ast
                 Body = body;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
         
@@ -98,9 +91,9 @@ namespace IronLua.Compiler.Ast
                 Expression = expression;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
         
@@ -113,9 +106,9 @@ namespace IronLua.Compiler.Ast
                 Fields = fields;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
         
@@ -132,9 +125,9 @@ namespace IronLua.Compiler.Ast
                 Right = right;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
         
@@ -149,9 +142,9 @@ namespace IronLua.Compiler.Ast
                 Operand = operand;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

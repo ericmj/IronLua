@@ -1,10 +1,9 @@
-using System;
-using Expr = System.Linq.Expressions.Expression;
-
 namespace IronLua.Compiler.Ast
 {
     abstract class PrefixExpression : Node
     {
+        public abstract T Visit<T>(IPrefixExpressionVisitor<T> visitor);
+
         public class Variable : PrefixExpression
         {
             public Ast.Variable Var { get; set; }
@@ -14,9 +13,9 @@ namespace IronLua.Compiler.Ast
                 Var = variable;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IPrefixExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -29,9 +28,9 @@ namespace IronLua.Compiler.Ast
                 Call = call;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IPrefixExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -44,9 +43,9 @@ namespace IronLua.Compiler.Ast
                 Expr = expression;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IPrefixExpressionVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

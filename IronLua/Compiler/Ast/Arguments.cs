@@ -1,11 +1,11 @@
-using System;
 using System.Collections.Generic;
-using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class Arguments : Node
     {
+        public abstract T Visit<T>(IArgumentsVisitor<T> visitor);
+
         public class Normal : Arguments
         {
             public List<Expression> Arguments { get; set; }
@@ -15,9 +15,9 @@ namespace IronLua.Compiler.Ast
                 Arguments = arguments;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IArgumentsVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -30,9 +30,9 @@ namespace IronLua.Compiler.Ast
                 Fields = fields;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IArgumentsVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -45,9 +45,9 @@ namespace IronLua.Compiler.Ast
                 Literal = literal;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IArgumentsVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

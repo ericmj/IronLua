@@ -1,10 +1,9 @@
-using System;
-using Expr = System.Linq.Expressions.Expression;
-
 namespace IronLua.Compiler.Ast
 {
     abstract class FunctionCall : Node
     {
+        public abstract T Visit<T>(IFunctionCallVisitor<T> visitor);
+
         public class Normal : FunctionCall
         {
             public PrefixExpression Prefix { get; set; }
@@ -16,9 +15,9 @@ namespace IronLua.Compiler.Ast
                 Arguments = arguments;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IFunctionCallVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
@@ -35,9 +34,9 @@ namespace IronLua.Compiler.Ast
                 Arguments = arguments;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(IFunctionCallVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

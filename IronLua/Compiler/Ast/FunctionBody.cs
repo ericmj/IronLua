@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Expr = System.Linq.Expressions.Expression;
+﻿using System.Collections.Generic;
 
 namespace IronLua.Compiler.Ast
 {
@@ -15,11 +13,6 @@ namespace IronLua.Compiler.Ast
             Parameters = parameters;
             Varargs = varargs;
             Body = body;
-        }
-
-        public override Expr Compile(Scope scope)
-        {
-            throw new NotImplementedException();
         }
     }
 }

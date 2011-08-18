@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace IronLua.Compiler.Ast
+﻿namespace IronLua.Compiler.Ast
 {
     static class AstExtensions
     {

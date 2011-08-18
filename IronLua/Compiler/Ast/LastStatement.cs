@@ -1,11 +1,11 @@
-using System;
 using System.Collections.Generic;
-using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class LastStatement : Node
     {
+        public abstract T Visit<T>(ILastStatementVisitor<T> visitor);
+
         public class Return : LastStatement
         {
             public List<Expression> Values { get; set; }
@@ -15,18 +15,18 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(ILastStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
         public class Break : LastStatement
         {
 
-            public override Expr Compile(Scope scope)
+            public override T Visit<T>(ILastStatementVisitor<T> visitor)
             {
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }
