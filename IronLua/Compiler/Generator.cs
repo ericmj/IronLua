@@ -19,12 +19,15 @@ namespace IronLua.Compiler
 
         public Expr Compile(Block block)
         {
-            scope = new Scope();
+            scope = Scope.CreateRoot();
             return Visit(block);
         }
 
         Expr Visit(Block block)
         {
+            if (!scope.IsRoot)
+                scope = Scope.CreateChild(scope);
+
             var linqStatements = block.Statements.Select(s => s.Visit(this));
 
             if (block.LastStatement != null)

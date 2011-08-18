@@ -8,15 +8,10 @@ namespace IronLua.Compiler
         Scope parent;
         Dictionary<string, ParameterExpression> variables;
 
-        public Scope()
-        {
-            parent = null;
-            variables = new Dictionary<string, ParameterExpression>();
-        }
+        public bool IsRoot { get { return parent == null; } }
 
-        public Scope(Scope parent)
+        private Scope()
         {
-            this.parent = parent;
             variables = new Dictionary<string, ParameterExpression>();
         }
 
@@ -36,6 +31,16 @@ namespace IronLua.Compiler
             var param = Expression.Variable(typeof(object));
             variables.Add(name, param);
             return param;
+        }
+
+        public static Scope CreateRoot()
+        {
+            return new Scope();
+        }
+
+        public static Scope CreateChild(Scope parent)
+        {
+            return new Scope {parent = parent};
         }
     }
 }
