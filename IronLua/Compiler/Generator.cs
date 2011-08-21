@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Ast;
+using IronLua.Runtime;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -12,9 +13,11 @@ namespace IronLua.Compiler
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>
     {
         Scope scope;
+        Enviroment enviroment;
 
-        public Generator()
+        public Generator(Enviroment enviroment)
         {
+            this.enviroment = enviroment;
         }
 
         public Expr Compile(Block block)
