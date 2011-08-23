@@ -1,17 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Ast;
 using IronLua.Runtime;
+using IronLua.Runtime.Binder;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
+using ExprType = System.Linq.Expressions.ExpressionType;
+using Expression = IronLua.Compiler.Ast.Expression;
 
 namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>
     {
+        static Dictionary<BinaryOp, ExprType> binaryOpConverter =
+            new Dictionary<BinaryOp, ExprType>()
+                {
+                    {BinaryOp.Or,           ExprType.OrElse},
+                    {BinaryOp.And,          ExprType.AndAlso},
+                    {BinaryOp.Less,         ExprType.LessThan},
+                    {BinaryOp.Greater,      ExprType.GreaterThan},
+                    {BinaryOp.LessEqual,    ExprType.LessThanOrEqual},
+                    {BinaryOp.GreaterEqual, ExprType.GreaterThanOrEqual},
+                    {BinaryOp.Add,          ExprType.Add},
+                    {BinaryOp.Subtract,     ExprType.Subtract},
+                    {BinaryOp.Multiply,     ExprType.Multiply},
+                    {BinaryOp.Divide,       ExprType.Divide},
+                    {BinaryOp.Mod,          ExprType.Modulo},
+                    {BinaryOp.Raise,        ExprType.Power} 
+                };
+
         Scope scope;
         Enviroment enviroment;
 
@@ -120,6 +142,15 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.BinaryOp expression)
         {
+            var left = expression.Left.Visit(this);
+            var right = expression.Right.Visit(this);
+            ExprType operand;
+            if (binaryOpConverter.TryGetValue(expression.Operation, out operand))
+                return Expr.Dynamic(enviroment.BinderCache.GetBinaryOperationBinder(operand),
+                                    typeof(object), left, right);
+
+            // BinaryOp have to be Concat at this point which can't be represented as a ExprType
+            // TODO
             throw new NotImplementedException();
         }
 

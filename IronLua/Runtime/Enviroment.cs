@@ -8,11 +8,13 @@ namespace IronLua.Runtime
 {
     class Enviroment
     {
-        BinderCache binderCache;
+        LuaTable globals;
+
+        public BinderCache BinderCache { get; private set; }
 
         public Enviroment()
         {
-            binderCache = new BinderCache();
+            BinderCache = new BinderCache();
         }
     }
 }

@@ -399,6 +399,7 @@ namespace IronLua.Compiler.Parser
             BinaryOp binaryOp;
             if (!binaryOps.TryGetValue(lexer.Current.Symbol, out binaryOp))
                 return left;
+            lexer.Consume();
 
             // Recurse while having higher binding
             var priority = binaryOpPriorities[binaryOp];

@@ -22,7 +22,20 @@ namespace IronLua.Runtime.Binder
                     .Merge(BindingRestrictions.GetTypeRestriction(target.Expression, target.LimitType))
                     .Merge(BindingRestrictions.GetTypeRestriction(arg.Expression, arg.LimitType));
 
-            throw new NotImplementedException();
+            var left = ConvertOperand(target);
+            var right = ConvertOperand(arg);
+            var result = Expression.Convert(Expression.MakeBinary(Operation, left, right), typeof(object));
+
+            return new DynamicMetaObject(result, restrictions);
+        }
+
+        static Expression ConvertOperand(DynamicMetaObject metaObject)
+        {
+            // TODO: Parse string to double and look for metatable
+            Expression op = null;
+            if (metaObject.LimitType == typeof (double))
+                op = metaObject.Expression;
+            return op;
         }
     }
 }
