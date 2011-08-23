@@ -74,17 +74,15 @@
     <Compile Include="Compiler\Scope.cs" />
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="IronLuaException.cs" />
+    <Compile Include="Library\LuaString.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Runtime\Binder\BinderCache.cs" />
     <Compile Include="Runtime\Binder\LuaBinaryOperationBinder.cs" />
     <Compile Include="Runtime\Enviroment.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
     <Compile Include="Util\Extensions.cs" />
-    <Compile Include="Util\ListUtil.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Library\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
