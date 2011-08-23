@@ -38,7 +38,7 @@ namespace IronLua.Compiler.Parser
                     {Symbol.Star,         BinaryOp.Multiply},
                     {Symbol.Slash,        BinaryOp.Divide},
                     {Symbol.Percent,      BinaryOp.Mod},
-                    {Symbol.Carrot,       BinaryOp.Raise}
+                    {Symbol.Carrot,       BinaryOp.Power}
                 };
 
         static readonly Dictionary<BinaryOp, Tuple<int, int>> binaryOpPriorities =
@@ -56,7 +56,7 @@ namespace IronLua.Compiler.Parser
                     {BinaryOp.Multiply,     new Tuple<int, int>(7, 7)},
                     {BinaryOp.Divide,       new Tuple<int, int>(7, 7)},
                     {BinaryOp.Mod,          new Tuple<int, int>(7, 7)},
-                    {BinaryOp.Raise,        new Tuple<int, int>(9, 8)}  // Left associative
+                    {BinaryOp.Power,        new Tuple<int, int>(9, 8)}  // Left associative
                 };
 
         Input input;

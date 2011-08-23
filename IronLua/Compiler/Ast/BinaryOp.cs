@@ -15,6 +15,6 @@ namespace IronLua.Compiler.Ast
         Multiply,
         Divide,
         Mod,
-        Raise // TODO: Rename to power
+        Power
     }
 }

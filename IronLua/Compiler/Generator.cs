@@ -31,7 +31,7 @@ namespace IronLua.Compiler
                     {BinaryOp.Multiply,     ExprType.Multiply},
                     {BinaryOp.Divide,       ExprType.Divide},
                     {BinaryOp.Mod,          ExprType.Modulo},
-                    {BinaryOp.Raise,        ExprType.Power} 
+                    {BinaryOp.Power,        ExprType.Power} 
                 };
 
         Scope scope;
