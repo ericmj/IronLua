@@ -42,10 +42,19 @@ namespace IronLua.Compiler
             this.enviroment = enviroment;
         }
 
-        public Expr Compile(Block block)
+        public Expression<Func<Enviroment, object>> Compile(Block block)
         {
             scope = Scope.CreateRoot();
-            return Visit(block);
+            var enviromentParam = Expr.Parameter(typeof(Enviroment));
+            var baseBlock =
+                Expr.Block(
+                    new[] {enviroment.GlobalsExpr},
+                    Expr.Assign(
+                        enviroment.GlobalsExpr,
+                        Expr.Property(enviromentParam, typeof(Enviroment).GetProperty("Globals"))),
+                    Visit(block));
+
+            return Expr.Lambda<Func<Enviroment, object>>(baseBlock, enviromentParam);
         }
 
         Expr Visit(Block block)
