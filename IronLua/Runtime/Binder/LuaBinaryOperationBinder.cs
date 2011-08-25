@@ -1,18 +1,24 @@
 using System;
 using System.Dynamic;
 using System.Linq.Expressions;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaBinaryOperationBinder : BinaryOperationBinder
     {
-        public LuaBinaryOperationBinder(ExpressionType op)
+        Enviroment enviroment;
+
+        public LuaBinaryOperationBinder(Enviroment enviroment, ExpressionType op)
             : base(op)
         {
+            this.enviroment = enviroment;
         }
 
         public override DynamicMetaObject FallbackBinaryOperation(DynamicMetaObject target, DynamicMetaObject arg, DynamicMetaObject errorSuggestion)
         {
+            // TODO: Check metatables if ConvertOperand() returns null (Dictionary<Type,LuaTable> in enviroment)
+
             if (!target.HasValue || !arg.HasValue)
                 return Defer(target, arg);
 
@@ -24,18 +30,25 @@ namespace IronLua.Runtime.Binder
 
             var left = ConvertOperand(target);
             var right = ConvertOperand(arg);
-            var result = Expression.Convert(Expression.MakeBinary(Operation, left, right), typeof(object));
+            var result = Expr.Convert(Expr.MakeBinary(Operation, left, right), typeof(object));
 
             return new DynamicMetaObject(result, restrictions);
         }
 
-        static Expression ConvertOperand(DynamicMetaObject metaObject)
+        Expr ConvertOperand(DynamicMetaObject metaObject)
         {
-            // TODO: Parse string to double and look for metatable
-            Expression op = null;
-            if (metaObject.LimitType == typeof (double))
-                op = metaObject.Expression;
-            return op;
+            if (metaObject.LimitType == typeof(double))
+                return metaObject.Expression;
+            if (metaObject.LimitType == typeof(string))
+                return
+                    Expr.Convert(
+                        Expr.Dynamic(
+                            enviroment.BinderCache.GetInvokeMemberBinder("tonumber", new CallInfo(1)),
+                            typeof(object),
+                            Expr.Constant(enviroment.Globals),
+                            metaObject.Expression, Expr.Constant(10, typeof(int?))),
+                        typeof(double));
+            return null;
         }
     }
 }
