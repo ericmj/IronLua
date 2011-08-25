@@ -1,15 +1,28 @@
 using System;
+using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
 using Expr = System.Linq.Expressions.Expression;
+using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaBinaryOperationBinder : BinaryOperationBinder
     {
+        static HashSet<ExprType> numericExpressionTypes =
+            new HashSet<ExprType>
+                {
+                    ExprType.Add,
+                    ExprType.Subtract,
+                    ExprType.Multiply,
+                    ExprType.Divide,
+                    ExprType.Modulo,
+                    ExprType.Power
+                };
+
         Enviroment enviroment;
 
-        public LuaBinaryOperationBinder(Enviroment enviroment, ExpressionType op)
+        public LuaBinaryOperationBinder(Enviroment enviroment, ExprType op)
             : base(op)
         {
             this.enviroment = enviroment;
@@ -28,14 +41,20 @@ namespace IronLua.Runtime.Binder
                     .Merge(BindingRestrictions.GetTypeRestriction(target.Expression, target.LimitType))
                     .Merge(BindingRestrictions.GetTypeRestriction(arg.Expression, arg.LimitType));
 
-            var left = ConvertOperand(target);
-            var right = ConvertOperand(arg);
+            var left = target.Expression;
+            var right = arg.Expression;
+            if (numericExpressionTypes.Contains(Operation))
+            {
+                left = ConvertToNumberOperand(target);
+                right = ConvertToNumberOperand(arg);
+            }
+
             var result = Expr.Convert(Expr.MakeBinary(Operation, left, right), typeof(object));
 
             return new DynamicMetaObject(result, restrictions);
         }
 
-        Expr ConvertOperand(DynamicMetaObject metaObject)
+        Expr ConvertToNumberOperand(DynamicMetaObject metaObject)
         {
             if (metaObject.LimitType == typeof(double))
                 return metaObject.Expression;
