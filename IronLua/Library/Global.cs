@@ -60,7 +60,9 @@ namespace IronLua.Library
 
         public static void Setup(LuaTable globals)
         {
-            globals.SetValue("tonumber", (Func<string, int?, double>)ToNumber);
+            globals.SetValue("tonumber", LuaFunction.Create(
+                (Func<string, int?, double>)ToNumber,
+                typeof(Global).GetMethod("ToNumber")));
         }
     }
 }

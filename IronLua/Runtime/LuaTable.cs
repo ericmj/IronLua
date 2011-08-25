@@ -45,7 +45,9 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
             {
                 // TODO: Move code Expr.Call to BindGetMember
-                var restrictions = BindingRestrictions.GetInstanceRestriction(Expression, Value);
+                var restrictions = Restrictions.Merge(
+                    BindingRestrictions.GetTypeRestriction(Expression, typeof(LuaTable)));
+
                 var expression =
                     Expr.Call(
                         Expression,
