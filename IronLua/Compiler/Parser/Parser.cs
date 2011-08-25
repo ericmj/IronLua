@@ -2,18 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using IronLua.Compiler.Ast;
+using IronLua.Library;
 
 namespace IronLua.Compiler.Parser
 {
     class Parser
     {
         const int UNARY_OP_PRIORITY = 8;
-        const NumberStyles HEX_NUMBER_STYLE = NumberStyles.AllowHexSpecifier;
-        const NumberStyles DECIMAL_NUMBER_STYLE = NumberStyles.AllowDecimalPoint |
-                                                  NumberStyles.AllowExponent |
-                                                  NumberStyles.AllowTrailingSign;
-
-        static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture;
 
         static readonly Dictionary<Symbol, UnaryOp> unaryOps =
             new Dictionary<Symbol, UnaryOp>
@@ -148,18 +143,14 @@ namespace IronLua.Compiler.Parser
         double NumberLiteral()
         {
             var number = lexer.ExpectLexeme(Symbol.Number);
-            try
-            {
-                return number.StartsWith("0x") ? HexNumber(number.Substring(2)) : DecimalNumber(number);
-            }
-            catch(FormatException)
-            {
-                throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
-            }
-            catch(OverflowException)
-            {
-                throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
-            }
+            double result;
+            bool successful = number.StartsWith("0x") ?
+                NumberUtil.TryParseHexNumber(number.Substring(2), true, out result) :
+                NumberUtil.TryParseDecimalNumber(number, out result);
+
+            if (successful)
+                return result;
+            throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
         }
 
 
@@ -648,27 +639,6 @@ namespace IronLua.Compiler.Parser
             var body = Block();
             lexer.Expect(Symbol.End);
             return new Statement.Do(body);
-        }
-
-        /* Parses a decimal number */
-        static double DecimalNumber(string number)
-        {
-            return Double.Parse(number, DECIMAL_NUMBER_STYLE, cultureInfo);
-        }
-
-        /* Parses a hex number */
-        static double HexNumber(string number)
-        {
-            var exponentIndex = number.IndexOfAny(new[] {'p', 'P'});
-            if (exponentIndex == -1)
-                return UInt64.Parse(number, HEX_NUMBER_STYLE, cultureInfo);
-
-            var hexPart = number.Substring(0, exponentIndex);
-            var exponentPart = number.Substring(exponentIndex + 1);
-            var hexNumber = UInt64.Parse(hexPart, HEX_NUMBER_STYLE, cultureInfo);
-            var exponentNumber = UInt64.Parse(exponentPart, HEX_NUMBER_STYLE, cultureInfo);
-
-            return hexNumber * Math.Pow(exponentNumber, 2.0);
         }
     }
 }
