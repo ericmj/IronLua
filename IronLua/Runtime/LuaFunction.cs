@@ -13,13 +13,11 @@ namespace IronLua.Runtime
     class LuaFunction : IDynamicMetaObjectProvider
     {
         object function;
-        Type functionType;
         IList<LuaParameter> parameters;
 
         public LuaFunction(object function, IList<LuaParameter> parameters)
         {
             this.function = function;
-            functionType = function.GetType();
             this.parameters = parameters;
         }
 
@@ -29,7 +27,11 @@ namespace IronLua.Runtime
             var luaParameters = new LuaParameter[parameterInfos.Length];
 
             for (int i = 0; i < parameterInfos.Length; i++)
-                luaParameters[i] = new LuaParameter(parameterInfos[i].Name, parameterInfos[i].DefaultValue);
+            {
+                var paramInfo = parameterInfos[i];
+                var defaultValue = paramInfo.IsOptional ? paramInfo.DefaultValue : null;
+                luaParameters[i] = new LuaParameter(paramInfo.Name, defaultValue);
+            }
 
             return new LuaFunction(function, luaParameters);
         }
@@ -48,7 +50,7 @@ namespace IronLua.Runtime
 
             public override DynamicMetaObject BindInvoke(InvokeBinder binder, DynamicMetaObject[] args)
             {
-                // TODO: Passing tables for named parameters and optional parameters
+                // TODO: Optional parameters and passing table for named parameters
 
                 var restrictions = Restrictions.Merge(
                     BindingRestrictions.GetInstanceRestriction(Expression, Value));
@@ -58,7 +60,7 @@ namespace IronLua.Runtime
                 var expression =
                     Expr.Convert(
                         Expr.Invoke(
-                            Expr.Constant(luaFunction.function, luaFunction.functionType),
+                            Expr.Constant(luaFunction.function, luaFunction.function.GetType()),
                             args.Select(a => a.Expression)),
                         typeof(object));
 
