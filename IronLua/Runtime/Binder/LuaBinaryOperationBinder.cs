@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
+using IronLua.Library;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
@@ -60,13 +61,9 @@ namespace IronLua.Runtime.Binder
                 return metaObject.Expression;
             if (metaObject.LimitType == typeof(string))
                 return
-                    Expr.Convert(
-                        Expr.Dynamic(
-                            enviroment.BinderCache.GetInvokeMemberBinder("tonumber", new CallInfo(1)),
-                            typeof(object),
-                            Expr.Constant(enviroment.Globals),
-                            metaObject.Expression, Expr.Constant(10, typeof(int?))),
-                        typeof(double));
+                    Expr.Invoke(
+                        Expr.Constant((Func<string, int?, double>) Global.ToNumber),
+                        metaObject.Expression, Expr.Constant(10, typeof(int?)));
             return null;
         }
     }
