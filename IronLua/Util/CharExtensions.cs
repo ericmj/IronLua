@@ -1,4 +1,4 @@
-namespace IronLua.Compiler.Parser
+namespace IronLua.Util
 {
     static class CharExtensions
     {
