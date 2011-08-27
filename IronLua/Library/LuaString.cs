@@ -89,16 +89,16 @@ namespace IronLua.Library
                 }
                 else if (current == '%')
                 {
-                    var tag = ParseTag(format, ref i);
+                    var tag = ParseTag(sb, format, ref i);
                     object objectValue = values[valueIndex++];
                     string stringValue;
 
                     if ((stringValue = objectValue as string) != null)
-                        tag.Append(sb, stringValue);
+                        tag.Append(stringValue);
                     else if (objectValue is double)
-                        tag.Append(sb, (double)objectValue);
+                        tag.Append((double)objectValue);
                     else
-                        tag.Append(sb, objectValue.ToString());
+                        tag.Append(objectValue.ToString());
                 }
                 else
                 {
@@ -107,10 +107,10 @@ namespace IronLua.Library
             }
         }
 
-        FormatTag ParseTag(string format, ref int i)
+        FormatTag ParseTag(StringBuilder sb, string format, ref int i)
         {
             i++;
-            var tag = new FormatTag();
+            var tag = new FormatTag(sb);
 
             ParseFlags(tag, format, ref i);
             ParseWidth(tag, format, ref i);
@@ -200,117 +200,136 @@ namespace IronLua.Library
         public int Width { get; set; }
         public int Precision { get; set; }
 
-        public FormatTag()
+        StringBuilder sb;
+
+        public FormatTag(StringBuilder sb)
         {
-            Precision = 1;
+            this.sb = sb;
+            Precision = -1;
         }
 
-        public void Append(StringBuilder sb, string value)
-        {
-            if (Specifier != FormatSpecifier.String)
-                throw new Exception(); // TODO
-
-            if (LeftJustify)
-            {
-                sb.Append(value);
-                for (int i = 0; i < Width - value.Length; i++)
-                    sb.Append(' ');
-            }
-            else
-            {
-                char padding = PadWithZeros ? '0' : ' ';
-                for (int i = 0; i < Width - value.Length; i++)
-                    sb.Append(padding);
-                sb.Append(value);
-            }
-        }
-
-        public void Append(StringBuilder sb, double value)
+        public void Append(double value)
         {
             switch (Specifier)
             {
                 case FormatSpecifier.Character:
-                    FormatChar(sb, value);
+                    FormatChar(value);
                     break;
                 case FormatSpecifier.DecimalInteger:
-                    FormatDecInt(sb, value);
+                    FormatDecInt(value);
                     break;
                 case FormatSpecifier.ScientificNotationLower:
-                    FormatScienctific(sb, value, false);
+                    FormatScienctific(value, false);
                     break;
                 case FormatSpecifier.ScientificNotationUpper:
-                    FormatScienctific(sb, value, true);
+                    FormatScienctific(value, true);
                     break;
                 case FormatSpecifier.DecimalFloatingPoint:
-                    FormatFloating(sb, value);
+                    FormatFloating(value);
                     break;
                 case FormatSpecifier.ShorterScientificOrFloatingLower:
-                    FormatShorter(sb, value, false);
+                    FormatShorter(value, false);
                     break;
                 case FormatSpecifier.ShorterScientificOrFloatingUpper:
-                    FormatShorter(sb, value, true);
+                    FormatShorter(value, true);
                     break;
                 case FormatSpecifier.OctalInteger:
-                    FormatOctInt(sb, value);
+                    FormatOctInt(value);
                     break;
                 case FormatSpecifier.HexadecimalIntegerLower:
-                    FormatHexInt(sb, value, false);
+                    FormatHexInt(value, false);
                     break;
                 case FormatSpecifier.HexadecimalIntegerUpper:
-                    FormatHexInt(sb, value, true);
+                    FormatHexInt(value, true);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        void FormatChar(StringBuilder sb, double value)
+        public void Append(string value)
+        {
+            if (Specifier != FormatSpecifier.String)
+                throw new Exception(); // TODO
+
+            // Truncate
+            if (Precision != -1 && value.Length > Precision)
+                value = value.Substring(0, Precision);
+
+            sb.Append(value);
+            Pad();
+        }
+
+        void FormatChar(double value)
         {
             char c = (char)value;
+            sb.Append(c.ToString());
+            Pad();
+        }
 
+        void FormatDecInt(double value)
+        {
+            string str = ((long) value).ToString();
+            AddMinimumDigits(str);
+            AddSign(value);
+            Pad();
+        }
+
+        void FormatScienctific(double value, bool upperCase)
+        {
+            throw new NotImplementedException();
+        }
+
+        void FormatFloating(double value)
+        {
+            throw new NotImplementedException();
+        }
+
+        void FormatShorter(double value, bool upperCase)
+        {
+            throw new NotImplementedException();
+        }
+
+        void FormatOctInt(double value)
+        {
+            throw new NotImplementedException();
+        }
+
+        void FormatHexInt(double value, bool upperCase)
+        {
+            throw new NotImplementedException();
+        }
+
+        void Pad()
+        {
+            int paddingCount = Width - sb.Length;
             if (LeftJustify)
             {
-                sb.Append(value);
-                for (int i = 0; i < Width; i++)
+                for (int i = 0; i < paddingCount; i++)
                     sb.Append(' ');
             }
             else
             {
-                char padding = PadWithZeros ? '0' : ' ';
-                for (int i = 0; i < Width; i++)
-                    sb.Append(padding);
-                sb.Append(value);
+                var padding = (PadWithZeros ? '0' : ' ').ToString();
+                sb.Insert(0, padding, paddingCount);
             }
         }
 
-        void FormatDecInt(StringBuilder sb, double value)
+        void AddMinimumDigits(string str)
         {
-            throw new NotImplementedException();
+            if (str.Length < Precision)
+                sb.Insert(0, str, Precision - str.Length);
         }
 
-        void FormatScienctific(StringBuilder sb, double value, bool upperCase)
+        void AddSign(double value)
         {
-            throw new NotImplementedException();
-        }
-
-        void FormatFloating(StringBuilder sb, double value)
-        {
-            throw new NotImplementedException();
-        }
-
-        void FormatShorter(StringBuilder sb, double value, bool upperCase)
-        {
-            throw new NotImplementedException();
-        }
-
-        void FormatOctInt(StringBuilder sb, double value)
-        {
-            throw new NotImplementedException();
-        }
-
-        void FormatHexInt(StringBuilder sb, double value, bool upperCase)
-        {
-            throw new NotImplementedException();
+            if (value > 0)
+            {
+                if (ForceSignPrecedence)
+                    sb.Insert(0, '+');
+                else if (PadSignWithSpace)
+                    sb.Insert(0, ' ');
+            }
         }
     }
 
