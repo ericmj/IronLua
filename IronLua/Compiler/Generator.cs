@@ -17,7 +17,7 @@ namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>
     {
-        static Dictionary<BinaryOp, ExprType> binaryOpConverter =
+        static Dictionary<BinaryOp, ExprType> exprTypes =
             new Dictionary<BinaryOp, ExprType>()
                 {
                     {BinaryOp.Or,           ExprType.OrElse},
@@ -154,11 +154,11 @@ namespace IronLua.Compiler
             var left = expression.Left.Visit(this);
             var right = expression.Right.Visit(this);
             ExprType operand;
-            if (binaryOpConverter.TryGetValue(expression.Operation, out operand))
+            if (exprTypes.TryGetValue(expression.Operation, out operand))
                 return Expr.Dynamic(enviroment.BinderCache.GetBinaryOperationBinder(operand),
                                     typeof(object), left, right);
 
-            // BinaryOp have to be Concat at this point which can't be represented as a ExprType
+            // BinaryOp have to be Concat at this point which can't be represented as an ExprType
             // TODO
             throw new NotImplementedException();
         }
