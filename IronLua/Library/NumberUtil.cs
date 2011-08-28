@@ -13,14 +13,12 @@ namespace IronLua.Library
                                                   NumberStyles.AllowExponent |
                                                   NumberStyles.AllowTrailingSign;
 
-        static readonly CultureInfo cultureInfo = CultureInfo.InvariantCulture;
-
 
         /* Parses a decimal number */
         public static bool TryParseDecimalNumber(string number, out double result)
         {
 
-            return Double.TryParse(number, DECIMAL_NUMBER_STYLE, cultureInfo, out result);
+            return Double.TryParse(number, DECIMAL_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out result);
         }
 
         /* Parses a hex number */
@@ -32,7 +30,7 @@ namespace IronLua.Library
             if (exponentIndex == -1)
             {
                 ulong integer;
-                successful = UInt64.TryParse(number, HEX_NUMBER_STYLE, cultureInfo, out integer);
+                successful = UInt64.TryParse(number, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out integer);
                 result = integer;
                 return successful;
             }
@@ -47,8 +45,8 @@ namespace IronLua.Library
             var exponentPart = number.Substring(exponentIndex + 1);
 
             ulong hexNumber, exponentNumber = 0;
-            successful = UInt64.TryParse(hexPart, HEX_NUMBER_STYLE, cultureInfo, out hexNumber) &&
-                         UInt64.TryParse(exponentPart, HEX_NUMBER_STYLE, cultureInfo, out exponentNumber);
+            successful = UInt64.TryParse(hexPart, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out hexNumber) &&
+                         UInt64.TryParse(exponentPart, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out exponentNumber);
             result = hexNumber * Math.Pow(exponentNumber, 2.0);
             return successful;
         }

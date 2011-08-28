@@ -71,6 +71,7 @@
     <Compile Include="Compiler\Parser\Symbol.cs" />
     <Compile Include="Compiler\Parser\Token.cs" />
     <Compile Include="Compiler\Scope.cs" />
+    <Compile Include="Constant.cs" />
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="IronLuaException.cs" />
     <Compile Include="Library\Global.cs" />
