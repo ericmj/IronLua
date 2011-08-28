@@ -57,8 +57,9 @@ namespace IronLua.Library
             new Dictionary<char, FormatSpecifier>
                 {
                     {'c', FormatSpecifier.Character},
-                    {'d', FormatSpecifier.DecimalInteger},
-                    {'i', FormatSpecifier.DecimalInteger},
+                    {'d', FormatSpecifier.SignedDecimalInteger},
+                    {'i', FormatSpecifier.SignedDecimalInteger},
+                    {'u', FormatSpecifier.UnsignedDecimalInteger},
                     {'e', FormatSpecifier.ScientificNotationLower},
                     {'E', FormatSpecifier.ScientificNotationUpper},
                     {'f', FormatSpecifier.DecimalFloatingPoint},
@@ -66,7 +67,7 @@ namespace IronLua.Library
                     {'G', FormatSpecifier.ShorterScientificOrFloatingUpper},
                     {'o', FormatSpecifier.OctalInteger},
                     {'s', FormatSpecifier.String},
-                    {'u', FormatSpecifier.DecimalInteger},
+                    {'u', FormatSpecifier.SignedDecimalInteger},
                     {'x', FormatSpecifier.HexadecimalIntegerLower},
                     {'X', FormatSpecifier.HexadecimalIntegerUpper}
                 };
@@ -218,8 +219,11 @@ namespace IronLua.Library
                 case FormatSpecifier.Character:
                     FormatChar(value);
                     break;
-                case FormatSpecifier.DecimalInteger:
-                    FormatDecInt(value);
+                case FormatSpecifier.SignedDecimalInteger:
+                    FormatSignDecInt(value);
+                    break;
+                case FormatSpecifier.UnsignedDecimalInteger:
+                    FormatUnsignDecInt(value);
                     break;
                 case FormatSpecifier.ScientificNotationLower:
                     FormatScienctific(value, false);
@@ -275,38 +279,107 @@ namespace IronLua.Library
             Pad();
         }
 
-        void FormatDecInt(double value)
+        void FormatSignDecInt(double value)
         {
-            string str = Math.Abs((long)value).ToString();
+            string str = Math.Abs((int)value).ToString();
             sb.Append(str);
-            AddMinimumDigits(str);
+            AddMinimumDigits();
             AddSign(value);
+            Pad();
+        }
+
+        void FormatUnsignDecInt(double value)
+        {
+            string str = Math.Abs((uint)value).ToString();
+            sb.Append(str);
+            AddMinimumDigits();
             Pad();
         }
 
         void FormatScienctific(double value, bool upperCase)
         {
-            throw new NotImplementedException();
+            string formatString = (upperCase ? "E" : "e") + (Precision == -1 ? 6 : Precision);
+            string str = Math.Abs(value).ToString(formatString, Constant.INVARIANT_CULTURE);
+            sb.Append(str);
+            AddDecimalPoint(str);
+            AddSign(value);
+            Pad();
         }
 
         void FormatFloating(double value)
         {
-            throw new NotImplementedException();
+            string formatString = "N" + (Precision == -1 ? 6 : Precision);
+            string str = Math.Abs(value).ToString(formatString, Constant.INVARIANT_CULTURE);
+
+            sb.Append(str);
+            AddDecimalPoint(str);
+            AddSign(value);
+            Pad();
         }
 
         void FormatShorter(double value, bool upperCase)
         {
-            throw new NotImplementedException();
+            FormatFloating(value);
+            string floatingStr = sb.ToString();
+            FormatScienctific(value, upperCase);
+
+            if (floatingStr.Length < sb.Length)
+            {
+                sb.Clear().Append(floatingStr);
+            }
         }
 
         void FormatOctInt(double value)
         {
-            throw new NotImplementedException();
+            string str = Convert.ToString(Math.Abs((uint)value), 8);
+            if (Hash) sb.Append('0');
+
+            sb.Append(str);
+            AddMinimumDigits();
+            Pad();
         }
 
         void FormatHexInt(double value, bool upperCase)
         {
-            throw new NotImplementedException();
+            string formatString = upperCase ? "X" : "x";
+            string str = Math.Abs((uint)value).ToString(formatString);
+
+            if (Hash)
+                sb.Append(upperCase ? "0X" : "0x");
+
+            sb.Append(str);
+            AddMinimumDigits();
+            Pad();
+        }
+
+        void AddDecimalPoint(string str)
+        {
+            // We could do a Math.Truncate(value) == value to check if we have added a decimal point instead
+            // of the costly str.Contains('.') but i'm not sure how well that will work when floating point
+            // equality comparsions are unreliable
+            if (Hash && Precision == 0 && str.Contains('.'))
+                sb.Append('.');
+        }
+
+        void AddMinimumDigits()
+        {
+            if (sb.Length < Precision)
+                sb.Insert(0, "0", Precision - sb.Length);
+        }
+
+        void AddSign(double value)
+        {
+            if (value < 0)
+            {
+                sb.Insert(0, '-');
+            }
+            else
+            {
+                if (ForceSignPrecedence)
+                    sb.Insert(0, '+');
+                else if (PadSignWithSpace)
+                    sb.Insert(0, ' ');
+            }
         }
 
         void Pad()
@@ -326,33 +399,13 @@ namespace IronLua.Library
                 sb.Insert(0, padding, paddingCount);
             }
         }
-
-        void AddMinimumDigits(string str)
-        {
-            if (str.Length < Precision)
-                sb.Insert(0, "0", Precision - str.Length);
-        }
-
-        void AddSign(double value)
-        {
-            if (value < 0)
-            {
-                sb.Insert(0, '-');
-            }
-            else
-            {
-                if (ForceSignPrecedence)
-                    sb.Insert(0, '+');
-                else if (PadSignWithSpace)
-                    sb.Insert(0, ' ');
-            }
-        }
     }
 
     enum FormatSpecifier
     {
         Character,
-        DecimalInteger,
+        SignedDecimalInteger,
+        UnsignedDecimalInteger,
         ScientificNotationLower,
         ScientificNotationUpper,
         DecimalFloatingPoint,
