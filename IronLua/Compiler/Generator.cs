@@ -12,6 +12,7 @@ using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 using Expression = IronLua.Compiler.Ast.Expression;
+using IronLua.Library;
 
 namespace IronLua.Compiler
 {
@@ -158,9 +159,11 @@ namespace IronLua.Compiler
                 return Expr.Dynamic(enviroment.BinderCache.GetBinaryOperationBinder(operand),
                                     typeof(object), left, right);
 
-            // BinaryOp have to be Concat at this point which can't be represented as an ExprType
-            // TODO
-            throw new NotImplementedException();
+            // BinaryOp have to be Concat at this point which can't be represented as a binary operation
+            // in the DLR
+            return Expr.Invoke(
+                Expr.Constant((Func<object, object, string>)String.Concat),
+                Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Boolean expression)
