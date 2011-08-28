@@ -65,11 +65,23 @@ namespace IronLua.Runtime.Binder
             if (!enviroment.Metatables.TryGetValue(target.LimitType, out metatable))
                 throw new Exception(); // TODO: Use errorSuggestion
 
-
+            return null;
         }
 
         Expr Relational(DynamicMetaObject left, DynamicMetaObject right)
         {
+            if (left.LimitType == typeof(bool) && right.LimitType == typeof(bool))
+            {
+                if (!(Operation == ExprType.Equal || Operation == ExprType.NotEqual))
+                    return null;
+
+                return
+                    Expr.MakeBinary(
+                        Operation,
+                        Expr.Convert(left.Expression, left.LimitType),
+                        Expr.Convert(right.Expression, right.LimitType));
+            }
+
             if (left.LimitType == typeof(double) && right.LimitType == typeof(double))
             {
                 return
@@ -95,7 +107,7 @@ namespace IronLua.Runtime.Binder
                         Expr.Constant(0));
             }
 
-            return null;
+            return Expr.Constant(false);
         }
 
         Expr Logical(DynamicMetaObject left, DynamicMetaObject right)
