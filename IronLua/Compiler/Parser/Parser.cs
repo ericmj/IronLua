@@ -23,6 +23,8 @@ namespace IronLua.Compiler.Parser
                 {
                     {Symbol.Or,           BinaryOp.Or},
                     {Symbol.And,          BinaryOp.And},
+                    {Symbol.EqualEqual,   BinaryOp.Equal},
+                    {Symbol.TildeEqual,   BinaryOp.NotEqual},
                     {Symbol.Less,         BinaryOp.Less},
                     {Symbol.Greater,      BinaryOp.Greater},
                     {Symbol.LessEqual,    BinaryOp.LessEqual},

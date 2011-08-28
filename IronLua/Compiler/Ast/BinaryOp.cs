@@ -4,11 +4,12 @@ namespace IronLua.Compiler.Ast
     {
         Or,
         And,
+        Equal,
+        NotEqual,
         Less,
         Greater,
         LessEqual,
         GreaterEqual,
-        NotEqual,
         Concat,
         Add,
         Subtract,
