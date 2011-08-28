@@ -46,8 +46,8 @@ namespace IronLua.Library
 
         public static string Format(string format, params object[] varargs)
         {
-            // TODO
-            return String.Format(format, varargs);
+            var parser = new FormatParser();
+            return parser.Format(format, varargs);
         }
     }
 
@@ -72,12 +72,12 @@ namespace IronLua.Library
                 };
 
 
-        public void Format(string format, object[] values)
+        public string Format(string format, object[] values)
         {
             var sb = new StringBuilder(format.Length);
             int valueIndex = 0;
 
-            for (int i=0; i<format.Length; i++)
+            for (int i=0; i<format.Length;)
             {
                 char current = format[i];
                 char next = i + 1 < format.Length ? format[i + 1] : '\0';
@@ -89,28 +89,31 @@ namespace IronLua.Library
                 }
                 else if (current == '%')
                 {
-                    var tag = ParseTag(sb, format, ref i);
+                    var tag = ParseTag(format, ref i);
                     object objectValue = values[valueIndex++];
                     string stringValue;
 
                     if ((stringValue = objectValue as string) != null)
-                        tag.Append(stringValue);
+                        sb.Append(tag.Format(stringValue));
                     else if (objectValue is double)
-                        tag.Append((double)objectValue);
+                        sb.Append(tag.Format((double)objectValue));
                     else
-                        tag.Append(objectValue.ToString());
+                        sb.Append(tag.Format(objectValue.ToString()));
                 }
                 else
                 {
                     sb.Append(current);
+                    i++;
                 }
             }
+
+            return sb.ToString();
         }
 
-        FormatTag ParseTag(StringBuilder sb, string format, ref int i)
+        FormatTag ParseTag(string format, ref int i)
         {
             i++;
-            var tag = new FormatTag(sb);
+            var tag = new FormatTag();
 
             ParseFlags(tag, format, ref i);
             ParseWidth(tag, format, ref i);
@@ -163,9 +166,7 @@ namespace IronLua.Library
             if (format[i] != '.')
                 return;
             i++;
-
-            if (!format[i].IsDecimal())
-                tag.Precision = 0;
+            tag.Precision = 0;
             
             while (format[i].IsDecimal())
             {
@@ -202,14 +203,16 @@ namespace IronLua.Library
 
         StringBuilder sb;
 
-        public FormatTag(StringBuilder sb)
+        public FormatTag()
         {
-            this.sb = sb;
+            sb = new StringBuilder();
             Precision = -1;
         }
 
-        public void Append(double value)
+        public string Format(double value)
         {
+            sb.Clear();
+
             switch (Specifier)
             {
                 case FormatSpecifier.Character:
@@ -245,10 +248,14 @@ namespace IronLua.Library
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            return sb.ToString();
         }
 
-        public void Append(string value)
+        public string Format(string value)
         {
+            sb.Clear();
+
             if (Specifier != FormatSpecifier.String)
                 throw new Exception(); // TODO
 
@@ -258,6 +265,7 @@ namespace IronLua.Library
 
             sb.Append(value);
             Pad();
+            return sb.ToString();
         }
 
         void FormatChar(double value)
@@ -269,7 +277,8 @@ namespace IronLua.Library
 
         void FormatDecInt(double value)
         {
-            string str = ((long) value).ToString();
+            string str = Math.Abs((long)value).ToString();
+            sb.Append(str);
             AddMinimumDigits(str);
             AddSign(value);
             Pad();
@@ -303,6 +312,9 @@ namespace IronLua.Library
         void Pad()
         {
             int paddingCount = Width - sb.Length;
+            if (paddingCount <= 0)
+                return;
+
             if (LeftJustify)
             {
                 for (int i = 0; i < paddingCount; i++)
@@ -318,12 +330,16 @@ namespace IronLua.Library
         void AddMinimumDigits(string str)
         {
             if (str.Length < Precision)
-                sb.Insert(0, str, Precision - str.Length);
+                sb.Insert(0, "0", Precision - str.Length);
         }
 
         void AddSign(double value)
         {
-            if (value > 0)
+            if (value < 0)
+            {
+                sb.Insert(0, '-');
+            }
+            else
             {
                 if (ForceSignPrecedence)
                     sb.Insert(0, '+');
