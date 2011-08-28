@@ -43,32 +43,43 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue || !arg.HasValue)
                 return Defer(target, arg);
 
+            Expr expression = null;
             switch (binaryExprTypes[Operation])
             {
                 case BinaryOpType.Relational:
-                    return Relational(target, arg, errorSuggestion);
+                    expression = Relational(target, arg);
+                    break;
                 case BinaryOpType.Logical:
-                    return Logical(target, arg, errorSuggestion);
+                    expression = Logical(target, arg);
+                    break;
                 case BinaryOpType.Numeric:
-                    return Numeric(target, arg, errorSuggestion);
+                    expression = Numeric(target, arg);
+                    break;
             }
 
-            throw new Exception();
+            if (expression != null)
+                return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), TypeRestrictions(target, arg));
+
+            // Metatable fallback
+            LuaTable metatable;
+            if (!enviroment.Metatables.TryGetValue(target.LimitType, out metatable))
+                throw new Exception(); // TODO: Use errorSuggestion
+
+
         }
 
-        DynamicMetaObject Relational(DynamicMetaObject left, DynamicMetaObject right, DynamicMetaObject errorSuggestion)
+        Expr Relational(DynamicMetaObject left, DynamicMetaObject right)
         {
-            Expr expression;
-
             if (left.LimitType == typeof(double) && right.LimitType == typeof(double))
             {
-                expression =
+                return
                     Expr.MakeBinary(
                         Operation,
                         Expr.Convert(left.Expression, left.LimitType),
                         Expr.Convert(right.Expression, right.LimitType));
             }
-            else if (left.LimitType == typeof(double) && right.LimitType == typeof(double))
+
+            if (left.LimitType == typeof(string) && right.LimitType == typeof(string))
             {
                 var compareExpr =
                     Expr.Invoke(
@@ -77,22 +88,17 @@ namespace IronLua.Runtime.Binder
                         right.Expression,
                         Expr.Constant(StringComparison.InvariantCulture));
 
-                expression =
+                return
                     Expr.MakeBinary(
                         Operation,
                         compareExpr,
                         Expr.Constant(0));
             }
-            else
-            {
-                // TODO: METATABLE
-                expression = null;
-            }
 
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), TypeRestrictions(left, right));
+            return null;
         }
 
-        DynamicMetaObject Logical(DynamicMetaObject left, DynamicMetaObject right, DynamicMetaObject errorSuggestion)
+        Expr Logical(DynamicMetaObject left, DynamicMetaObject right)
         {
             // Assign left operand to a temp variable for single evaluation
             var tempLeft = Expr.Variable(left.LimitType);
@@ -117,26 +123,21 @@ namespace IronLua.Runtime.Binder
                     break;
             }
 
-            Expr expression =
+            return
                 Expr.Block(
                     new[] { tempLeft },
                     Expr.Assign(tempLeft, left.Expression),
                     ifExpr);
-
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), TypeRestrictions(left, right));
         }
 
-        DynamicMetaObject Numeric(DynamicMetaObject left, DynamicMetaObject right, DynamicMetaObject errorSuggestion)
+        Expr Numeric(DynamicMetaObject left, DynamicMetaObject right)
         {
             var leftExpr = ConvertToNumberOperand(left);
             var rightEXpr = ConvertToNumberOperand(right);
-            var expression = Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightEXpr), typeof(object));
 
-            if (left != null)
-                return new DynamicMetaObject(expression, TypeRestrictions(left, right));
-            
-            // TODO: METATABLE
-            return null;
+            if (left == null)
+                return null;
+            return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightEXpr), typeof(object));
         }
 
         static Expr ConvertToNumberOperand(DynamicMetaObject metaObject)

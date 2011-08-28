@@ -16,12 +16,23 @@ namespace IronLua.Runtime
         public BinderCache BinderCache { get; private set; }
         public ParamExpr GlobalsExpr { get; private set; }
 
+        public Dictionary<Type, LuaTable> Metatables { get; private set; }
+
         public Enviroment()
         {
             BinderCache = new BinderCache(this);
             GlobalsExpr = Expr.Parameter(typeof(LuaTable), "Globals");
             Globals = new LuaTable();
             Global.Setup(Globals);
+
+            Metatables =
+                new Dictionary<Type, LuaTable>
+                    {
+                        {typeof(bool), new LuaTable()},
+                        {typeof(double), new LuaTable()},
+                        {typeof(string), new LuaTable()},
+                        {typeof(LuaFunction), new LuaTable()}
+                    };
         }
     }
 }
