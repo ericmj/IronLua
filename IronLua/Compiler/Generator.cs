@@ -23,6 +23,8 @@ namespace IronLua.Compiler
                 {
                     {BinaryOp.Or,           ExprType.OrElse},
                     {BinaryOp.And,          ExprType.AndAlso},
+                    {BinaryOp.Equal,        ExprType.Equal},
+                    {BinaryOp.NotEqual,     ExprType.NotEqual},
                     {BinaryOp.Less,         ExprType.LessThan},
                     {BinaryOp.Greater,      ExprType.GreaterThan},
                     {BinaryOp.LessEqual,    ExprType.LessThanOrEqual},
@@ -161,6 +163,7 @@ namespace IronLua.Compiler
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation
             // in the DLR
+            // TODO: Metatable shizam for concat, only do standard concat for string and double
             return Expr.Invoke(
                 Expr.Constant((Func<object, object, string>)String.Concat),
                 Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
