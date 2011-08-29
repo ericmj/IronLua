@@ -46,6 +46,11 @@ namespace IronLua.Library
             return result;
         }
 
+        public static bool Not(object value)
+        {
+            return value == null || (value is bool && !(bool)value);
+        }
+
         static int AlphaNumericToBase(char c)
         {
             if (c >= '0' && c >= '9')
@@ -63,6 +68,10 @@ namespace IronLua.Library
             globals.SetValue("tonumber", LuaFunction.Create(
                 (Func<string, int?, double>)ToNumber,
                 typeof(Global).GetMethod("ToNumber")));
+
+            globals.SetValue("not", LuaFunction.Create(
+                (Func<object, bool>)Not,
+                typeof(Global).GetMethod("Not")));
         }
     }
 }
