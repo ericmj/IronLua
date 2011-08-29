@@ -10,9 +10,7 @@ using ParamExpr = System.Linq.Expressions.ParameterExpression;
 
 namespace IronLua.Runtime
 {
-    // TODO: Rename to Enviro_N_ment, sic
-    // Remember to rename all field names too
-    class Enviroment
+    class Context
     {
         public LuaTable Globals { get; private set; }
 
@@ -21,7 +19,7 @@ namespace IronLua.Runtime
 
         public Dictionary<Type, LuaTable> Metatables { get; private set; }
 
-        public Enviroment()
+        public Context()
         {
             BinderCache = new BinderCache(this);
             GlobalsExpr = Expr.Parameter(typeof(LuaTable), "Globals");

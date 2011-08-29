@@ -30,12 +30,12 @@ namespace IronLua.Runtime.Binder
                     {ExprType.Power,              BinaryOpType.Numeric}
                 };
 
-        Enviroment enviroment;
+        Context context;
 
-        public LuaBinaryOperationBinder(Enviroment enviroment, ExprType op)
+        public LuaBinaryOperationBinder(Context context, ExprType op)
             : base(op)
         {
-            this.enviroment = enviroment;
+            this.context = context;
         }
 
         public override DynamicMetaObject FallbackBinaryOperation(DynamicMetaObject target, DynamicMetaObject arg, DynamicMetaObject errorSuggestion)
@@ -150,8 +150,8 @@ namespace IronLua.Runtime.Binder
         Expr MetamethodFallback(DynamicMetaObject left, DynamicMetaObject right)
         {
             return Expr.Call(
-                Expr.Constant(enviroment),
-                typeof(Enviroment).GetMethod("BinaryOpMetamethod",
+                Expr.Constant(context),
+                typeof(Context).GetMethod("BinaryOpMetamethod",
                                              BindingFlags.NonPublic |
                                              BindingFlags.InvokeMethod |
                                              BindingFlags.Instance),

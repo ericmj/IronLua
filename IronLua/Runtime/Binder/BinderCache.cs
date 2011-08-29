@@ -9,14 +9,14 @@ namespace IronLua.Runtime.Binder
 {
     class BinderCache
     {
-        Enviroment enviroment;
+        Context context;
         Dictionary<ExpressionType, LuaBinaryOperationBinder> binaryOperationBinders;
         Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
         Dictionary<CallInfo, LuaInvokeBinder> invokeBinders;
 
-        public BinderCache(Enviroment enviroment)
+        public BinderCache(Context context)
         {
-            this.enviroment = enviroment;
+            this.context = context;
             binaryOperationBinders = new Dictionary<ExpressionType, LuaBinaryOperationBinder>();
             invokeMemberBinders = new Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder>();
             invokeBinders = new Dictionary<CallInfo, LuaInvokeBinder>();
@@ -28,7 +28,7 @@ namespace IronLua.Runtime.Binder
             if (binaryOperationBinders.TryGetValue(op, out binder))
                 return binder;
 
-            binder = new LuaBinaryOperationBinder(enviroment, op);
+            binder = new LuaBinaryOperationBinder(context, op);
             return binaryOperationBinders[op] = binder;
         }
 
@@ -39,7 +39,7 @@ namespace IronLua.Runtime.Binder
             if (invokeMemberBinders.TryGetValue(key, out binder))
                 return binder;
 
-            binder = new LuaInvokeMemberBinder(enviroment, name, info);
+            binder = new LuaInvokeMemberBinder(context, name, info);
             invokeMemberBinders[key] = binder;
             return binder;
         }

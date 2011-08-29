@@ -9,12 +9,12 @@ namespace IronLua.Runtime.Binder
 {
     class LuaInvokeMemberBinder : InvokeMemberBinder
     {
-        Enviroment enviroment;
+        Context context;
 
-        public LuaInvokeMemberBinder(Enviroment enviroment, string name, CallInfo callInfo)
+        public LuaInvokeMemberBinder(Context context, string name, CallInfo callInfo)
             : base(name, false, callInfo)
         {
-            this.enviroment = enviroment;
+            this.context = context;
         }
 
         public override DynamicMetaObject FallbackInvokeMember(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
@@ -31,7 +31,7 @@ namespace IronLua.Runtime.Binder
             var restrictions = target.Restrictions.Merge(BindingRestrictions.Combine(args));
             var expression =
                 Expr.Dynamic(
-                    enviroment.BinderCache.GetInvokeBinder(new CallInfo(args.Length)),
+                    context.BinderCache.GetInvokeBinder(new CallInfo(args.Length)),
                     typeof(object),
                     combinedArgs);
 

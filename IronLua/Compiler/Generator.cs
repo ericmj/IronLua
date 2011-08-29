@@ -38,26 +38,26 @@ namespace IronLua.Compiler
                 };
 
         Scope scope;
-        Enviroment enviroment;
+        Context context;
 
-        public Generator(Enviroment enviroment)
+        public Generator(Context context)
         {
-            this.enviroment = enviroment;
+            this.context = context;
         }
 
-        public Expression<Func<Enviroment, object>> Compile(Block block)
+        public Expression<Func<Context, object>> Compile(Block block)
         {
             scope = Scope.CreateRoot();
-            var enviromentParam = Expr.Parameter(typeof(Enviroment));
+            var contextParam = Expr.Parameter(typeof(Context));
             var baseBlock =
                 Expr.Block(
-                    new[] {enviroment.GlobalsExpr},
+                    new[] {context.GlobalsExpr},
                     Expr.Assign(
-                        enviroment.GlobalsExpr,
-                        Expr.Property(enviromentParam, typeof(Enviroment).GetProperty("Globals"))),
+                        context.GlobalsExpr,
+                        Expr.Property(contextParam, typeof(Context).GetProperty("Globals"))),
                     Visit(block));
 
-            return Expr.Lambda<Func<Enviroment, object>>(baseBlock, enviromentParam);
+            return Expr.Lambda<Func<Context, object>>(baseBlock, contextParam);
         }
 
         Expr Visit(Block block)
@@ -158,7 +158,7 @@ namespace IronLua.Compiler
             var right = expression.Right.Visit(this);
             ExprType operand;
             if (exprTypes.TryGetValue(expression.Operation, out operand))
-                return Expr.Dynamic(enviroment.BinderCache.GetBinaryOperationBinder(operand),
+                return Expr.Dynamic(context.BinderCache.GetBinaryOperationBinder(operand),
                                     typeof(object), left, right);
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation
