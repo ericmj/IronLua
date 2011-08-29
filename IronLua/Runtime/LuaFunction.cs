@@ -15,7 +15,7 @@ namespace IronLua.Runtime
         object function;
         IList<LuaParameter> parameters;
 
-        public LuaFunction(object function, IList<LuaParameter> parameters)
+        public LuaFunction(object function, IList<LuaParameter> parameters = null)
         {
             this.function = function;
             this.parameters = parameters;
