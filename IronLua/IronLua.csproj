@@ -75,6 +75,7 @@
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="IronLuaException.cs" />
     <Compile Include="Library\Global.cs" />
+    <Compile Include="Library\Library.cs" />
     <Compile Include="Library\LuaString.cs" />
     <Compile Include="Library\NumberUtil.cs" />
     <Compile Include="Library\StringFormatter.cs" />

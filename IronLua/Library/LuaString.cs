@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using IronLua.Runtime;
 
 namespace IronLua.Library
 {
-    static class LuaString
+    class LuaString : Library
     {
+        public LuaString(Context context) : base(context)
+        {
+        }
+
         public static double[] Byte(string str, int? i = null, int? j = null)
         {
             char[] chars;
@@ -45,6 +50,11 @@ namespace IronLua.Library
         public static string Format(string format, params object[] varargs)
         {
             return StringFormatter.Format(format, varargs);
+        }
+
+        public override void Setup(LuaTable table)
+        {
+            throw new NotImplementedException();
         }
     }
 }

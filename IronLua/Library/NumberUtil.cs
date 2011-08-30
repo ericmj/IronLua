@@ -6,7 +6,7 @@ using System.Text;
 
 namespace IronLua.Library
 {
-    class NumberUtil
+    static class NumberUtil
     {
         const NumberStyles HEX_NUMBER_STYLE = NumberStyles.AllowHexSpecifier;
         const NumberStyles DECIMAL_NUMBER_STYLE = NumberStyles.AllowDecimalPoint |

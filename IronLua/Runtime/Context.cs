@@ -13,18 +13,17 @@ namespace IronLua.Runtime
     class Context
     {
         public LuaTable Globals { get; private set; }
-
         public BinderCache BinderCache { get; private set; }
-        public ParamExpr GlobalsExpr { get; private set; }
-
         public Dictionary<Type, LuaTable> Metatables { get; private set; }
+
+        internal Global GlobalsLibrary;
+        internal LuaString StringLibrary;
 
         public Context()
         {
             BinderCache = new BinderCache(this);
-            GlobalsExpr = Expr.Parameter(typeof(LuaTable), "Globals");
-            Globals = new LuaTable();
-            Global.Setup(Globals);
+
+            SetupLibraries();
 
             Metatables =
                 new Dictionary<Type, LuaTable>
@@ -34,6 +33,16 @@ namespace IronLua.Runtime
                         {typeof(string), new LuaTable()},
                         {typeof(LuaFunction), new LuaTable()}
                     };
+        }
+        
+        void SetupLibraries()
+        {
+            GlobalsLibrary = new Global(this);
+            StringLibrary = new LuaString(this);
+
+            Globals = new LuaTable();
+            GlobalsLibrary.Setup(Globals);
+            //StringLibrary.Setup(StringGlobals);
         }
 
         internal object BinaryOpMetamethod(ExprType op, object left, object right)

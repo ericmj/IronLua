@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Ast;
@@ -45,19 +46,11 @@ namespace IronLua.Compiler
             this.context = context;
         }
 
-        public Expression<Func<Context, object>> Compile(Block block)
+        public Expression<Func<dynamic>> Compile(Block block)
         {
             scope = Scope.CreateRoot();
-            var contextParam = Expr.Parameter(typeof(Context));
-            var baseBlock =
-                Expr.Block(
-                    new[] {context.GlobalsExpr},
-                    Expr.Assign(
-                        context.GlobalsExpr,
-                        Expr.Property(contextParam, typeof(Context).GetProperty("Globals"))),
-                    Visit(block));
 
-            return Expr.Lambda<Func<Context, object>>(baseBlock, contextParam);
+            return Expr.Lambda<Func<dynamic>>(Visit(block));
         }
 
         Expr Visit(Block block)
@@ -161,11 +154,12 @@ namespace IronLua.Compiler
                 return Expr.Dynamic(context.BinderCache.GetBinaryOperationBinder(operand),
                                     typeof(object), left, right);
 
-            // BinaryOp have to be Concat at this point which can't be represented as a binary operation
-            // in the DLR
-            // TODO: Metatable shizam for concat, only do standard concat for string and double
-            return Expr.Invoke(
-                Expr.Constant((Func<object, object, string>)String.Concat),
+            // BinaryOp have to be Concat at this point which can't be represented as a binary operation in the DLR
+            return Expr.Call(
+                Expr.Field(
+                    Expr.Constant(context),
+                    typeof(Context).GetField("StringLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
+                typeof(LuaString).GetMethod("Concat", BindingFlags.NonPublic | BindingFlags.Instance),
                 Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
         }
 

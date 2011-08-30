@@ -7,8 +7,12 @@ using IronLua.Runtime;
 
 namespace IronLua.Library
 {
-    static class Global
+    class Global : Library
     {
+        public Global(Context context) : base(context)
+        {
+        }
+
         public static double ToNumber(string str, int? @base = 10)
         {
             double result = 0;
@@ -63,13 +67,13 @@ namespace IronLua.Library
             return -1;
         }
 
-        public static void Setup(LuaTable globals)
+        public override void Setup(LuaTable table)
         {
-            globals.SetValue("tonumber", LuaFunction.Create(
+            table.SetValue("tonumber", LuaFunction.Create(
                 (Func<string, int?, double>)ToNumber,
                 typeof(Global).GetMethod("ToNumber")));
 
-            globals.SetValue("not", LuaFunction.Create(
+            table.SetValue("not", LuaFunction.Create(
                 (Func<object, bool>)Not,
                 typeof(Global).GetMethod("Not")));
         }
