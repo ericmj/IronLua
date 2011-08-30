@@ -19,8 +19,8 @@ namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>
     {
-        static Dictionary<BinaryOp, ExprType> exprTypes =
-            new Dictionary<BinaryOp, ExprType>()
+        static Dictionary<BinaryOp, ExprType> binaryExprTypes =
+            new Dictionary<BinaryOp, ExprType>
                 {
                     {BinaryOp.Or,           ExprType.OrElse},
                     {BinaryOp.And,          ExprType.AndAlso},
@@ -36,6 +36,13 @@ namespace IronLua.Compiler
                     {BinaryOp.Divide,       ExprType.Divide},
                     {BinaryOp.Mod,          ExprType.Modulo},
                     {BinaryOp.Power,        ExprType.Power} 
+                };
+
+        static Dictionary<UnaryOp, ExprType> unaryExprTypes =
+            new Dictionary<UnaryOp, ExprType>
+                {
+                    {UnaryOp.Negate, ExprType.Negate},
+                    {UnaryOp.Not,    ExprType.Not}
                 };
 
         Scope scope;
@@ -149,9 +156,9 @@ namespace IronLua.Compiler
         {
             var left = expression.Left.Visit(this);
             var right = expression.Right.Visit(this);
-            ExprType operand;
-            if (exprTypes.TryGetValue(expression.Operation, out operand))
-                return Expr.Dynamic(context.BinderCache.GetBinaryOperationBinder(operand),
+            ExprType operation;
+            if (binaryExprTypes.TryGetValue(expression.Operation, out operation))
+                return Expr.Dynamic(context.BinderCache.GetBinaryOperationBinder(operation),
                                     typeof(object), left, right);
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation in the DLR
@@ -200,7 +207,14 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.UnaryOp expression)
         {
-            throw new NotImplementedException();
+            var operand = expression.Operand.Visit(this);
+            ExprType operation;
+            if (unaryExprTypes.TryGetValue(expression.Operation, out operation))
+                return Expr.Dynamic(context.BinderCache.GetUnaryOperationBinder(operation),
+                                    typeof(object), operand);
+
+            // UnaryOp have to be Length at this point which can't be represented as a unary operation in the DLR
+            return null;
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)

@@ -4,6 +4,6 @@ namespace IronLua.Compiler.Ast
     {
         Not,
         Length,
-        Negative
+        Negate
     }
 }

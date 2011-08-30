@@ -107,10 +107,11 @@ namespace IronLua.Runtime
                 if (metamethod == null)
                     return false;
 
+                // TODO: Remove Global.Not and output a dynamic unary expression with ExprType.Not
                 return invert ? Global.Not(metamethod(right, left)) : Global.Not(metamethod(left, right));
             }
 
-            return invert ? metamethod(right, left) : metamethod(left, right); ;
+            return invert ? metamethod(right, left) : metamethod(left, right);
         }
 
         dynamic GetRelationalMetamethod(ExprType op, object left, object right)

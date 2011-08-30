@@ -13,7 +13,7 @@ namespace IronLua.Compiler.Parser
         static readonly Dictionary<Symbol, UnaryOp> unaryOps =
             new Dictionary<Symbol, UnaryOp>
                 {
-                    {Symbol.Minus, UnaryOp.Negative},
+                    {Symbol.Minus, UnaryOp.Negate},
                     {Symbol.Not,   UnaryOp.Not},
                     {Symbol.Hash,  UnaryOp.Length}
                 };

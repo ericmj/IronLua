@@ -84,6 +84,7 @@
     <Compile Include="Runtime\Binder\LuaBinaryOperationBinder.cs" />
     <Compile Include="Runtime\Binder\LuaInvokeBinder.cs" />
     <Compile Include="Runtime\Binder\LuaInvokeMemberBinder.cs" />
+    <Compile Include="Runtime\Binder\LuaUnaryOperationBinder.cs" />
     <Compile Include="Runtime\Context.cs" />
     <Compile Include="Runtime\LuaFunction.cs" />
     <Compile Include="Runtime\LuaTable.cs" />

@@ -1,35 +1,47 @@
 ﻿using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime.Binder
 {
     class BinderCache
     {
         Context context;
-        Dictionary<ExpressionType, LuaBinaryOperationBinder> binaryOperationBinders;
+        Dictionary<ExprType, LuaBinaryOperationBinder> binaryOperationBinders;
+        Dictionary<ExprType, LuaUnaryOperationBinder> unaryOperationBinders;
         Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
         Dictionary<CallInfo, LuaInvokeBinder> invokeBinders;
 
         public BinderCache(Context context)
         {
             this.context = context;
-            binaryOperationBinders = new Dictionary<ExpressionType, LuaBinaryOperationBinder>();
+            binaryOperationBinders = new Dictionary<ExprType, LuaBinaryOperationBinder>();
+            unaryOperationBinders = new Dictionary<ExprType, LuaUnaryOperationBinder>();
             invokeMemberBinders = new Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder>();
             invokeBinders = new Dictionary<CallInfo, LuaInvokeBinder>();
         }
 
-        public BinaryOperationBinder GetBinaryOperationBinder(ExpressionType op)
+        public BinaryOperationBinder GetBinaryOperationBinder(ExprType operation)
         {
             LuaBinaryOperationBinder binder;
-            if (binaryOperationBinders.TryGetValue(op, out binder))
+            if (binaryOperationBinders.TryGetValue(operation, out binder))
                 return binder;
 
-            binder = new LuaBinaryOperationBinder(context, op);
-            return binaryOperationBinders[op] = binder;
+            binder = new LuaBinaryOperationBinder(context, operation);
+            return binaryOperationBinders[operation] = binder;
+        }
+
+        public UnaryOperationBinder GetUnaryOperationBinder(ExprType operation)
+        {
+            LuaUnaryOperationBinder binder;
+            if (unaryOperationBinders.TryGetValue(operation, out binder))
+                return binder;
+
+            binder = new LuaUnaryOperationBinder(context, operation);
+            return unaryOperationBinders[operation] = binder;
         }
 
         public InvokeMemberBinder GetInvokeMemberBinder(string name, CallInfo info)
@@ -40,8 +52,7 @@ namespace IronLua.Runtime.Binder
                 return binder;
 
             binder = new LuaInvokeMemberBinder(context, name, info);
-            invokeMemberBinders[key] = binder;
-            return binder;
+            return invokeMemberBinders[key] = binder;
         }
 
         public InvokeBinder GetInvokeBinder(CallInfo callInfo)
@@ -51,8 +62,7 @@ namespace IronLua.Runtime.Binder
                 return binder;
 
             binder = new LuaInvokeBinder(callInfo);
-            invokeBinders[callInfo] = binder;
-            return binder;
+            return invokeBinders[callInfo] = binder;
         }
 
         // Stolen from DLR's reference implementation Sympl
