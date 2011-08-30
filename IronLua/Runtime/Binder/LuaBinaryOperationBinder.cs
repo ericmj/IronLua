@@ -4,6 +4,7 @@ using System.Dynamic;
 using System.Globalization;
 using System.Reflection;
 using IronLua.Library;
+using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
@@ -60,7 +61,7 @@ namespace IronLua.Runtime.Binder
             if (expression == null)
                 expression = MetamethodFallback(target, arg);
 
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), TypeRestrictions(target, arg));
+            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), target.MergeTypeRestrictions(arg));
         }
 
         Expr Relational(DynamicMetaObject left, DynamicMetaObject right)
@@ -168,16 +169,6 @@ namespace IronLua.Runtime.Binder
                         metaObject.Expression, Expr.Constant(10, typeof(int?)));
 
             return null;
-        }
-
-        // TODO?: Convert to extension method on BindingRestrictions
-        static BindingRestrictions TypeRestrictions(DynamicMetaObject target, DynamicMetaObject arg)
-        {
-            return
-                target.Restrictions
-                    .Merge(arg.Restrictions)
-                    .Merge(BindingRestrictions.GetTypeRestriction(target.Expression, target.LimitType))
-                    .Merge(BindingRestrictions.GetTypeRestriction(arg.Expression, arg.LimitType));
         }
 
         enum BinaryOpType
