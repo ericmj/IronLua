@@ -88,7 +88,7 @@
     <Compile Include="Runtime\LuaFunction.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
     <Compile Include="Util\CharExtensions.cs" />
-    <Compile Include="Util\Extensions.cs" />
+    <Compile Include="Util\EnumerableExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

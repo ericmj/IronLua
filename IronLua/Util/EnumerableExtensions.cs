@@ -5,7 +5,7 @@ using System.Text;
 
 namespace IronLua.Util
 {
-    static class Extensions
+    static class EnumerableExtensions
     {
         public static IEnumerable<T> Add<T>(this IEnumerable<T> collection, T item)
         {
