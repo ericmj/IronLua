@@ -34,7 +34,7 @@ namespace IronLua.Runtime
                         {typeof(LuaFunction), new LuaTable()}
                     };
         }
-        
+
         void SetupLibraries()
         {
             GlobalsLibrary = new Global(this);
@@ -43,6 +43,15 @@ namespace IronLua.Runtime
             Globals = new LuaTable();
             GlobalsLibrary.Setup(Globals);
             //StringLibrary.Setup(StringGlobals);
+        }
+
+        internal object ConcatMetamethod(object left, object right)
+        {
+            dynamic metamethod = GetMetamethod(Constant.CONCAT_METAMETHOD, left) ??
+                                 GetMetamethod(Constant.CONCAT_METAMETHOD, right);
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            return metamethod(left, right);
         }
 
         internal object BinaryOpMetamethod(ExprType op, object left, object right)

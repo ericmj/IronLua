@@ -151,10 +151,7 @@ namespace IronLua.Runtime.Binder
         {
             return Expr.Call(
                 Expr.Constant(context),
-                typeof(Context).GetMethod("BinaryOpMetamethod",
-                                             BindingFlags.NonPublic |
-                                             BindingFlags.InvokeMethod |
-                                             BindingFlags.Instance),
+                typeof(Context).GetMethod("BinaryOpMetamethod", BindingFlags.NonPublic | BindingFlags.Instance),
                 Expr.Constant(Operation),
                 Expr.Convert(left.Expression, typeof(object)),
                 Expr.Convert(right.Expression, typeof(object)));

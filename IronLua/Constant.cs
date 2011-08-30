@@ -29,5 +29,7 @@ namespace IronLua
                     {ExprType.Modulo,             "__mod"},
                     {ExprType.Power,              "__pow"}
                 };
+
+        public const string CONCAT_METAMETHOD = "__concat";
     }
 }
