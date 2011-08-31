@@ -162,12 +162,13 @@ namespace IronLua.Compiler
                                     typeof(object), left, right);
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation in the DLR
-            return Expr.Call(
-                Expr.Field(
-                    Expr.Constant(context),
-                    typeof(Context).GetField("StringLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
-                typeof(LuaString).GetMethod("Concat", BindingFlags.NonPublic | BindingFlags.Instance),
-                Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
+            return
+                Expr.Call(
+                    Expr.Field(
+                        Expr.Constant(context),
+                        typeof(Context).GetField("StringLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
+                    typeof(LuaString).GetMethod("Concat", BindingFlags.NonPublic | BindingFlags.Instance),
+                    Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Boolean expression)
@@ -214,7 +215,13 @@ namespace IronLua.Compiler
                                     typeof(object), operand);
 
             // UnaryOp have to be Length at this point which can't be represented as a unary operation in the DLR
-            return null;
+            return
+                Expr.Call(
+                    Expr.Field(
+                        Expr.Constant(context),
+                        typeof(Context).GetField("GlobalLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
+                    typeof(LuaString).GetMethod("Length", BindingFlags.NonPublic | BindingFlags.Instance),
+                    Expr.Convert(operand, typeof(object)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)

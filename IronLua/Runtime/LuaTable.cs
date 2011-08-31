@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -33,6 +34,23 @@ namespace IronLua.Runtime
         internal void SetValue(object key, object value)
         {
             values[key] = value;
+        }
+
+        internal int Length()
+        {
+            int lastNum = 0;
+            foreach (var key in values.Keys.OfType<double>().OrderBy(key => key))
+            {
+                var intKey = (int)key;
+                if (intKey != key)
+                    continue;
+
+                if (intKey > lastNum + 1)
+                    return lastNum;
+                
+                lastNum = intKey;
+            }
+            return lastNum;
         }
 
         class MetaTable : DynamicMetaObject

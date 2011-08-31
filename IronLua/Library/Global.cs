@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using IronLua.Runtime;
 
@@ -50,9 +51,23 @@ namespace IronLua.Library
             return result;
         }
 
-        public static bool Not(object value)
+        internal static bool Not(object value)
         {
             return value == null || (value is bool && !(bool)value);
+        }
+
+        internal object Length(object obj)
+        {
+            string str;
+            LuaTable table;
+
+            if ((str = obj as string) != null)
+                return str.Length;
+            if ((table = obj as LuaTable) != null)
+                return table.Length();
+
+            return null;
+            // TODO: Metatable fallback
         }
 
         static int AlphaNumericToBase(char c)
@@ -75,7 +90,7 @@ namespace IronLua.Library
 
             table.SetValue("not", LuaFunction.Create(
                 (Func<object, bool>)Not,
-                typeof(Global).GetMethod("Not")));
+                typeof(Global).GetMethod("Not", BindingFlags.NonPublic | BindingFlags.Static)));
         }
     }
 }

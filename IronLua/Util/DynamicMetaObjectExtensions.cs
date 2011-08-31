@@ -8,6 +8,13 @@ namespace IronLua.Util
 {
     static class DynamicMetaObjectExtensions
     {
+        public static BindingRestrictions MergeTypeRestrictions(this DynamicMetaObject dmo)
+        {
+            return
+                dmo.Restrictions
+                    .Merge(BindingRestrictions.GetTypeRestriction(dmo.Expression, dmo.LimitType));
+        }
+
         public static BindingRestrictions MergeTypeRestrictions(this DynamicMetaObject dmo1, DynamicMetaObject dmo2)
         {
             return
