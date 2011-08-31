@@ -10,12 +10,12 @@ namespace IronLua.Runtime
 {
     class LuaTable : IDynamicMetaObjectProvider
     {
-        Dictionary<string, object> values;
+        Dictionary<object, object> values;
         LuaTable metatable;
 
         public LuaTable()
         {
-            values = new Dictionary<string, object>();
+            values = new Dictionary<object, object>();
         }
 
         public DynamicMetaObject GetMetaObject(Expression parameter)
@@ -23,14 +23,14 @@ namespace IronLua.Runtime
             return new MetaTable(parameter, BindingRestrictions.Empty, this);
         }
 
-        public object GetValue(string key)
+        internal object GetValue(object key)
         {
             object value;
             values.TryGetValue(key, out value);
             return value;
         }
 
-        public void SetValue(string key, object value)
+        internal void SetValue(object key, object value)
         {
             values[key] = value;
         }
