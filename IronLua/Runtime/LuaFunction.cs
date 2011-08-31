@@ -12,28 +12,34 @@ namespace IronLua.Runtime
 {
     class LuaFunction : IDynamicMetaObjectProvider
     {
-        object function;
+        Delegate function;
         IList<LuaParameter> parameters;
 
-        public LuaFunction(object function, IList<LuaParameter> parameters = null)
+        public LuaFunction(Delegate function, IList<LuaParameter> parameters)
         {
             this.function = function;
             this.parameters = parameters;
         }
 
-        public static LuaFunction Create(object function, MethodInfo methodInfo)
+        public LuaFunction(Delegate function)
         {
-            var parameterInfos = methodInfo.GetParameters();
-            var luaParameters = new LuaParameter[parameterInfos.Length];
+            this.function = function;
+
+            var parameterInfos = function.Method.GetParameters();
+            parameters = new LuaParameter[parameterInfos.Length];
 
             for (int i = 0; i < parameterInfos.Length; i++)
             {
                 var paramInfo = parameterInfos[i];
                 var defaultValue = paramInfo.IsOptional ? paramInfo.DefaultValue : null;
-                luaParameters[i] = new LuaParameter(paramInfo.Name, defaultValue);
+                parameters[i] = new LuaParameter(paramInfo.Name, defaultValue);
             }
+        }
 
-            return new LuaFunction(function, luaParameters);
+        // NOTE: Invoking on the dynamic type is faster!
+        internal object DynamicInvoke(params object[] args)
+        {
+            return function.DynamicInvoke(args);
         }
 
         public DynamicMetaObject GetMetaObject(Expression parameter)

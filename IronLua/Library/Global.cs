@@ -83,13 +83,9 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("tonumber", LuaFunction.Create(
-                (Func<string, int?, double>)ToNumber,
-                typeof(Global).GetMethod("ToNumber")));
+            table.SetValue("tonumber", new LuaFunction((Func<string, int?, double>)ToNumber));
 
-            table.SetValue("not", LuaFunction.Create(
-                (Func<object, bool>)Not,
-                typeof(Global).GetMethod("Not", BindingFlags.NonPublic | BindingFlags.Static)));
+            table.SetValue("not", new LuaFunction((Func<object, bool>)Not));
         }
     }
 }
