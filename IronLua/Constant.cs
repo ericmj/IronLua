@@ -31,5 +31,6 @@ namespace IronLua
                 };
 
         public const string CONCAT_METAMETHOD = "__concat";
+        public const string LENGTH_METAMETHOD = "__len";
     }
 }

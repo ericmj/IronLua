@@ -45,6 +45,14 @@ namespace IronLua.Runtime
             //StringLibrary.Setup(StringGlobals);
         }
 
+        public object LengthMetamethod(object obj)
+        {
+            dynamic metamethod = GetMetamethod(Constant.LENGTH_METAMETHOD, obj);
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            return metamethod(obj);
+        }
+
         internal object ConcatMetamethod(object left, object right)
         {
             dynamic metamethod = GetMetamethod(Constant.CONCAT_METAMETHOD, left) ??

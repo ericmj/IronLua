@@ -108,6 +108,10 @@ namespace IronLua.Compiler
             throw new NotImplementedException();
         }
 
+        // TODO: Add last value split into multiple variables, like 'a, b, c = return3Values()'
+        // a, b = return1And2()              -->  a=1,b=2
+        // a, b, c = 0, return1And2()        -->  a=0,b=1,c=2
+        // a, b, c, d = 0, return1And2(), 3  -->  a=0,b=1,c=3,d=nil
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
             // Assign values to temporaries
@@ -220,7 +224,7 @@ namespace IronLua.Compiler
                     Expr.Field(
                         Expr.Constant(context),
                         typeof(Context).GetField("GlobalLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
-                    typeof(LuaString).GetMethod("Length", BindingFlags.NonPublic | BindingFlags.Instance),
+                    typeof(Global).GetMethod("Length", BindingFlags.NonPublic | BindingFlags.Instance),
                     Expr.Convert(operand, typeof(object)));
         }
 

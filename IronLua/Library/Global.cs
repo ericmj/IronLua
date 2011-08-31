@@ -66,8 +66,7 @@ namespace IronLua.Library
             if ((table = obj as LuaTable) != null)
                 return table.Length();
 
-            return null;
-            // TODO: Metatable fallback
+            return Context.LengthMetamethod(obj);
         }
 
         static int AlphaNumericToBase(char c)
