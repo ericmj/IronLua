@@ -89,6 +89,7 @@
     <Compile Include="Runtime\LuaFunction.cs" />
     <Compile Include="Runtime\LuaOps.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
+    <Compile Include="Runtime\Varargs.cs" />
     <Compile Include="Util\CharExtensions.cs" />
     <Compile Include="Util\DynamicMetaObjectExtensions.cs" />
     <Compile Include="Util\EnumerableExtensions.cs" />
