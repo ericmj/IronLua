@@ -116,7 +116,7 @@ namespace IronLua.Runtime
                     return false;
 
                 // TODO: Remove Global.Not and output a dynamic unary expression with ExprType.Not
-                return invert ? Global.Not(metamethod(right, left)) : Global.Not(metamethod(left, right));
+                return invert ? LuaOps.Not(metamethod(right, left)) : LuaOps.Not(metamethod(left, right));
             }
 
             return invert ? metamethod(right, left) : metamethod(left, right);

@@ -51,24 +51,6 @@ namespace IronLua.Library
             return result;
         }
 
-        internal static bool Not(object value)
-        {
-            return value == null || (value is bool && !(bool)value);
-        }
-
-        internal object Length(object obj)
-        {
-            string str;
-            LuaTable table;
-
-            if ((str = obj as string) != null)
-                return str.Length;
-            if ((table = obj as LuaTable) != null)
-                return table.Length();
-
-            return Context.LengthMetamethod(obj);
-        }
-
         static int AlphaNumericToBase(char c)
         {
             if (c >= '0' && c >= '9')
@@ -84,8 +66,6 @@ namespace IronLua.Library
         public override void Setup(LuaTable table)
         {
             table.SetValue("tonumber", new LuaFunction((Func<string, int?, double>)ToNumber));
-
-            table.SetValue("not", new LuaFunction((Func<object, bool>)Not));
         }
     }
 }
