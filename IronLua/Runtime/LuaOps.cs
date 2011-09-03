@@ -9,7 +9,7 @@ namespace IronLua.Runtime
     {
         internal static bool Not(object value)
         {
-            return value == null || (value is bool && !(bool)value);
+            return value != null && (!(value is bool) || (bool)value);
         }
     }
 }
