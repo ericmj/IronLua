@@ -27,5 +27,23 @@
             var identifierVariable = variablePrefixExpr.Var as Variable.Identifier;
             return identifierVariable != null ? identifierVariable.Value : null;
         }
+
+        public static bool IsVarargsOrFuncCall(this Expression expression)
+        {
+            Expression.Prefix exprPrefix;
+            PrefixExpression.Expression prefixExpr;
+
+            if (expression is Expression.Varargs)
+                return true;
+
+            if ((exprPrefix = expression as Expression.Prefix) == null)
+                return false;
+            if (exprPrefix.Expression is PrefixExpression.FunctionCall)
+                return true;
+
+            if ((prefixExpr = exprPrefix.Expression as PrefixExpression.Expression) == null)
+                return false;
+            return IsVarargsOrFuncCall(prefixExpr.Expr);
+        }
     }
 }

@@ -20,6 +20,13 @@ namespace IronLua.Runtime
             this.data = data.ToArray();
         }
 
+        public int Count { get { return data.Length; } }
+
+        public object First()
+        {
+            return data.Length > 0 ? data[0] : null;
+        }
+
         public IEnumerator<object> GetEnumerator()
         {
             return (IEnumerator<object>)data.GetEnumerator();

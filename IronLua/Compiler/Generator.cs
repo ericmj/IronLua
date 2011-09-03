@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Ast;
@@ -11,6 +12,7 @@ using IronLua.Runtime;
 using IronLua.Runtime.Binder;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
+using ParamExpr = System.Linq.Expressions.ParameterExpression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 using Expression = IronLua.Compiler.Ast.Expression;
 using IronLua.Library;
@@ -108,20 +110,25 @@ namespace IronLua.Compiler
             throw new NotImplementedException();
         }
 
-        // TODO: Add last value split into multiple variables, like 'a, b, c = return3Values()'
-        // a, b = return1And2()              -->  a=1,b=2
-        // a, b, c = 0, return1And2()        -->  a=0,b=1,c=2
-        // a, b, c, d = 0, return1And2(), 3  -->  a=0,b=1,c=3,d=nil
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
+            var locals = statement.Identifiers.Select(scope.AddLocal).ToList();
+
+            // Try to wrap all values except the last with varargs select
+            var values = new List<Expr>(statement.Values.Count);
+            for (int i = 0; i < values.Count - 1; i++)
+                values.Add(TryWrapWithVarargsSelect(statement.Values[i]));
+            values.Add(statement.Values.Last().Visit(this));
+
+            if (statement.Values.Last().IsVarargsOrFuncCall())
+                return VarargsExpandAssignment(values, locals);
+
             // Assign values to temporaries
-            var valuesCompiled = statement.Values.Select(val => val.Visit(this)).ToList();
-            var tempVariables = valuesCompiled.Select(expr => Expr.Variable(expr.Type)).ToList();
-            var tempAssigns = tempVariables.Zip(valuesCompiled, Expr.Assign);
+            var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
+            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
 
             // Shrink or pad temporary's list with nil to match local's list length
             // and cast temporaries to locals type
-            var locals = statement.Identifiers.Select(scope.AddLocal).ToList();
             var tempVariablesResized = tempVariables
                 .Resize(statement.Identifiers.Count, new Expression.Nil().Visit(this))
                 .Zip(locals, (tempVar, local) => Expr.Convert(tempVar, local.Type));
@@ -129,6 +136,33 @@ namespace IronLua.Compiler
             // Assign temporaries to locals
             var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
             return Expr.Block(tempVariables.Concat(locals), tempAssigns.Concat(realAssigns));
+        }
+
+        Expr TryWrapWithVarargsSelect(Expression expr)
+        {
+            // If expr is a varargs or function call expression we need return the first element in
+            // the Varargs list if the value is of type Varargs or do nothing
+            if (!expr.IsVarargsOrFuncCall())
+                return expr.Visit(this);
+
+            var variable = Expr.Variable(typeof(object));
+
+            return
+                Expr.Block(
+                    new[] {variable},
+                    Expr.Assign(variable, expr.Visit(this)),
+                    Expr.IfThenElse(
+                        Expr.TypeIs(variable, typeof(Varargs)),
+                        Expr.Call(variable, typeof(Varargs).GetMethod("First")),
+                        variable));
+        }
+
+        Expr VarargsExpandAssignment(List<Expr> values, List<ParameterExpression> locals)
+        {
+            return Expr.Invoke(
+                Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
+                Expr.RuntimeVariables(locals),
+                Expr.NewArrayInit(typeof(object[]), values));
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
@@ -219,13 +253,10 @@ namespace IronLua.Compiler
                                     typeof(object), operand);
 
             // UnaryOp have to be Length at this point which can't be represented as a unary operation in the DLR
-            return
-                Expr.Call(
-                    Expr.Field(
-                        Expr.Constant(context),
-                        typeof(Context).GetField("GlobalLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
-                    typeof(Global).GetMethod("Length", BindingFlags.NonPublic | BindingFlags.Instance),
-                    Expr.Convert(operand, typeof(object)));
+            return Expr.Invoke(
+                Expr.Constant((Func<Context, object, object>)LuaOps.Length),
+                Expr.Constant(context),
+                Expr.Convert(operand, typeof(object)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)
