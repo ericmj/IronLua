@@ -67,12 +67,11 @@ namespace IronLua.Compiler
             if (!scope.IsRoot)
                 scope = Scope.CreateChild(scope);
 
-            var linqStatements = block.Statements.Select(s => s.Visit(this));
-
+            var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
             if (block.LastStatement != null)
-                linqStatements = linqStatements.Add(block.LastStatement.Visit(this));
+                statementExprs.Add(block.LastStatement.Visit(this));
 
-            return Expr.Block(linqStatements);
+            return Expr.Block(scope.AllLocals(), statementExprs);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
@@ -82,7 +81,8 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
         {
-            throw new NotImplementedException();
+            scope = Scope.CreateChild(scope);
+            return statement.Visit(this);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.For statement)
@@ -135,7 +135,7 @@ namespace IronLua.Compiler
 
             // Assign temporaries to locals
             var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
-            return Expr.Block(tempVariables.Concat(locals), tempAssigns.Concat(realAssigns));
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
         Expr TryWrapWithVarargsSelect(Expression expr)

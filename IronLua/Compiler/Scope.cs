@@ -1,23 +1,32 @@
 using System.Collections.Generic;
-using System.Linq.Expressions;
+using Expr = System.Linq.Expressions.Expression;
+using ParamExpr = System.Linq.Expressions.ParameterExpression;
 
 namespace IronLua.Compiler
 {
     class Scope
     {
         Scope parent;
-        Dictionary<string, ParameterExpression> variables;
+        Dictionary<string, ParamExpr> variables;
 
         public bool IsRoot { get { return parent == null; } }
 
         private Scope()
         {
-            variables = new Dictionary<string, ParameterExpression>();
+            variables = new Dictionary<string, ParamExpr>();
         }
 
-        public ParameterExpression FindIdentifier(string name)
+        public ParamExpr[] AllLocals()
         {
-            ParameterExpression param;
+            var values = variables.Values;
+            var array = new ParamExpr[values.Count];
+            values.CopyTo(array, 0);
+            return array;
+        }
+
+        public ParamExpr FindIdentifier(string name)
+        {
+            ParamExpr param;
             if (variables.TryGetValue(name, out param))
                 return param;
             if (parent != null)
@@ -26,9 +35,9 @@ namespace IronLua.Compiler
             return null;
         }
 
-        public ParameterExpression AddLocal(string name)
+        public ParamExpr AddLocal(string name)
         {
-            var param = Expression.Variable(typeof(object));
+            var param = Expr.Variable(typeof(object));
             variables.Add(name, param);
             return param;
         }
