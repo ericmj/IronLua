@@ -92,6 +92,9 @@ namespace IronLua.Compiler
             var convertBinder = context.BinderCache.GetConvertBinder(typeof(double));
             Func<Expression, Expr> toNumber = e => Expr.Dynamic(convertBinder, typeof(double), e.Visit(this));
 
+            var parentScope = scope;
+            scope = Scope.CreateChild(parentScope);
+
             var loopVariable = scope.AddLocal(statement.Identifier, typeof(double));
             var var = toNumber(statement.Var);
             var limit = toNumber(statement.Limit);
@@ -120,7 +123,7 @@ namespace IronLua.Compiler
                     Expr.Block(
                         Expr.IfThen(breakConditionExpr, Expr.Break(scope.BreakLabel())),
                         Expr.Assign(loopVariable, varVar),
-                        Expr.Invoke(Expr.Constant((Action<string>)Console.WriteLine), Expr.Constant("test")),//Visit(statement.Body),
+                        Visit(statement.Body),
                         Expr.AddAssign(varVar, stepVar)),
                     scope.BreakLabel());
 
@@ -132,6 +135,7 @@ namespace IronLua.Compiler
                     Expr.Assign(stepVar, step),
                     loopExpr);
 
+            scope = parentScope;
             return expr;
         }
 
