@@ -14,7 +14,13 @@ namespace IronLua.Library
         {
         }
 
-        public static double ToNumber(string str, int? @base = 10)
+        public object ToNumber(string str, int? @base = 10)
+        {
+            double value = InternalToNumber(str, @base);
+            return value == double.NaN ? null : (object)value;
+        }
+
+        internal static double InternalToNumber(string str, int? @base = 10)
         {
             double result = 0;
 
@@ -27,7 +33,7 @@ namespace IronLua.Library
                 }
                 if (NumberUtil.TryParseDecimalNumber(str, out result))
                     return result;
-                return -1;
+                return double.NaN;
             }
 
             if (@base.Value == 16)
@@ -37,7 +43,7 @@ namespace IronLua.Library
                     if (NumberUtil.TryParseHexNumber(str.Substring(2), false, out result))
                         return result;
                 }
-                return -1;
+                return double.NaN;
             }
 
             var reversedStr = new String(str.Reverse().ToArray());
@@ -45,7 +51,7 @@ namespace IronLua.Library
             {
                 int num = AlphaNumericToBase(reversedStr[i]);
                 if (num == -1 || num >= @base)
-                    return -1;
+                    return double.NaN;
                 result += num * (@base.Value * i + 1);
             }
             return result;
@@ -65,7 +71,7 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("tonumber", new LuaFunction((Func<string, int?, double>)ToNumber));
+            table.SetValue("tonumber", new LuaFunction((Func<string, int?, object>)ToNumber));
         }
     }
 }
