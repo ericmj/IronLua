@@ -77,7 +77,43 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
         {
-            throw new NotImplementedException();
+            var variables = statement.Variables.Select(v => v.Visit(this)).ToList();
+
+            // Try to wrap all values except the last with varargs select
+            var values = new List<Expr>(statement.Values.Count);
+            for (int i = 0; i < values.Count - 1; i++)
+                values.Add(TryWrapWithVarargsSelect(statement.Values[i]));
+            values.Add(statement.Values.Last().Visit(this));
+
+            if (statement.Values.Last().IsVarargsOrFuncCall())
+                return VarargsExpandAssignment(variables, values);
+
+            // Assign values to temporaries
+            var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
+            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
+
+            // Shrink or pad temporary's list with nil to match variables's list length
+            // and cast temporaries to object type
+            var tempVariablesResized = tempVariables
+                .Resize(statement.Variables.Count, new Expression.Nil().Visit(this))
+                .Select(tempVar => Expr.Convert(tempVar, typeof(object)));
+
+            // Assign temporaries to locals
+            var exprs = variables.Zip(tempVariablesResized, AssignGlobal);
+            return Expr.Block(tempVariables, exprs);
+        }
+
+        Expr AssignGlobal(VariableVisit variable, Expr value)
+        {
+            switch (variable.Type)
+            {
+                case VariableType.MemberId:
+                    return Expr.Dynamic(null, typeof(object), variable.Object, value);
+                case VariableType.MemberExpr:
+                    return Expr.Dynamic(null, typeof(object), variable.Object, variable.Member, value);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
@@ -170,7 +206,7 @@ namespace IronLua.Compiler
             values.Add(statement.Values.Last().Visit(this));
 
             if (statement.Values.Last().IsVarargsOrFuncCall())
-                return VarargsExpandAssignment(values, locals);
+                return VarargsExpandAssignment(locals, values);
 
             // Assign values to temporaries
             var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
@@ -206,12 +242,17 @@ namespace IronLua.Compiler
                         variable));
         }
 
-        Expr VarargsExpandAssignment(List<Expr> values, List<ParameterExpression> locals)
+        Expr VarargsExpandAssignment(List<ParamExpr> locals, List<Expr> values)
         {
             return Expr.Invoke(
                 Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
                 Expr.RuntimeVariables(locals),
                 Expr.NewArrayInit(typeof(object[]), values));
+        }
+
+        Expr VarargsExpandAssignment(List<VariableVisit> variables, List<Expr> values)
+        {
+            throw new NotImplementedException();
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
@@ -315,26 +356,23 @@ namespace IronLua.Compiler
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.Identifier variable)
         {
-            return new VariableVisit(
-                VariableType.MemberId,
+            return VariableVisit.CreateMemberId(
                 Expr.Constant(context.Globals),
-                Expr.Constant(variable.Value));
+                variable.Value);
         }
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.MemberExpr variable)
         {
-            return new VariableVisit(
-                VariableType.MemberExpr,
+            return VariableVisit.CreateMemberExpr(
                 variable.Prefix.Visit(this),
                 variable.Member.Visit(this));
         }
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.MemberId variable)
         {
-            return new VariableVisit(
-                VariableType.MemberId,
+            return VariableVisit.CreateMemberId(
                 variable.Prefix.Visit(this),
-                Expr.Constant(variable.Member));
+                variable.Member);
         }
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Expression prefixExpr)
