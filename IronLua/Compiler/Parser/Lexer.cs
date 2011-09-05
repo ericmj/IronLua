@@ -362,18 +362,25 @@ namespace IronLua.Compiler.Parser
         Token Punctuation()
         {
             var punctuationBuilder = new StringBuilder(3);
-            while (input.CanContinue && input.Current.IsPunctuation())
+            for (int i = 0; i < 3; i++)
             {
+                if (!input.CanContinue || !input.Current.IsPunctuation())
+                    break;
                 punctuationBuilder.Append(input.Current);
                 input.Advance();
             }
 
             var punctuation = punctuationBuilder.ToString();
-            Symbol symbol;
-            if (punctuations.TryGetValue(punctuation, out symbol))
-                return input.Output(symbol);
-
-            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, punctuation);
+            
+            for (int i = punctuation.Length; i > 0; i++ )
+            {
+                Symbol symbol;
+                if (punctuations.TryGetValue(punctuation, out symbol))
+                    return input.Output(symbol);
+                punctuation = punctuation.Substring(0, i - 1);
+            }
+            
+            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, punctuationBuilder);
         }
 
         /* String literal, such as "bla bla" */
