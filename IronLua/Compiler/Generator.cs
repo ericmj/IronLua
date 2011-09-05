@@ -55,23 +55,24 @@ namespace IronLua.Compiler
             this.context = context;
         }
 
-        public Expression<Func<dynamic>> Compile(Block block)
+        public Expression<Action> Compile(Block block)
         {
-            scope = Scope.CreateRoot();
-
-            return Expr.Lambda<Func<dynamic>>(Visit(block));
+            var expr = Visit(block);
+            return Expr.Lambda<Action>(expr);
         }
 
         Expr Visit(Block block)
         {
-            if (!scope.IsRoot)
-                scope = Scope.CreateChild(scope);
+            var parentScope = scope;
+            scope = scope == null ? Scope.CreateRoot() : Scope.CreateChild(parentScope);
 
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
             if (block.LastStatement != null)
                 statementExprs.Add(block.LastStatement.Visit(this));
 
-            return Expr.Block(scope.AllLocals(), statementExprs);
+            var expr = Expr.Block(scope.AllLocals(), statementExprs);
+            scope = parentScope;
+            return expr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
@@ -82,12 +83,56 @@ namespace IronLua.Compiler
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
         {
             scope = Scope.CreateChild(scope);
-            return statement.Visit(this);
+            return Visit(statement.Body);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.For statement)
         {
-            throw new NotImplementedException();
+            // TODO: Check if number conversion failed by checking for double.NaN
+            var convertBinder = context.BinderCache.GetConvertBinder(typeof(double));
+            Func<Expression, Expr> toNumber = e => Expr.Dynamic(convertBinder, typeof(double), e.Visit(this));
+
+            var loopVariable = scope.AddLocal(statement.Identifier, typeof(double));
+            var var = toNumber(statement.Var);
+            var limit = toNumber(statement.Limit);
+            var step = statement.Step == null
+                           ? new Expression.Number(1.0).Visit(this)
+                           : toNumber(statement.Step);
+
+            var varVar = Expr.Variable(typeof(double));
+            var limitVar = Expr.Variable(typeof(double));
+            var stepVar = Expr.Variable(typeof(double));
+
+            var breakConditionExpr =
+                Expr.MakeBinary(
+                    ExprType.OrElse,
+                    Expr.MakeBinary(
+                        ExprType.AndAlso,
+                        Expr.GreaterThan(stepVar, Expr.Constant(0.0)),
+                        Expr.GreaterThan(varVar, limitVar)),
+                    Expr.MakeBinary(
+                        ExprType.AndAlso,
+                        Expr.LessThanOrEqual(stepVar, Expr.Constant(0.0)),
+                        Expr.LessThan(varVar, limitVar)));
+
+            var loopExpr =
+                Expr.Loop(
+                    Expr.Block(
+                        Expr.IfThen(breakConditionExpr, Expr.Break(scope.BreakLabel())),
+                        Expr.Assign(loopVariable, varVar),
+                        Expr.Invoke(Expr.Constant((Action<string>)Console.WriteLine), Expr.Constant("test")),//Visit(statement.Body),
+                        Expr.AddAssign(varVar, stepVar)),
+                    scope.BreakLabel());
+
+            var expr =
+                Expr.Block(
+                    new [] {loopVariable, varVar, limitVar, stepVar},
+                    Expr.Assign(varVar, var),
+                    Expr.Assign(limitVar, limit),
+                    Expr.Assign(stepVar, step),
+                    loopExpr);
+
+            return expr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.ForIn statement)
@@ -112,7 +157,7 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
-            var locals = statement.Identifiers.Select(scope.AddLocal).ToList();
+            var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
 
             // Try to wrap all values except the last with varargs select
             var values = new List<Expr>(statement.Values.Count);

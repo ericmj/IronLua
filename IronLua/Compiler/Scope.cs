@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
 
@@ -8,6 +10,7 @@ namespace IronLua.Compiler
     {
         Scope parent;
         Dictionary<string, ParamExpr> variables;
+        LabelTarget breakLabel;
 
         public bool IsRoot { get { return parent == null; } }
 
@@ -35,11 +38,14 @@ namespace IronLua.Compiler
             return null;
         }
 
-        public ParamExpr AddLocal(string name)
+        public ParamExpr AddLocal(string name, Type type = null)
         {
-            var param = Expr.Variable(typeof(object));
-            variables.Add(name, param);
-            return param;
+            return variables[name] = Expr.Variable(type ?? typeof(object));
+        }
+
+        public LabelTarget BreakLabel()
+        {
+            return breakLabel ?? (breakLabel = Expr.Label());
         }
 
         public static Scope CreateRoot()
@@ -48,6 +54,15 @@ namespace IronLua.Compiler
         }
 
         public static Scope CreateChild(Scope parent)
+        {
+            return new Scope
+                       {
+                           parent = parent,
+                           breakLabel = parent.breakLabel
+                       };
+        }
+
+        public static Scope CreateFunctionChild(Scope parent)
         {
             return new Scope {parent = parent};
         }
