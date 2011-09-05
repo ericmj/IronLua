@@ -19,7 +19,7 @@ using IronLua.Library;
 
 namespace IronLua.Compiler
 {
-    class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>
+    class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>, IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>
     {
         static Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
@@ -309,6 +309,45 @@ namespace IronLua.Compiler
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)
+        {
+            throw new NotImplementedException();
+        }
+
+        VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.Identifier variable)
+        {
+            return new VariableVisit(
+                VariableType.MemberId,
+                Expr.Constant(context.Globals),
+                Expr.Constant(variable.Value));
+        }
+
+        VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.MemberExpr variable)
+        {
+            return new VariableVisit(
+                VariableType.MemberExpr,
+                variable.Prefix.Visit(this),
+                variable.Member.Visit(this));
+        }
+
+        VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.MemberId variable)
+        {
+            return new VariableVisit(
+                VariableType.MemberId,
+                variable.Prefix.Visit(this),
+                Expr.Constant(variable.Member));
+        }
+
+        Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Expression prefixExpr)
+        {
+            throw new NotImplementedException();
+        }
+
+        Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.FunctionCall prefixExpr)
+        {
+            throw new NotImplementedException();
+        }
+
+        Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Variable prefixExpr)
         {
             throw new NotImplementedException();
         }
