@@ -90,7 +90,6 @@ namespace IronLua.Compiler
 
             // Assign values to temporaries
             var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
-            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
 
             // Shrink or pad temporary's list with nil to match variables's list length
             // and cast temporaries to object type
@@ -108,9 +107,11 @@ namespace IronLua.Compiler
             switch (variable.Type)
             {
                 case VariableType.MemberId:
-                    return Expr.Dynamic(null, typeof(object), variable.Object, value);
+                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
+                                        typeof(object), variable.Object, value);
                 case VariableType.MemberExpr:
-                    return Expr.Dynamic(null, typeof(object), variable.Object, variable.Member, value);
+                    return Expr.Dynamic(context.BinderCache.GetSetIndexBinder(), typeof(object),
+                                        variable.Object, variable.Member, value);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

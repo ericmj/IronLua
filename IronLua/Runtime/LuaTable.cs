@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using Expr = System.Linq.Expressions.Expression;
 using System.Text;
+using IronLua.Util;
 
 namespace IronLua.Runtime
 {
@@ -31,12 +33,13 @@ namespace IronLua.Runtime
             return value;
         }
 
-        internal void SetValue(object key, object value)
+        internal object SetValue(object key, object value)
         {
             if (value == null)
                 values.Remove(key);
             else
                 values[key] = value;
+            return value;
         }
 
         internal int Length()
@@ -66,16 +69,39 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
             {
                 // TODO: Move code Expr.Call to BindGetMember
-                var restrictions = Restrictions.Merge(
-                    BindingRestrictions.GetTypeRestriction(Expression, typeof(LuaTable)));
+                var restrictions = this.MergeTypeRestrictions();
 
                 var expression =
                     Expr.Call(
                         Expression,
-                        typeof(LuaTable).GetMethod("GetValue"),
+                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
                         Expr.Constant(binder.Name));
 
                 return binder.FallbackInvoke(new DynamicMetaObject(expression, restrictions), args, null);
+            }
+
+            public override DynamicMetaObject BindSetIndex(SetIndexBinder binder, DynamicMetaObject[] indexes, DynamicMetaObject value)
+            {
+                var expression =
+                    Expr.Call(
+                        Expression,
+                        typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance),
+                        indexes[0].Expression,
+                        value.Expression);
+
+                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
+            }
+
+            public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
+            {
+                var expression =
+                    Expr.Call(
+                        Expression,
+                        typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance),
+                        Expr.Constant(binder.Name),
+                        value.Expression);
+
+                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
             }
         }
     }
