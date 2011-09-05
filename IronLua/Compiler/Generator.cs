@@ -95,7 +95,7 @@ namespace IronLua.Compiler
             var parentScope = scope;
             scope = Scope.CreateChild(parentScope);
 
-            var loopVariable = scope.AddLocal(statement.Identifier, typeof(double));
+            var loopVariable = scope.AddLocal(statement.Identifier);
             var var = toNumber(statement.Var);
             var limit = toNumber(statement.Limit);
             var step = statement.Step == null
@@ -122,7 +122,7 @@ namespace IronLua.Compiler
                 Expr.Loop(
                     Expr.Block(
                         Expr.IfThen(breakConditionExpr, Expr.Break(scope.BreakLabel())),
-                        Expr.Assign(loopVariable, varVar),
+                        Expr.Assign(loopVariable, Expr.Convert(varVar, typeof(object))),
                         Visit(statement.Body),
                         Expr.AddAssign(varVar, stepVar)),
                     scope.BreakLabel());

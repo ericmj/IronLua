@@ -38,11 +38,13 @@ namespace IronLua.Compiler
             return null;
         }
 
-        public ParamExpr AddLocal(string name, Type type = null)
+        public ParamExpr AddLocal(string name)
         {
-            var var = Expr.Variable(type ?? typeof(object));
-            variables.Add(name, var);
-            return var;
+            ParamExpr param;
+            if (!variables.TryGetValue(name, out param))
+                variables.Add(name, param = Expr.Variable(typeof(object)));
+
+            return param;
         }
 
         public LabelTarget BreakLabel()
