@@ -140,10 +140,12 @@ namespace IronLua.Runtime.Binder
 
         Expr Numeric(DynamicMetaObject left, DynamicMetaObject right)
         {
-            var leftExpr = ConvertToNumberOperand(left);
-            var rightEXpr = ConvertToNumberOperand(right);
+            var leftExpr = LuaConvertBinder.ToNumber(left);
+            var rightEXpr = LuaConvertBinder.ToNumber(right);
 
-            if (left == null)
+            // TODO: Check if number conversion failed by checking for double.NaN
+
+            if (leftExpr == null)
                 return null;
             return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightEXpr), typeof(object));
         }
@@ -156,19 +158,6 @@ namespace IronLua.Runtime.Binder
                 Expr.Constant(Operation),
                 Expr.Convert(left.Expression, typeof(object)),
                 Expr.Convert(right.Expression, typeof(object)));
-        }
-
-        static Expr ConvertToNumberOperand(DynamicMetaObject metaObject)
-        {
-            if (metaObject.LimitType == typeof(double))
-                return metaObject.Expression;
-            if (metaObject.LimitType == typeof(string))
-                return
-                    Expr.Invoke(
-                        Expr.Constant((Func<string, int?, double>) Global.ToNumber),
-                        metaObject.Expression, Expr.Constant(10, typeof(int?)));
-
-            return null;
         }
 
         enum BinaryOpType
