@@ -16,6 +16,8 @@ namespace IronLua.Runtime.Binder
         Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
         Dictionary<CallInfo, LuaInvokeBinder> invokeBinders;
         Dictionary<Type, LuaConvertBinder> convertBinders;
+        Dictionary<string, LuaSetMemberBinder> setMemberBinders;
+        LuaSetIndexBinder setIndexBinder;
 
         public BinderCache(Context context)
         {
@@ -25,6 +27,7 @@ namespace IronLua.Runtime.Binder
             invokeMemberBinders = new Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder>();
             invokeBinders = new Dictionary<CallInfo, LuaInvokeBinder>();
             convertBinders = new Dictionary<Type, LuaConvertBinder>();
+            setMemberBinders = new Dictionary<string, LuaSetMemberBinder>();
         }
 
         public BinaryOperationBinder GetBinaryOperationBinder(ExprType operation)
@@ -71,6 +74,20 @@ namespace IronLua.Runtime.Binder
                 return binder;
 
             return convertBinders[type] = new LuaConvertBinder(type);
+        }
+
+        public SetMemberBinder GetSetMemberBinder(string name)
+        {
+            LuaSetMemberBinder binder;
+            if (setMemberBinders.TryGetValue(name, out binder))
+                return binder;
+
+            return setMemberBinders[name] = new LuaSetMemberBinder(name);
+        }
+
+        public SetIndexBinder GetSetIndexBinder()
+        {
+            return setIndexBinder ?? (setIndexBinder = new LuaSetIndexBinder());
         }
 
         // Stolen from DLR's reference implementation Sympl
