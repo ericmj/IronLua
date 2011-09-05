@@ -33,7 +33,10 @@ namespace IronLua.Runtime
 
         internal void SetValue(object key, object value)
         {
-            values[key] = value;
+            if (value == null)
+                values.Remove(key);
+            else
+                values[key] = value;
         }
 
         internal int Length()
@@ -42,11 +45,11 @@ namespace IronLua.Runtime
             foreach (var key in values.Keys.OfType<double>().OrderBy(key => key))
             {
                 var intKey = (int)key;
-                if (intKey != key)
-                    continue;
 
                 if (intKey > lastNum + 1)
                     return lastNum;
+                if (intKey != key)
+                    continue;
                 
                 lastNum = intKey;
             }
