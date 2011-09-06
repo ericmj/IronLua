@@ -5,9 +5,9 @@ namespace IronLua.Runtime.Binder
 {
     class LuaGetIndexBinder : GetIndexBinder
     {
-        public LuaGetIndexBinder(CallInfo callInfo) : base(callInfo)
+        public LuaGetIndexBinder()
+            : base(new CallInfo(1))
         {
-            throw new NotImplementedException();
         }
 
         public override DynamicMetaObject FallbackGetIndex(DynamicMetaObject target, DynamicMetaObject[] indexes, DynamicMetaObject errorSuggestion)

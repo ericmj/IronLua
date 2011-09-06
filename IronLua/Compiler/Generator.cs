@@ -388,7 +388,18 @@ namespace IronLua.Compiler
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Variable prefixExpr)
         {
-            throw new NotImplementedException();
+            var variable = prefixExpr.Var.Visit(this);
+            switch (variable.Type)
+            {
+                case VariableType.MemberId:
+                    return Expr.Dynamic(context.BinderCache.GetGetMemberBinder(variable.Identifier),
+                                        typeof(object), variable.Object);
+                case VariableType.MemberExpr:
+                    return Expr.Dynamic(context.BinderCache.GetGetIndexBinder(), typeof(object),
+                                        variable.Object, variable.Member);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

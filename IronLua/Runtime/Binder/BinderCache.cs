@@ -19,7 +19,7 @@ namespace IronLua.Runtime.Binder
         Dictionary<string, LuaSetMemberBinder> setMemberBinders;
         LuaSetIndexBinder setIndexBinder;
         Dictionary<string, LuaGetMemberBinder> getMemberBinders;
-        Dictionary<CallInfo, LuaGetIndexBinder> getIndexBinders;
+        LuaGetIndexBinder getIndexBinder;
 
         public BinderCache(Context context)
         {
@@ -31,7 +31,6 @@ namespace IronLua.Runtime.Binder
             convertBinders = new Dictionary<Type, LuaConvertBinder>();
             setMemberBinders = new Dictionary<string, LuaSetMemberBinder>();
             getMemberBinders = new Dictionary<string, LuaGetMemberBinder>();
-            getIndexBinders = new Dictionary<CallInfo, LuaGetIndexBinder>();
         }
 
         public BinaryOperationBinder GetBinaryOperationBinder(ExprType operation)
@@ -75,9 +74,9 @@ namespace IronLua.Runtime.Binder
             return GetCachedBinder(getMemberBinders, name, k => new LuaGetMemberBinder(k));
         }
 
-        public GetIndexBinder GetGetIndexBinder(CallInfo info)
+        public GetIndexBinder GetGetIndexBinder()
         {
-            return GetCachedBinder(getIndexBinders, info, k => new LuaGetIndexBinder(k));
+            return getIndexBinder ?? (getIndexBinder = new LuaGetIndexBinder());
         }
 
         TValue GetCachedBinder<TKey, TValue>(Dictionary<TKey, TValue> cache, TKey key, Func<TKey, TValue> newer)

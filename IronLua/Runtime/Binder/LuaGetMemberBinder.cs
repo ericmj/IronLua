@@ -8,7 +8,6 @@ namespace IronLua.Runtime.Binder
         public LuaGetMemberBinder(string name)
             : base(name, false)
         {
-            throw new NotImplementedException();
         }
 
         public override DynamicMetaObject FallbackGetMember(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
