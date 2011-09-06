@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
+using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using System.Reflection;
 using System.Text;
@@ -58,15 +59,18 @@ namespace IronLua.Runtime
             {
                 // TODO: Optional parameters and passing table for named parameters
 
-                var restrictions = Restrictions.Merge(
-                    BindingRestrictions.GetInstanceRestriction(Expression, Value));
-
-                var luaFunction = (LuaFunction) Value;
+                // NOTE: We may only need a type restriction on the first argument since we only need special
+                //       handling for LuaTable when it's the lone argument. Although we may need instance restrict
+                //       on that argument then, or probably instance restrict on the function instead, since we
+                //       only want to restrict parameter names not argument values also
+                var restrictions = this.MergeTypeRestrictions(args);
 
                 var expression =
                     Expr.Convert(
                         Expr.Invoke(
-                            Expr.Constant(luaFunction.function, luaFunction.function.GetType()),
+                            Expr.Field(
+                                Expression,
+                                typeof(LuaFunction).GetField("function", BindingFlags.NonPublic | BindingFlags.Instance)),
                             args.Select(a => a.Expression)),
                         typeof(object));
 

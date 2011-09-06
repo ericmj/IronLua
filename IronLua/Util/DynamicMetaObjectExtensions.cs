@@ -23,5 +23,17 @@ namespace IronLua.Util
                     .Merge(BindingRestrictions.GetTypeRestriction(dmo1.Expression, dmo1.LimitType))
                     .Merge(BindingRestrictions.GetTypeRestriction(dmo2.Expression, dmo2.LimitType));
         }
+
+        public static BindingRestrictions MergeTypeRestrictions(this DynamicMetaObject dmo1, params DynamicMetaObject[] dmos)
+        {
+            var restrictions =
+                dmo1.Restrictions
+                .Merge(BindingRestrictions.GetTypeRestriction(dmo1.Expression, dmo1.LimitType))
+                .Merge(BindingRestrictions.Combine(dmos));
+
+            return dmos.Aggregate(
+                restrictions,
+                (res, dmo) => res.Merge(BindingRestrictions.GetTypeRestriction(dmo.Expression, dmo.LimitType)));
+        }
     }
 }
