@@ -19,7 +19,8 @@ using IronLua.Library;
 
 namespace IronLua.Compiler
 {
-    class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>, IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>
+    class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>,
+                      IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>
     {
         static Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
@@ -37,7 +38,7 @@ namespace IronLua.Compiler
                     {BinaryOp.Multiply,     ExprType.Multiply},
                     {BinaryOp.Divide,       ExprType.Divide},
                     {BinaryOp.Mod,          ExprType.Modulo},
-                    {BinaryOp.Power,        ExprType.Power} 
+                    {BinaryOp.Power,        ExprType.Power}
                 };
 
         static Dictionary<UnaryOp, ExprType> unaryExprTypes =
@@ -166,7 +167,7 @@ namespace IronLua.Compiler
 
             var expr =
                 Expr.Block(
-                    new [] {loopVariable, varVar, limitVar, stepVar},
+                    new[] {loopVariable, varVar, limitVar, stepVar},
                     Expr.Assign(varVar, var),
                     Expr.Assign(limitVar, limit),
                     Expr.Assign(stepVar, step),
@@ -378,12 +379,12 @@ namespace IronLua.Compiler
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Expression prefixExpr)
         {
-            throw new NotImplementedException();
+            return prefixExpr.Expr.Visit(this);
         }
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.FunctionCall prefixExpr)
         {
-            throw new NotImplementedException();
+            return prefixExpr.Call.Visit(this);
         }
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Variable prefixExpr)
@@ -400,6 +401,16 @@ namespace IronLua.Compiler
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+        }
+
+        Expr IFunctionCallVisitor<Expr>.Visit(FunctionCall.Normal functionCall)
+        {
+            throw new NotImplementedException();
+        }
+
+        Expr IFunctionCallVisitor<Expr>.Visit(FunctionCall.Table functionCall)
+        {
+            throw new NotImplementedException();
         }
     }
 }
