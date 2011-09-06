@@ -84,6 +84,8 @@
     <Compile Include="Runtime\Binder\BinderCache.cs" />
     <Compile Include="Runtime\Binder\LuaBinaryOperationBinder.cs" />
     <Compile Include="Runtime\Binder\LuaConvertBinder.cs" />
+    <Compile Include="Runtime\Binder\LuaGetIndexBinder.cs" />
+    <Compile Include="Runtime\Binder\LuaGetMemberBinder.cs" />
     <Compile Include="Runtime\Binder\LuaInvokeBinder.cs" />
     <Compile Include="Runtime\Binder\LuaInvokeMemberBinder.cs" />
     <Compile Include="Runtime\Binder\LuaSetIndexBinder.cs" />

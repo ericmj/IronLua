@@ -18,6 +18,8 @@ namespace IronLua.Runtime.Binder
         Dictionary<Type, LuaConvertBinder> convertBinders;
         Dictionary<string, LuaSetMemberBinder> setMemberBinders;
         LuaSetIndexBinder setIndexBinder;
+        Dictionary<string, LuaGetMemberBinder> getMemberBinders;
+        Dictionary<CallInfo, LuaGetIndexBinder> getIndexBinders;
 
         public BinderCache(Context context)
         {
@@ -28,66 +30,62 @@ namespace IronLua.Runtime.Binder
             invokeBinders = new Dictionary<CallInfo, LuaInvokeBinder>();
             convertBinders = new Dictionary<Type, LuaConvertBinder>();
             setMemberBinders = new Dictionary<string, LuaSetMemberBinder>();
+            getMemberBinders = new Dictionary<string, LuaGetMemberBinder>();
+            getIndexBinders = new Dictionary<CallInfo, LuaGetIndexBinder>();
         }
 
         public BinaryOperationBinder GetBinaryOperationBinder(ExprType operation)
         {
-            LuaBinaryOperationBinder binder;
-            if (binaryOperationBinders.TryGetValue(operation, out binder))
-                return binder;
-
-            return binaryOperationBinders[operation] = new LuaBinaryOperationBinder(context, operation);
+            return GetCachedBinder(binaryOperationBinders, operation, k => new LuaBinaryOperationBinder(context, k));
         }
 
         public UnaryOperationBinder GetUnaryOperationBinder(ExprType operation)
         {
-            LuaUnaryOperationBinder binder;
-            if (unaryOperationBinders.TryGetValue(operation, out binder))
-                return binder;
-
-            return unaryOperationBinders[operation] = new LuaUnaryOperationBinder(context, operation);
+            return GetCachedBinder(unaryOperationBinders, operation, k => new LuaUnaryOperationBinder(context, k));
         }
 
         public InvokeMemberBinder GetInvokeMemberBinder(string name, CallInfo info)
         {
-            var key = new InvokeMemberBinderKey(name, info);
-            LuaInvokeMemberBinder binder;
-            if (invokeMemberBinders.TryGetValue(key, out binder))
-                return binder;
-
-            return invokeMemberBinders[key] = new LuaInvokeMemberBinder(context, name, info);
+            return GetCachedBinder(invokeMemberBinders, new InvokeMemberBinderKey(name, info),
+                                   k => new LuaInvokeMemberBinder(context, k.Name, k.Info));
         }
 
         public InvokeBinder GetInvokeBinder(CallInfo callInfo)
         {
-            LuaInvokeBinder binder;
-            if (invokeBinders.TryGetValue(callInfo, out binder))
-                return binder;
-
-            return invokeBinders[callInfo] = new LuaInvokeBinder(callInfo);
+            return GetCachedBinder(invokeBinders, callInfo, k => new LuaInvokeBinder(k));
         }
 
         public ConvertBinder GetConvertBinder(Type type)
         {
-            LuaConvertBinder binder;
-            if (convertBinders.TryGetValue(type, out binder))
-                return binder;
-
-            return convertBinders[type] = new LuaConvertBinder(type);
+            return GetCachedBinder(convertBinders, type, k => new LuaConvertBinder(k));
         }
 
         public SetMemberBinder GetSetMemberBinder(string name)
         {
-            LuaSetMemberBinder binder;
-            if (setMemberBinders.TryGetValue(name, out binder))
-                return binder;
-
-            return setMemberBinders[name] = new LuaSetMemberBinder(name);
+            return GetCachedBinder(setMemberBinders, name, k => new LuaSetMemberBinder(k));
         }
 
         public SetIndexBinder GetSetIndexBinder()
         {
             return setIndexBinder ?? (setIndexBinder = new LuaSetIndexBinder());
+        }
+
+        public GetMemberBinder GetGetMemberBinder(string name)
+        {
+            return GetCachedBinder(getMemberBinders, name, k => new LuaGetMemberBinder(k));
+        }
+
+        public GetIndexBinder GetGetIndexBinder(CallInfo info)
+        {
+            return GetCachedBinder(getIndexBinders, info, k => new LuaGetIndexBinder(k));
+        }
+
+        TValue GetCachedBinder<TKey, TValue>(Dictionary<TKey, TValue> cache, TKey key, Func<TKey, TValue> newer)
+        {
+            TValue binder;
+            if (cache.TryGetValue(key, out binder))
+                return binder;
+            return cache[key] = newer(key);
         }
 
         // Stolen from DLR's reference implementation Sympl
