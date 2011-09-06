@@ -323,7 +323,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Prefix expression)
         {
-            expression.Expression.Visit(this);
+            return expression.Expression.Visit(this);
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.String expression)
