@@ -91,6 +91,7 @@ namespace IronLua.Compiler
 
             // Assign values to temporaries
             var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
+            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
 
             // Shrink or pad temporary's list with nil to match variables's list length
             // and cast temporaries to object type
@@ -98,12 +99,12 @@ namespace IronLua.Compiler
                 .Resize(statement.Variables.Count, new Expression.Nil().Visit(this))
                 .Select(tempVar => Expr.Convert(tempVar, typeof(object)));
 
-            // Assign temporaries to locals
-            var exprs = variables.Zip(tempVariablesResized, AssignGlobal);
-            return Expr.Block(tempVariables, exprs);
+            // Assign temporaries to globals
+            var realAssigns = variables.Zip(tempVariablesResized, Assign);
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
-        Expr AssignGlobal(VariableVisit variable, Expr value)
+        Expr Assign(VariableVisit variable, Expr value)
         {
             switch (variable.Type)
             {
