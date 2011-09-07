@@ -141,13 +141,13 @@ namespace IronLua.Runtime.Binder
         Expr Numeric(DynamicMetaObject left, DynamicMetaObject right)
         {
             var leftExpr = LuaConvertBinder.ToNumber(left);
-            var rightEXpr = LuaConvertBinder.ToNumber(right);
+            var rightExpr = LuaConvertBinder.ToNumber(right);
 
             // TODO: Check if number conversion failed by checking for double.NaN
 
             if (leftExpr == null)
                 return null;
-            return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightEXpr), typeof(object));
+            return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightExpr), typeof(object));
         }
 
         Expr MetamethodFallback(DynamicMetaObject left, DynamicMetaObject right)
