@@ -107,12 +107,22 @@ namespace IronLua.Compiler
         {
             switch (variable.Type)
             {
+                case VariableType.Identifier:
+                    ParamExpr param;
+                    if (scope.TryFindIdentifier(variable.Identifier, out param))
+                        return Expr.Assign(param, value);
+
+                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
+                                        typeof(object), Expr.Constant(context.Globals), value);
+
                 case VariableType.MemberId:
                     return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
                                         typeof(object), variable.Object, value);
+
                 case VariableType.MemberExpr:
                     return Expr.Dynamic(context.BinderCache.GetSetIndexBinder(), typeof(object),
                                         variable.Object, variable.Member, value);
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -358,9 +368,7 @@ namespace IronLua.Compiler
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.Identifier variable)
         {
-            return VariableVisit.CreateMemberId(
-                Expr.Constant(context.Globals),
-                variable.Value);
+            return VariableVisit.CreateIdentifier(variable.Value);
         }
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.MemberExpr variable)
@@ -392,12 +400,22 @@ namespace IronLua.Compiler
             var variable = prefixExpr.Var.Visit(this);
             switch (variable.Type)
             {
+                case VariableType.Identifier:
+                    ParamExpr param;
+                    if (scope.TryFindIdentifier(variable.Identifier, out param))
+                        return param;
+
+                    return Expr.Dynamic(context.BinderCache.GetGetMemberBinder(variable.Identifier),
+                                        typeof(object), Expr.Constant(context.Globals));
+
                 case VariableType.MemberId:
                     return Expr.Dynamic(context.BinderCache.GetGetMemberBinder(variable.Identifier),
                                         typeof(object), variable.Object);
+
                 case VariableType.MemberExpr:
                     return Expr.Dynamic(context.BinderCache.GetGetIndexBinder(), typeof(object),
                                         variable.Object, variable.Member);
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }

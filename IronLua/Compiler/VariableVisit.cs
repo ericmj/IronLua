@@ -14,6 +14,15 @@ namespace IronLua.Compiler
         {
         }
 
+        public static VariableVisit CreateIdentifier(string identifier)
+        {
+            return new VariableVisit
+                       {
+                           Type = VariableType.Identifier,
+                           Identifier = identifier
+                       };
+        }
+
         public static VariableVisit CreateMemberId(Expr @object, string identifier)
         {
             return new VariableVisit
@@ -37,6 +46,7 @@ namespace IronLua.Compiler
 
     enum VariableType
     {
+        Identifier,
         MemberId,
         MemberExpr
     }
