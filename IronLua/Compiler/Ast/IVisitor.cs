@@ -3,7 +3,7 @@
     interface IArgumentsVisitor<T>
     {
         T Visit(Arguments.Normal arguments);
-        T Visit(Arguments.String arguemnts);
+        T Visit(Arguments.String arguments);
         T Visit(Arguments.Table arguments);
     }
 
