@@ -23,11 +23,11 @@ namespace IronLua.Compiler.Ast
 
         public class Table : Arguments
         {
-            public List<Field> Fields { get; set; }
+            public Expression.Table Value { get; set; }
 
-            public Table(List<Field> fields)
+            public Table(Expression.Table value)
             {
-                Fields = fields;
+                Value = value;
             }
 
             public override T Visit<T>(IArgumentsVisitor<T> visitor)
@@ -38,9 +38,9 @@ namespace IronLua.Compiler.Ast
 
         public class String : Arguments
         {
-            public string Literal { get; set; }
+            public Expression.String Literal { get; set; }
 
-            public String(string literal)
+            public String(Expression.String literal)
             {
                 Literal = literal;
             }

@@ -111,7 +111,7 @@ namespace IronLua.Compiler.Parser
         /* Parses table
          * [field {fieldsep field} [fieldsep]]
          * fieldsep := ',' | ';' */
-        List<Field> Table()
+        Expression.Table Table()
         {
             lexer.Expect(Symbol.LeftBrace);
             var fields = new List<Field>();
@@ -138,7 +138,7 @@ namespace IronLua.Compiler.Parser
             }
 
             lexer.Expect(Symbol.RightBrace);
-            return fields;
+            return new Expression.Table(fields);
         }
 
         /* Parses Number */
@@ -226,7 +226,8 @@ namespace IronLua.Compiler.Parser
                     return new Arguments.Table(Table());
 
                 case Symbol.String:
-                    return new Arguments.String(lexer.ExpectLexeme(Symbol.String));
+                    var str = new Expression.String(lexer.ExpectLexeme(Symbol.String));
+                    return new Arguments.String(str);
 
                 default:
                     throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
@@ -373,7 +374,7 @@ namespace IronLua.Compiler.Parser
                 case Symbol.LeftParen:
                     return new Expression.Prefix(PrefixExpression());
                 case Symbol.LeftBrace:
-                    return new Expression.Table(Table());
+                    return Table();
                 
                 default:
                     UnaryOp unaryOp;
