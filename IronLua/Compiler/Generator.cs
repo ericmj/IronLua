@@ -464,17 +464,17 @@ namespace IronLua.Compiler
 
         List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Normal arguments)
         {
-            throw new NotImplementedException();
+            return arguments.Arguments.Select(e => e.Visit(this)).ToList();
         }
 
-        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.String arguemnts)
+        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.String arguments)
         {
-            throw new NotImplementedException();
+            return new List<Expr> {arguments.Literal.Visit(this)};
         }
 
         List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Table arguments)
         {
-            throw new NotImplementedException();
+            return new List<Expr> {arguments.Value.Visit(this)};
         }
     }
 }
