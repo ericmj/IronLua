@@ -5,6 +5,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using IronLua.Runtime.Binder;
 using Expr = System.Linq.Expressions.Expression;
 using System.Text;
 using IronLua.Util;
@@ -68,16 +69,10 @@ namespace IronLua.Runtime
 
             public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
             {
-                // TODO: Move code Expr.Call to BindGetMember
-                var restrictions = this.MergeTypeRestrictions();
-
                 var expression =
-                    Expr.Call(
-                        Expression,
-                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
-                        Expr.Constant(binder.Name));
+                    Expr.Dynamic(new LuaGetMemberBinder(binder.Name), typeof(object), Expression);
 
-                return binder.FallbackInvoke(new DynamicMetaObject(expression, restrictions), args, null);
+                return binder.FallbackInvoke(new DynamicMetaObject(expression, Restrictions), args, null);
             }
 
             public override DynamicMetaObject BindSetIndex(SetIndexBinder binder, DynamicMetaObject[] indexes, DynamicMetaObject value)
@@ -102,6 +97,24 @@ namespace IronLua.Runtime
                         value.Expression);
 
                 return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
+            }
+
+            public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
+            {
+                var restrictions = this.MergeTypeRestrictions();
+
+                var expression =
+                    Expr.Call(
+                        Expression,
+                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
+                        Expr.Constant(binder.Name));
+
+                return new DynamicMetaObject(expression, restrictions);
+            }
+
+            public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
+            {
+                throw new NotImplementedException();
             }
         }
     }
