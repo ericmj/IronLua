@@ -27,15 +27,14 @@ namespace IronLua.Compiler
             return array;
         }
 
-        public ParamExpr FindIdentifier(string name)
+        public bool TryFindIdentifier(string name, out ParamExpr param)
         {
-            ParamExpr param;
             if (variables.TryGetValue(name, out param))
-                return param;
+                return true;
             if (parent != null)
-                return parent.FindIdentifier(name);
+                return parent.TryFindIdentifier(name, out param);
 
-            return null;
+            return false;
         }
 
         public ParamExpr AddLocal(string name)
