@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -20,7 +21,8 @@ using IronLua.Library;
 namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>,
-                      IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>
+                      IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>,
+                      IArgumentsVisitor<List<Expr>>
     {
         static Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
@@ -424,10 +426,53 @@ namespace IronLua.Compiler
 
         Expr IFunctionCallVisitor<Expr>.Visit(FunctionCall.Normal functionCall)
         {
-            throw new NotImplementedException();
+            var funcExpr = functionCall.Prefix.Visit(this);
+            var argExprs = functionCall.Arguments.Visit(this);
+
+            var invokeArgs = new Expr[argExprs.Count + 1];
+            invokeArgs[0] = funcExpr;
+            Array.Copy(argExprs.ToArray(), 0, invokeArgs, 1, argExprs.Count);
+
+            return Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Count)),
+                                typeof(object), invokeArgs);
         }
 
         Expr IFunctionCallVisitor<Expr>.Visit(FunctionCall.Table functionCall)
+        {
+            var tableExpr = functionCall.Prefix.Visit(this);
+            var tableVar = Expr.Variable(typeof(object));
+            var assignExpr = Expr.Assign(tableVar, tableExpr);
+
+            var tableGetMember = Expr.Dynamic(context.BinderCache.GetGetMemberBinder(functionCall.Name),
+                                              typeof(object), tableVar);
+
+            var argExprs = functionCall.Arguments.Visit(this);
+            var invokeArgs = new Expr[argExprs.Count + 2];
+            invokeArgs[0] = tableGetMember;
+            invokeArgs[1] = tableVar;
+            Array.Copy(argExprs.ToArray(), 0, invokeArgs, 2, argExprs.Count);
+
+            var invokeExpr = Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Count)),
+                                          typeof(object), invokeArgs);
+
+            return
+                Expr.Block(
+                    new[] {tableVar},
+                    assignExpr,
+                    invokeExpr);
+        }
+
+        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Normal arguments)
+        {
+            throw new NotImplementedException();
+        }
+
+        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.String arguemnts)
+        {
+            throw new NotImplementedException();
+        }
+
+        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Table arguments)
         {
             throw new NotImplementedException();
         }
