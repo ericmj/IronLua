@@ -75,6 +75,7 @@ namespace IronLua.Runtime
                 return binder.FallbackInvoke(new DynamicMetaObject(expression, Restrictions), args, null);
             }
 
+            // NOTE: Do we need to merge/combine restrictions of indexes - check BindGetIndex(...) also
             public override DynamicMetaObject BindSetIndex(SetIndexBinder binder, DynamicMetaObject[] indexes, DynamicMetaObject value)
             {
                 var expression =
@@ -114,7 +115,13 @@ namespace IronLua.Runtime
 
             public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
             {
-                throw new NotImplementedException();
+                var expression =
+                    Expr.Call(
+                        Expression,
+                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
+                        indexes[0].Expression);
+
+                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
             }
         }
     }
