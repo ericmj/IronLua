@@ -31,7 +31,7 @@ namespace IronLua.Runtime
                         {typeof(bool), new LuaTable()},
                         {typeof(double), new LuaTable()},
                         {typeof(string), new LuaTable()},
-                        {typeof(LuaFunction), new LuaTable()}
+                        {typeof(Delegate), new LuaTable()}
                     };
         }
 
