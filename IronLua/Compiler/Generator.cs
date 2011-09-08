@@ -207,7 +207,25 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.If statement)
         {
-            throw new NotImplementedException();
+            var testExpr = statement.Test.Visit(this);
+            var bodyExpr = Visit(statement.Body);
+            var elseExpr = statement.ElseBody != null ? Visit(statement.ElseBody) : null;
+            var elseifExprs = statement.Elseifs.Aggregate(elseExpr, ElseifCombiner);
+
+            return
+                Expr.IfThenElse(
+                    testExpr,
+                    bodyExpr,
+                    elseifExprs);
+        }
+
+        Expr ElseifCombiner(Expr expr, Elseif elseif)
+        {
+            return
+                Expr.IfThenElse(
+                    elseif.Test.Visit(this),
+                    Visit(elseif.Body),
+                    expr);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
