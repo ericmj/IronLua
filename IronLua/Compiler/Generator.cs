@@ -22,7 +22,7 @@ namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>,
                       IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>,
-                      IArgumentsVisitor<List<Expr>>
+                      IArgumentsVisitor<Expr[]>
     {
         static Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
@@ -429,11 +429,11 @@ namespace IronLua.Compiler
             var funcExpr = functionCall.Prefix.Visit(this);
             var argExprs = functionCall.Arguments.Visit(this);
 
-            var invokeArgs = new Expr[argExprs.Count + 1];
+            var invokeArgs = new Expr[argExprs.Length + 1];
             invokeArgs[0] = funcExpr;
-            Array.Copy(argExprs.ToArray(), 0, invokeArgs, 1, argExprs.Count);
+            Array.Copy(argExprs, 0, invokeArgs, 1, argExprs.Length);
 
-            return Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Count)),
+            return Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
                                 typeof(object), invokeArgs);
         }
 
@@ -447,12 +447,12 @@ namespace IronLua.Compiler
                                               typeof(object), tableVar);
 
             var argExprs = functionCall.Arguments.Visit(this);
-            var invokeArgs = new Expr[argExprs.Count + 2];
+            var invokeArgs = new Expr[argExprs.Length + 2];
             invokeArgs[0] = tableGetMember;
             invokeArgs[1] = tableVar;
-            Array.Copy(argExprs.ToArray(), 0, invokeArgs, 2, argExprs.Count);
+            Array.Copy(argExprs, 0, invokeArgs, 2, argExprs.Length);
 
-            var invokeExpr = Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Count)),
+            var invokeExpr = Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
                                           typeof(object), invokeArgs);
 
             return
@@ -462,19 +462,19 @@ namespace IronLua.Compiler
                     invokeExpr);
         }
 
-        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Normal arguments)
+        Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.Normal arguments)
         {
-            return arguments.Arguments.Select(e => e.Visit(this)).ToList();
+            return arguments.Arguments.Select(e => e.Visit(this)).ToArray();
         }
 
-        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.String arguments)
+        Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.String arguments)
         {
-            return new List<Expr> {arguments.Literal.Visit(this)};
+            return new[] {arguments.Literal.Visit(this)};
         }
 
-        List<Expr> IArgumentsVisitor<List<Expr>>.Visit(Arguments.Table arguments)
+        Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.Table arguments)
         {
-            return new List<Expr> {arguments.Value.Visit(this)};
+            return new[] {arguments.Value.Visit(this)};
         }
     }
 }
