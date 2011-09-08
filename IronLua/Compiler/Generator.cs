@@ -202,7 +202,7 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.FunctionCall statement)
         {
-            throw new NotImplementedException();
+            return statement.Call.Visit(this);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.If statement)
