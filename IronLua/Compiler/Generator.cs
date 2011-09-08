@@ -262,12 +262,31 @@ namespace IronLua.Compiler
             return Expr.Invoke(
                 Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
                 Expr.RuntimeVariables(locals),
-                Expr.NewArrayInit(typeof(object[]), values));
+                Expr.NewArrayInit(typeof(object), values));
         }
 
         Expr VarargsExpandAssignment(List<VariableVisit> variables, List<Expr> values)
         {
-            throw new NotImplementedException();
+            var valuesVar = Expr.Variable(typeof(object[]));
+            var invokeExpr =
+                Expr.Invoke(
+                    Expr.Constant((Func<int, object[], object[]>)LuaOps.VarargsAssign),
+                    Expr.Constant(variables.Count),
+                    Expr.NewArrayInit(typeof(object), values));
+            var valuesAssign = Expr.Assign(valuesVar, invokeExpr);
+
+            var varAssigns = variables
+                .Select((var, i) => Assign(var, Expr.ArrayIndex(valuesVar, Expr.Constant(i))))
+                .ToArray();
+
+            var exprs = new Expr[varAssigns.Length + 1];
+            exprs[0] = valuesAssign;
+            Array.Copy(varAssigns, 0, exprs, 1, varAssigns.Length);
+
+            return
+                Expr.Block(
+                    new[] {valuesVar},
+                    exprs);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
