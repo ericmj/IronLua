@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
@@ -16,22 +17,45 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackInvoke(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
         {
-            // TODO: Optional parameters and passing table for named parameters
+            // TODO: Handle passing table as single argument for named parameters
+            
+            if (!target.HasValue || args.Any(a => !a.HasValue))
+                return Defer(target, args);
 
-            // NOTE: We may only need a type restriction on the first argument since we only need special
-            //       handling for LuaTable when it's the lone argument. Although we may need instance restrict
-            //       on that argument then, or probably instance restrict on the function instead, since we
-            //       only want to restrict parameter names not argument values also
-            var restrictions = target.MergeTypeRestrictions(args);
+            var restrictions = target
+                .MergeTypeRestrictions(args)
+                .Merge(BindingRestrictions.GetInstanceRestriction(target.Expression, target.Value));
+
+            var resizeArgs = OverloadArgs(target, args);
 
             var expression =
                 Expr.Convert(
                     Expr.Invoke(
                         Expr.Convert(target.Expression, target.LimitType),
-                        args.Select(a => a.Expression)),
+                        resizeArgs),
                     typeof(object));
 
             return new DynamicMetaObject(expression, restrictions);
+        }
+
+        // Pads the argument list with default values if there are less arguments than parameters to the function
+        // and removes arguments if there are more arguments than parameters.
+        IEnumerable<Expr> OverloadArgs(DynamicMetaObject target, DynamicMetaObject[] args)
+        {
+            // TODO: Make sure that all args are evaluated, even if args.Length > maxArgs
+            var function = (Delegate)target.Value;
+            var parameters = function.Method.GetParameters();
+            var minArgs = parameters.Count(arg => !arg.IsOptional);
+            var maxArgs = parameters.Length;
+
+            if (args.Length < minArgs)
+                return null; // TODO
+
+            var defaultValues = parameters
+                .Skip(args.Length)
+                .Select(param => Expr.Constant(param.DefaultValue));
+
+            return args.Select(a => a.Expression).Resize(maxArgs, defaultValues);
         }
     }
 }
