@@ -28,7 +28,7 @@ namespace IronLua.Util
             foreach (var element in collection)
             {
                 if (i++ >= size)
-                    break;
+                    yield break;
                 yield return element;
             }
 
@@ -42,7 +42,7 @@ namespace IronLua.Util
             foreach (var element in collection)
             {
                 if (i++ >= size)
-                    break;
+                    yield break;
                 yield return element;
             }
 
@@ -56,12 +56,32 @@ namespace IronLua.Util
             foreach (var element in collection)
             {
                 if (i++ >= size)
-                    break;
+                    yield break;
                 yield return element;
             }
 
             for (; i < size; i++)
                 yield return initalizer(i);
+        }
+
+        public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, IEnumerable<T> padder)
+        {
+            int i = 0;
+            foreach (var element in collection)
+            {
+                if (i++ >= size)
+                    yield break;
+                yield return element;
+            }
+
+            foreach (var element in padder)
+            {
+                yield return element;
+                i++;
+            }
+
+            if (i != size)
+                throw new ArgumentException();
         }
     }
 }
