@@ -35,8 +35,8 @@ namespace IronLua.Runtime.Binder
             if (metaObject.LimitType == typeof(string))
                 return
                     Expression.Invoke(
-                        Expression.Constant((Func<string, int?, double>) Global.InternalToNumber),
-                        metaObject.Expression, Expression.Constant(10, typeof(int?)));
+                        Expression.Constant((Func<string, double, double>) Global.InternalToNumber),
+                        metaObject.Expression, Expression.Constant(10.0, typeof(double?)));
 
             return null;
         }
