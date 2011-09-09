@@ -361,26 +361,90 @@ namespace IronLua.Compiler.Parser
 
         Token Punctuation()
         {
-            var punctuationBuilder = new StringBuilder(3);
-            for (int i = 0; i < 3; i++)
+            char c = input.Current;
+            input.Advance();
+            switch (c)
             {
-                if (!input.CanContinue || !input.Current.IsPunctuation())
-                    break;
-                punctuationBuilder.Append(input.Current);
-                input.Advance();
+                case '+':
+                    return input.Output(Symbol.Plus);
+                case '-':
+                    return input.Output(Symbol.Minus);
+                case '*':
+                    return input.Output(Symbol.Star);
+                case '/':
+                    return input.Output(Symbol.Slash);
+                case '%':
+                    return input.Output(Symbol.Percent);
+                case '^':
+                    return input.Output(Symbol.Caret);
+                case '#':
+                    return input.Output(Symbol.Hash);
+                case '~':
+                    return input.Current == '=' ? LongPunctuation(c) : input.Output(Symbol.TildeEqual);
+                case '<':
+                    return input.Current == '=' ? LongPunctuation(c) : input.Output(Symbol.Less);
+                case '>':
+                    return input.Current == '=' ? LongPunctuation(c) : input.Output(Symbol.Greater);
+                case '=':
+                    return input.Current == '=' ? LongPunctuation(c) : input.Output(Symbol.Equal);
+                case '(':
+                    return input.Output(Symbol.LeftParen);
+                case ')':
+                    return input.Output(Symbol.RightParen);
+                case '{':
+                    return input.Output(Symbol.LeftBrace);
+                case '}':
+                    return input.Output(Symbol.RightBrace);
+                case '[':
+                    return input.Output(Symbol.LeftBrack);
+                case ']':
+                    return input.Output(Symbol.RightBrack);
+                case ';':
+                    return input.Output(Symbol.SemiColon);
+                case ':':
+                    return input.Output(Symbol.Colon);
+                case ',':
+                    return input.Output(Symbol.Comma);
+                case '.':
+                    return input.Current == '.' ? LongPunctuation(c) : input.Output(Symbol.Dot);
+                default:
+                    throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, c);
             }
+        }
 
-            var punctuation = punctuationBuilder.ToString();
-            
-            for (int i = punctuation.Length; i > 0; i++ )
+        Token LongPunctuation(char c1)
+        {
+            char c2 = input.Current;
+            input.Advance();
+
+            switch(c1)
             {
-                Symbol symbol;
-                if (punctuations.TryGetValue(punctuation, out symbol))
-                    return input.Output(symbol);
-                punctuation = punctuation.Substring(0, i - 1);
+                case '~':
+                    if (c2 == '=') return input.Output(Symbol.TildeEqual);
+                    break;
+                case '<':
+                    if (c2 == '=') return input.Output(Symbol.LessEqual);
+                    break;
+                case '>':
+                    if (c2 == '=') return input.Output(Symbol.GreaterEqual);
+                    break;
+                case '=':
+                    if (c2 == '=') return input.Output(Symbol.EqualEqual);
+                    break;
+                case '.':
+                    if (c2 == '.')
+                    {
+                        if (input.Current == '.')
+                        {
+                            input.Advance();
+                            return input.Output(Symbol.DotDotDot);
+                        }
+                        return input.Output(Symbol.DotDot);
+                    }
+                    break;
             }
             
-            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, punctuationBuilder);
+            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
         }
 
         /* String literal, such as "bla bla" */
