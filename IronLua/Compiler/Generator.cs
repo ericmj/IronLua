@@ -66,6 +66,7 @@ namespace IronLua.Compiler
 
         Expr Visit(Block block)
         {
+            // TODO: Locals assignment shouldn't work in root scope.
             var parentScope = scope;
             scope = scope == null ? Scope.CreateRoot() : Scope.CreateChild(parentScope);
 
@@ -76,6 +77,26 @@ namespace IronLua.Compiler
             var expr = Expr.Block(scope.AllLocals(), statementExprs);
             scope = parentScope;
             return expr;
+        }
+
+        Expr Visit(FunctionBody function)
+        {
+            // TODO: Return statement. And remember to return void if there is no return statement.
+            //       We may need to handle void type during assignment and assign null.
+
+            var parameters = function.Parameters.Select(s => Expr.Parameter(typeof(object)));
+            if (function.Varargs)
+                parameters = parameters.Add(Expr.Parameter(typeof(object[])));
+
+            var bodyExpr = Visit(function.Body);
+            var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
+
+            var constructor = typeof(LuaFunction)
+                .GetConstructor(new[] {typeof(Delegate), typeof(List<string>), typeof(bool)});
+
+            return Expr.New(
+                constructor,
+                new Expr[] {lambdaExpr, Expr.Constant(function.Parameters), Expr.Constant(function.Varargs)});
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
@@ -358,7 +379,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Function expression)
         {
-            throw new NotImplementedException();
+            return Visit(expression.Body);
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Nil expression)
