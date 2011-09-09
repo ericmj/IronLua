@@ -40,6 +40,7 @@ namespace IronLua.Compiler
 
         public ParamExpr AddLocal(string name)
         {
+            // We have this behavior so that ex. "local x, x = 1, 2" works
             ParamExpr param;
             if (!variables.TryGetValue(name, out param))
                 variables.Add(name, param = Expr.Variable(typeof(object)));
