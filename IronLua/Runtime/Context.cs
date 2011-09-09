@@ -25,13 +25,15 @@ namespace IronLua.Runtime
 
             SetupLibraries();
 
+            var functionMetatable = new LuaTable();
             Metatables =
                 new Dictionary<Type, LuaTable>
                     {
                         {typeof(bool), new LuaTable()},
                         {typeof(double), new LuaTable()},
                         {typeof(string), new LuaTable()},
-                        {typeof(Delegate), new LuaTable()}
+                        {typeof(Delegate), functionMetatable},
+                        {typeof(LuaFunction), functionMetatable}
                     };
         }
 

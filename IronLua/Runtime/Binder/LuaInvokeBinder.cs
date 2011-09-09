@@ -43,6 +43,8 @@ namespace IronLua.Runtime.Binder
         IEnumerable<Expr> OverloadArgs(DynamicMetaObject target, DynamicMetaObject[] args)
         {
             // TODO: Make sure that all args are evaluated, even if args.Length > maxArgs
+            //       check this for LuaFunction also
+            // TODO: Smart casting of arguments to match parameter type, do value coercion, cast to object if needed etc.
             var function = (Delegate)target.Value;
             var parameters = function.Method.GetParameters();
             var minArgs = parameters.Count(arg => !arg.IsOptional);

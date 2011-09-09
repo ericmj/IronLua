@@ -10,13 +10,13 @@ using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime
 {
-    class LuaFunction : IDynamicMetaObjectProvider
+    public class LuaFunction : IDynamicMetaObjectProvider
     {
         Delegate function;
-        string[] parameters;
+        List<string> parameters;
         bool hasVarargs;
 
-        public LuaFunction(Delegate function, string[] parameters, bool hasVarargs)
+        public LuaFunction(Delegate function, List<string> parameters, bool hasVarargs)
         {
             this.function = function;
             this.parameters = parameters;
@@ -58,7 +58,7 @@ namespace IronLua.Runtime
 
             IEnumerable<Expr> OverloadArgs(LuaFunction function, DynamicMetaObject[] args)
             {
-                var numParams = function.parameters.Length;
+                var numParams = function.parameters.Count;
                 return args
                     .Select(arg => (Expr)Expr.Convert(arg.Expression, typeof(object)))
                     .Resize(numParams, Expr.Constant(null));
