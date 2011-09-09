@@ -102,7 +102,7 @@ namespace IronLua.Compiler.Parser
         {
             var variables = new List<Variable> {oldVariable ?? Variable()};
 
-            while (lexer.Current.Symbol == Symbol.Comma)
+            while (lexer.TryConsume(Symbol.Comma))
                 variables.Add(Variable());
 
             return variables;
@@ -518,7 +518,7 @@ namespace IronLua.Compiler.Parser
             if (variable == null)
                 throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
-            var variables = lexer.TryConsume(Symbol.Comma) ? VariableList(variable) : new List<Variable> {variable};
+            var variables = lexer.Current.Symbol == Symbol.Comma ? VariableList(variable) : new List<Variable> {variable};
             lexer.Expect(Symbol.Equal);
             var expressions = ExpressionList();
 
