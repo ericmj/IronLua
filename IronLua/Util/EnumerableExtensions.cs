@@ -14,14 +14,6 @@ namespace IronLua.Util
             yield return item;
         }
 
-        public static IEnumerable<T> Add<T>(this IEnumerable<T> collection, params T[] items)
-        {
-            foreach (var element in collection)
-                yield return element;
-            foreach (var item in items)
-                yield return item;
-        }
-
         public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, T item)
         {
             int i = 0;
