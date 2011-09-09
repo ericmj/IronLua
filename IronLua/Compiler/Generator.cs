@@ -81,14 +81,11 @@ namespace IronLua.Compiler
 
         Expr Visit(FunctionBody function)
         {
-            // TODO: Return statement. And remember to return void if there is no return statement.
-            //       We may need to handle void type during assignment and assign null.
-
             var parentScope = scope;
             scope = Scope.CreateFunctionChild(scope);
             var returnLabel = scope.AddReturnLabel();
 
-            var parameters = function.Parameters.Select(scope.AddLocal);
+            var parameters = function.Parameters.Select(scope.AddLocal).ToList();
             if (function.Varargs)
                 parameters.Add(scope.AddLocal(Constant.VARARGS));
 
@@ -109,10 +106,11 @@ namespace IronLua.Compiler
             var variables = statement.Variables.Select(v => v.Visit(this)).ToList();
 
             // Try to wrap all values except the last with varargs select
-            var values = new List<Expr>(statement.Values.Count);
-            for (int i = 0; i < statement.Values.Count - 1; i++)
-                values.Add(TryWrapWithVarargsSelect(statement.Values[i]));
-            values.Add(statement.Values.Last().Visit(this));
+            var values = statement.Values
+                .Take(statement.Values.Count - 1)
+                .Select(TryWrapWithVarargsSelect)
+                .Add(statement.Values.Last().Visit(this))
+                .ToList();
 
             if (statement.Values.Last().IsVarargsOrFuncCall())
                 return VarargsExpandAssignment(variables, values);
@@ -259,10 +257,11 @@ namespace IronLua.Compiler
             var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
 
             // Try to wrap all values except the last with varargs select
-            var values = new List<Expr>(statement.Values.Count);
-            for (int i = 0; i < values.Count - 1; i++)
-                values.Add(TryWrapWithVarargsSelect(statement.Values[i]));
-            values.Add(statement.Values.Last().Visit(this));
+            var values = statement.Values
+                .Take(statement.Values.Count - 1)
+                .Select(TryWrapWithVarargsSelect)
+                .Add(statement.Values.Last().Visit(this))
+                .ToList();
 
             if (statement.Values.Last().IsVarargsOrFuncCall())
                 return VarargsExpandAssignment(locals, values);
@@ -284,7 +283,7 @@ namespace IronLua.Compiler
 
         Expr TryWrapWithVarargsSelect(Expression expr)
         {
-            // If expr is a varargs or function call expression we need return the first element in
+            // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
             if (!expr.IsVarargsOrFuncCall())
                 return expr.Visit(this);
@@ -439,7 +438,10 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)
         {
-            throw new NotImplementedException();
+            ParamExpr param;
+            if (scope.TryFindIdentifier(Constant.VARARGS, out param))
+                return param;
+            return Expr.Constant(null);
         }
 
         VariableVisit IVariableVisitor<VariableVisit>.Visit(Variable.Identifier variable)
