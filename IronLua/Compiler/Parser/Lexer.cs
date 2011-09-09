@@ -40,7 +40,7 @@ namespace IronLua.Compiler.Parser
                     {"*",   Symbol.Star},
                     {"/",   Symbol.Slash},
                     {"%",   Symbol.Percent},
-                    {"^",   Symbol.Carrot},
+                    {"^",   Symbol.Caret},
                     {"#",   Symbol.Hash},
                     {"==",  Symbol.EqualEqual},
                     {"~=",  Symbol.TildeEqual},

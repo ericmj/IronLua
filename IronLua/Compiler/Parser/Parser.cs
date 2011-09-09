@@ -35,7 +35,7 @@ namespace IronLua.Compiler.Parser
                     {Symbol.Star,         BinaryOp.Multiply},
                     {Symbol.Slash,        BinaryOp.Divide},
                     {Symbol.Percent,      BinaryOp.Mod},
-                    {Symbol.Carrot,       BinaryOp.Power}
+                    {Symbol.Caret,       BinaryOp.Power}
                 };
 
         static readonly Dictionary<BinaryOp, Tuple<int, int>> binaryOpPriorities =

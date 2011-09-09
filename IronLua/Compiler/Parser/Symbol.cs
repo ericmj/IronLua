@@ -31,7 +31,7 @@ namespace IronLua.Compiler.Parser
         Star,
         Slash,
         Percent,
-        Carrot,
+        Caret,
         Hash,
         EqualEqual,
         TildeEqual,
