@@ -48,19 +48,27 @@ namespace IronLua.Runtime
                 Varargs varargs;
 
                 if ((varargs = value as Varargs) != null)
-                {
-                    for (int varargsCount = 0;
-                         varargsCount < varargs.Count && varCount < variables.Length;
-                         varargsCount++, varCount++)
-                        variables[varCount] = varargs[varargsCount];
-                }
+                    AssignVarargsToVariables(variables, varargs, ref varCount);
                 else
-                {
                     variables[varCount++] = value;
-                }
             }
 
             return variables;
+        }
+
+        static void AssignVarargsToVariables(object[] variables, Varargs varargs, ref int varCount)
+        {
+            for (int varargsCount = 0;
+                 varargsCount < varargs.Count && varCount < variables.Length;
+                 varargsCount++, varCount++)
+            {
+                Varargs varargs2;
+
+                if (varargsCount + 1 == varargs.Count && (varargs2 = varargs[varargsCount] as Varargs) != null)
+                    AssignVarargsToVariables(variables, varargs2, ref varCount);
+                else
+                    variables[varCount] = varargs[varargsCount];
+            }
         }
     }
 }
