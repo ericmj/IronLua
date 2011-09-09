@@ -11,6 +11,9 @@ namespace IronLua.Compiler
         Scope parent;
         Dictionary<string, ParamExpr> variables;
         LabelTarget breakLabel;
+        LabelTarget returnLabel;
+
+        public const string VARARGS = "$VARARGS$";
 
         public bool IsRoot { get { return parent == null; } }
 
@@ -68,6 +71,20 @@ namespace IronLua.Compiler
         public static Scope CreateFunctionChild(Scope parent)
         {
             return new Scope {parent = parent};
+        }
+
+        public LabelTarget AddReturnLabel()
+        {
+            return returnLabel = Expr.Label(typeof(object));
+        }
+
+        public LabelTarget GetReturnLabel()
+        {
+            if (returnLabel != null)
+                return returnLabel;
+            if (parent == null)
+                return null;
+            return parent.GetReturnLabel();
         }
     }
 }

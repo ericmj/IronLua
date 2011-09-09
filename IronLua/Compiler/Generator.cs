@@ -84,16 +84,21 @@ namespace IronLua.Compiler
             // TODO: Return statement. And remember to return void if there is no return statement.
             //       We may need to handle void type during assignment and assign null.
 
-            var parameters = function.Parameters.Select(s => Expr.Parameter(typeof(object)));
-            if (function.Varargs)
-                parameters = parameters.Add(Expr.Parameter(typeof(object[])));
+            var parentScope = scope;
+            scope = Scope.CreateFunctionChild(scope);
+            var returnLabel = scope.AddReturnLabel();
 
-            var bodyExpr = Visit(function.Body);
+            var parameters = function.Parameters.Select(scope.AddLocal);
+            if (function.Varargs)
+                parameters = parameters.Add(scope.AddLocal(Scope.VARARGS));
+
+            var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(returnLabel, Expr.Constant(null)));
             var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
 
             var constructor = typeof(LuaFunction)
                 .GetConstructor(new[] {typeof(Delegate), typeof(List<string>), typeof(bool)});
 
+            scope = parentScope;
             return Expr.New(
                 constructor,
                 new Expr[] {lambdaExpr, Expr.Constant(function.Parameters), Expr.Constant(function.Varargs)});
@@ -105,7 +110,7 @@ namespace IronLua.Compiler
 
             // Try to wrap all values except the last with varargs select
             var values = new List<Expr>(statement.Values.Count);
-            for (int i = 0; i < values.Count - 1; i++)
+            for (int i = 0; i < statement.Values.Count - 1; i++)
                 values.Add(TryWrapWithVarargsSelect(statement.Values[i]));
             values.Add(statement.Values.Last().Visit(this));
 
@@ -345,12 +350,22 @@ namespace IronLua.Compiler
 
         Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Break lastStatement)
         {
-            throw new NotImplementedException();
+            return Expr.Break(scope.BreakLabel());
         }
 
         Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Return lastStatement)
         {
-            throw new NotImplementedException();
+            var returnLabel = scope.GetReturnLabel(); // TODO: Check for null
+            var returnValues = lastStatement.Values
+                .Select(expr => Expr.Convert(expr.Visit(this), typeof(object))).ToArray();
+
+            if (returnValues.Length == 0)
+                return Expr.Return(returnLabel);
+            if (returnValues.Length == 1)
+                return Expr.Return(returnLabel, returnValues[0]);
+
+            var constructor = typeof(Varargs).GetConstructor(new[] {typeof(object[])});
+            return Expr.Return(returnLabel, Expr.New(constructor, Expr.NewArrayInit(typeof(object), returnValues)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.BinaryOp expression)
