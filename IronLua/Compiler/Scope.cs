@@ -13,8 +13,6 @@ namespace IronLua.Compiler
         LabelTarget breakLabel;
         LabelTarget returnLabel;
 
-        public const string VARARGS = "$VARARGS$";
-
         public bool IsRoot { get { return parent == null; } }
 
         private Scope()

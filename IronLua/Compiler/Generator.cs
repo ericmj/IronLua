@@ -90,7 +90,7 @@ namespace IronLua.Compiler
 
             var parameters = function.Parameters.Select(scope.AddLocal);
             if (function.Varargs)
-                parameters = parameters.Add(scope.AddLocal(Scope.VARARGS));
+                parameters.Add(scope.AddLocal(Constant.VARARGS));
 
             var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(returnLabel, Expr.Constant(null)));
             var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
