@@ -32,37 +32,6 @@ namespace IronLua.Compiler.Parser
                     {"while", Symbol.While}
                 };
 
-        static readonly Dictionary<string, Symbol> punctuations =
-            new Dictionary<string,Symbol>
-                {
-                    {"+",   Symbol.Plus},
-                    {"-",   Symbol.Minus},
-                    {"*",   Symbol.Star},
-                    {"/",   Symbol.Slash},
-                    {"%",   Symbol.Percent},
-                    {"^",   Symbol.Caret},
-                    {"#",   Symbol.Hash},
-                    {"==",  Symbol.EqualEqual},
-                    {"~=",  Symbol.TildeEqual},
-                    {"<=",  Symbol.LessEqual},
-                    {">=",  Symbol.GreaterEqual},
-                    {"<",   Symbol.Less},
-                    {">",   Symbol.Greater},
-                    {"=",   Symbol.Equal},
-                    {"(",   Symbol.LeftParen},
-                    {")",   Symbol.RightParen},
-                    {"{",   Symbol.LeftBrace},
-                    {"}",   Symbol.RightBrace},
-                    {"[",   Symbol.LeftBrack},
-                    {"]",   Symbol.RightBrack},
-                    {";",   Symbol.SemiColon},
-                    {":",   Symbol.Colon},
-                    {",",   Symbol.Comma},
-                    {".",   Symbol.Dot},
-                    {"..",  Symbol.DotDot},
-                    {"...", Symbol.DotDotDot},
-                };
-
         Input input;
 
         public Token Last { get; private set; }
