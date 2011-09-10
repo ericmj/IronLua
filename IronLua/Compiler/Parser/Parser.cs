@@ -47,6 +47,8 @@ namespace IronLua.Compiler.Parser
                     {BinaryOp.Greater,      new Tuple<int, int>(3, 3)},
                     {BinaryOp.LessEqual,    new Tuple<int, int>(3, 3)},
                     {BinaryOp.GreaterEqual, new Tuple<int, int>(3, 3)},
+                    {BinaryOp.NotEqual,     new Tuple<int, int>(3, 3)},
+                    {BinaryOp.Equal,        new Tuple<int, int>(3, 3)},
                     {BinaryOp.Concat,       new Tuple<int, int>(5, 4)}, // Left associative
                     {BinaryOp.Add,          new Tuple<int, int>(6, 6)},
                     {BinaryOp.Subtract,     new Tuple<int, int>(6, 6)},
