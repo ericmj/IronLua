@@ -221,11 +221,13 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Function statement)
         {
-            // NOTE: We modifiy the AST here. Should we really do that?
+            // Rewrite AST to its desugared state
+            // function a:b (params) body end -> function a.b (self, params) body end
             if (statement.Name.Table != null)
             {
                 statement.Body.Parameters.Insert(0, "self");
                 statement.Name.Identifiers.Add(statement.Name.Table);
+                statement.Name.Table = null;
             }
 
             var bodyExpr = Visit(statement.Body);
@@ -275,12 +277,12 @@ namespace IronLua.Compiler
         {
             var testExpr = statement.Test.Visit(this);
             var bodyExpr = Visit(statement.Body);
-            var elseExpr = statement.ElseBody != null ? Visit(statement.ElseBody) : null;
+            var elseExpr = statement.ElseBody != null ? Visit(statement.ElseBody) : Expr.Default(typeof(void));
             var elseifExprs = statement.Elseifs.Aggregate(elseExpr, ElseifCombiner);
 
             return
                 Expr.IfThenElse(
-                    testExpr,
+                    Expr.Convert(testExpr, typeof(bool)),
                     bodyExpr,
                     elseifExprs);
         }
@@ -388,7 +390,21 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Repeat statement)
         {
-            throw new NotImplementedException();
+            // Temporarily rewrite the AST so that the test expression can be evaulated in the same scope as the body
+            statement.Body.Statements.Add(
+                new Statement.If(
+                    statement.Test,
+                    new Block(new List<Statement>(), new LastStatement.Break()),
+                    new List<Elseif>(),
+                    null));
+
+            var breakLabel = scope.BreakLabel();
+            var expr = Expr.Loop(
+                Visit(statement.Body),
+                breakLabel);
+
+            statement.Body.Statements.RemoveAt(statement.Body.Statements.Count - 2);
+            return expr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.While statement)
