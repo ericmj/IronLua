@@ -135,9 +135,9 @@ namespace IronLua.Compiler
             switch (variable.Type)
             {
                 case VariableType.Identifier:
-                    ParamExpr param;
-                    if (scope.TryFindIdentifier(variable.Identifier, out param))
-                        return Expr.Assign(param, value);
+                    ParamExpr local;
+                    if (scope.TryGetLocal(variable.Identifier, out local))
+                        return Expr.Assign(local, value);
 
                     return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
                                         typeof(object), Expr.Constant(context.Globals), value);
@@ -237,21 +237,21 @@ namespace IronLua.Compiler
             Expr expr;
             var firstId = identifiers.First();
 
-            ParamExpr param;
-            bool isLocal = scope.TryFindIdentifier(firstId, out param);
+            ParamExpr local;
+            bool isLocal = scope.TryGetLocal(firstId, out local);
 
             // If there is just a single identifier return the assignment to it
             if (identifiers.Count == 1)
             {
                 if (isLocal)
-                    return Expr.Assign(param, value);
+                    return Expr.Assign(local, value);
                 return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(firstId),
                                     typeof(object), Expr.Constant(context.Globals), value);
             }
             
             // First element can be either a local or global variable
             if (isLocal)
-                expr = param;
+                expr = local;
             else
                 expr = Expr.Dynamic(context.BinderCache.GetGetMemberBinder(firstId),
                                     typeof(object), Expr.Constant(context.Globals));
@@ -488,7 +488,7 @@ namespace IronLua.Compiler
         Expr IExpressionVisitor<Expr>.Visit(Expression.Varargs expression)
         {
             ParamExpr param;
-            if (scope.TryFindIdentifier(Constant.VARARGS, out param))
+            if (scope.TryGetLocal(Constant.VARARGS, out param))
                 return param;
             return Expr.Constant(null);
         }
@@ -528,9 +528,9 @@ namespace IronLua.Compiler
             switch (variable.Type)
             {
                 case VariableType.Identifier:
-                    ParamExpr param;
-                    if (scope.TryFindIdentifier(variable.Identifier, out param))
-                        return param;
+                    ParamExpr local;
+                    if (scope.TryGetLocal(variable.Identifier, out local))
+                        return local;
 
                     return Expr.Dynamic(context.BinderCache.GetGetMemberBinder(variable.Identifier),
                                         typeof(object), Expr.Constant(context.Globals));
