@@ -383,7 +383,7 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
         {
-            throw new NotImplementedException();
+            return Expr.Assign(scope.AddLocal(statement.Identifier), Visit(statement.Body));
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Repeat statement)
