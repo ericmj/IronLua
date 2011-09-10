@@ -105,7 +105,7 @@ namespace IronLua.Compiler.Parser
             if (Current.Symbol == symbol)
                 Consume();
             else
-                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, Current.Symbol);
+                throw new CompileException(input, ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
         }
 
         public string ExpectLexeme(Symbol symbol)
