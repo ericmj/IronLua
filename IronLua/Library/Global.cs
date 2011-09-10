@@ -14,9 +14,13 @@ namespace IronLua.Library
         {
         }
 
-        public object ToNumber(string str, double @base = 10.0)
+        public object ToNumber(object str, double @base = 10.0)
         {
-            double value = InternalToNumber(str, @base);
+            string stringStr;
+            if ((stringStr = str as string) == null)
+                return null;
+
+            double value = InternalToNumber(stringStr, @base);
             return value == double.NaN ? null : (object)value;
         }
 
