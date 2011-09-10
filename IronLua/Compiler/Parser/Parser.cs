@@ -242,7 +242,6 @@ namespace IronLua.Compiler.Parser
          * '(' [identifierList [',' '...'] | '...'] ')' block 'end' */
         FunctionBody FunctionBody()
         {
-            lexer.Expect(Symbol.Function);
             lexer.Expect(Symbol.LeftParen);
 
             var parameters = new List<string>();

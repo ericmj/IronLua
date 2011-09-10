@@ -221,7 +221,49 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Function statement)
         {
-            throw new NotImplementedException();
+            // NOTE: We modifiy the AST here. Should we really do that?
+            if (statement.Name.Table != null)
+            {
+                statement.Body.Parameters.Insert(0, "self");
+                statement.Name.Identifiers.Add(statement.Name.Table);
+            }
+
+            var bodyExpr = Visit(statement.Body);
+            return AssignToIdentifierList(statement.Name.Identifiers, bodyExpr);
+        }
+
+        Expr AssignToIdentifierList(List<string> identifiers, Expr value)
+        {
+            Expr expr;
+            var firstId = identifiers.First();
+
+            ParamExpr param;
+            bool isLocal = scope.TryFindIdentifier(firstId, out param);
+
+            // If there is just a single identifier return the assignment to it
+            if (identifiers.Count == 1)
+            {
+                if (isLocal)
+                    return Expr.Assign(param, value);
+                return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(firstId),
+                                    typeof(object), Expr.Constant(context.Globals), value);
+            }
+            
+            // First element can be either a local or global variable
+            if (isLocal)
+                expr = param;
+            else
+                expr = Expr.Dynamic(context.BinderCache.GetGetMemberBinder(firstId),
+                                    typeof(object), Expr.Constant(context.Globals));
+
+            // Loop over all elements except the first and the last and perform get member on them
+            expr = identifiers
+                .Skip(1).Take(identifiers.Count - 2)
+                .Aggregate(expr, (e, id) => Expr.Dynamic(context.BinderCache.GetGetMemberBinder(id), typeof(object), e));
+
+            // Do the assignment on the last identifier
+            return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(identifiers.Last()),
+                                        typeof(object), expr, value);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.FunctionCall statement)
@@ -556,6 +598,7 @@ namespace IronLua.Compiler
 
         Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.Table arguments)
         {
+            // TODO: Named arguments. Not like this
             return new[] {arguments.Value.Visit(this)};
         }
     }
