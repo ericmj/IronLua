@@ -282,7 +282,10 @@ namespace IronLua.Compiler
 
             return
                 Expr.IfThenElse(
-                    Expr.Convert(testExpr, typeof(bool)),
+                    Expr.Dynamic(
+                        context.BinderCache.GetConvertBinder(typeof(bool)),
+                        typeof(bool),
+                        testExpr),
                     bodyExpr,
                     elseifExprs);
         }
@@ -290,8 +293,10 @@ namespace IronLua.Compiler
         Expr ElseifCombiner(Expr expr, Elseif elseif)
         {
             return
-                Expr.IfThenElse(
-                    elseif.Test.Visit(this),
+                Expr.IfThenElse(Expr.Dynamic(
+                        context.BinderCache.GetConvertBinder(typeof(bool)),
+                        typeof(bool),
+                        elseif.Test.Visit(this)),
                     Visit(elseif.Body),
                     expr);
         }

@@ -19,6 +19,8 @@ namespace IronLua.Runtime.Binder
             Expr expression;
             if (Type == typeof(double))
                 expression = ToNumber(target);
+            else if (Type == typeof(bool))
+                expression = ToBool(target);
             else
                 throw new Exception(); // TODO: Use errorSuggestion
 
@@ -28,15 +30,22 @@ namespace IronLua.Runtime.Binder
             return new DynamicMetaObject(expression, target.MergeTypeRestrictions());
         }
 
-        public static Expression ToNumber(DynamicMetaObject metaObject)
+        static Expression ToBool(DynamicMetaObject target)
         {
-            if (metaObject.LimitType == typeof(double))
-                return Expr.Convert(metaObject.Expression, typeof(double));
-            if (metaObject.LimitType == typeof(string))
+            if (target.LimitType == typeof(bool))
+                return Expr.Convert(target.Expression, typeof(bool));
+            return Expr.NotEqual(target.Expression, Expr.Constant(null));
+        }
+
+        public static Expression ToNumber(DynamicMetaObject target)
+        {
+            if (target.LimitType == typeof(double))
+                return Expr.Convert(target.Expression, typeof(double));
+            if (target.LimitType == typeof(string))
                 return
                     Expression.Invoke(
                         Expression.Constant((Func<string, double, double>) Global.InternalToNumber),
-                        metaObject.Expression, Expression.Constant(10.0, typeof(double?)));
+                        target.Expression, Expression.Constant(10.0, typeof(double?)));
 
             return null;
         }

@@ -118,14 +118,14 @@ namespace IronLua.Runtime.Binder
             {
                 case ExprType.AndAlso:
                     if (left.LimitType != typeof(bool))
-                        compareExpr = Expr.MakeBinary(ExprType.Equal, tempLeft, Expr.Constant(null));
+                        compareExpr = Expr.Equal(tempLeft, Expr.Constant(null));
 
                     ifExpr = Expr.IfThenElse(compareExpr, right.Expression, tempLeft);
                     break;
 
                 case ExprType.OrElse:
                     if (left.LimitType != typeof(bool))
-                        compareExpr = Expr.MakeBinary(ExprType.NotEqual, tempLeft, Expr.Constant(null));
+                        compareExpr = Expr.NotEqual(tempLeft, Expr.Constant(null));
 
                     ifExpr = Expr.IfThenElse(compareExpr, tempLeft, right.Expression);
                     break;
