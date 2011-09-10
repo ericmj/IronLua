@@ -66,7 +66,6 @@ namespace IronLua.Compiler
 
         Expr Visit(Block block)
         {
-            // TODO: Locals assignment shouldn't work in root scope.
             var parentScope = scope;
             scope = scope == null ? Scope.CreateRoot() : Scope.CreateChild(parentScope);
 
@@ -414,7 +413,15 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.While statement)
         {
-            throw new NotImplementedException();
+            return Expr.Loop(
+                Expr.IfThenElse(
+                    Expr.Dynamic(
+                        context.BinderCache.GetConvertBinder(typeof(bool)),
+                        typeof(bool),
+                        statement.Test.Visit(this)),
+                    Visit(statement.Body),
+                    Expr.Break(scope.BreakLabel())),
+                scope.BreakLabel());
         }
 
         Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Break lastStatement)
