@@ -28,13 +28,18 @@
             return identifierVariable != null ? identifierVariable.Value : null;
         }
 
-        public static bool IsVarargsOrFuncCall(this Expression expression)
+        public static bool IsVarargs(this Expression expression)
+        {
+            if (expression is Expression.Varargs)
+                return true;
+
+            return false;
+        }
+
+        public static bool IsFunctionCall(this Expression expression)
         {
             Expression.Prefix exprPrefix;
             PrefixExpression.Expression prefixExpr;
-
-            if (expression is Expression.Varargs)
-                return true;
 
             if ((exprPrefix = expression as Expression.Prefix) == null)
                 return false;
@@ -43,7 +48,7 @@
 
             if ((prefixExpr = exprPrefix.Expression as PrefixExpression.Expression) == null)
                 return false;
-            return IsVarargsOrFuncCall(prefixExpr.Expr);
+            return IsFunctionCall(prefixExpr.Expr);
         }
     }
 }

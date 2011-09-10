@@ -26,10 +26,6 @@ namespace IronLua.Runtime
             return context.LengthMetamethod(obj);
         }
 
-        // TODO: Test this
-        // NOTE: Assignment to IRuntimeVariables prolly doesn't work. So we can generalize this for global assignments
-        //       too. Allocate a object[] in Generator assign to the array here and then assign from the array to
-        //       the parameters in generator.
         public static void VarargsAssign(IRuntimeVariables variables, object[] values)
         {
             var variablesArray = VarargsAssign(variables.Count, values);
@@ -47,6 +43,7 @@ namespace IronLua.Runtime
                 var value = values[valueCount];
                 Varargs varargs;
 
+                // TODO: Fix! Should only expand last varargs, other varargs should only call .First()
                 if ((varargs = value as Varargs) != null)
                     AssignVarargsToVariables(variables, varargs, ref varCount);
                 else

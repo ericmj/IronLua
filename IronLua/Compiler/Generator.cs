@@ -112,7 +112,7 @@ namespace IronLua.Compiler
                 .Add(statement.Values.Last().Visit(this))
                 .ToList();
 
-            if (statement.Values.Last().IsVarargsOrFuncCall())
+            if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
                 return VarargsExpandAssignment(variables, values);
 
             // Assign values to temporaries
@@ -263,7 +263,7 @@ namespace IronLua.Compiler
                 .Add(statement.Values.Last().Visit(this))
                 .ToList();
 
-            if (statement.Values.Last().IsVarargsOrFuncCall())
+            if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
                 return VarargsExpandAssignment(locals, values);
 
             // Assign values to temporaries
@@ -281,23 +281,30 @@ namespace IronLua.Compiler
             return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
-        Expr TryWrapWithVarargsSelect(Expression expr)
+        Expr TryWrapWithVarargsSelect(Expression expression)
         {
             // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
-            if (!expr.IsVarargsOrFuncCall())
-                return expr.Visit(this);
+            var valueExpr = expression.Visit(this);
 
-            var variable = Expr.Variable(typeof(object));
+            if (expression.IsVarargs())
+                return Expr.Call(valueExpr, typeof(Varargs).GetMethod("First"));
 
-            return
-                Expr.Block(
-                    new[] {variable},
-                    Expr.Assign(variable, expr.Visit(this)),
-                    Expr.IfThenElse(
-                        Expr.TypeIs(variable, typeof(Varargs)),
-                        Expr.Call(variable, typeof(Varargs).GetMethod("First")),
-                        variable));
+            if (expression.IsFunctionCall())
+            {
+                var variable = Expr.Variable(typeof(object));
+
+                return
+                    Expr.Block(
+                        new[] {variable},
+                        Expr.Assign(variable, valueExpr),
+                        Expr.IfThenElse(
+                            Expr.TypeIs(variable, typeof(Varargs)),
+                            Expr.Call(variable, typeof(Varargs).GetMethod("First")),
+                            variable));
+            }
+
+            return valueExpr;
         }
 
         Expr VarargsExpandAssignment(List<ParamExpr> locals, List<Expr> values)
