@@ -63,6 +63,7 @@ namespace IronLua.Runtime.Binder
                 .Skip(argExprs.Count)
                 .Select(param => Expr.Constant(param.DefaultValue));
 
+            // TODO: Check that the types of final args matches the target argument types
             return argExprs.Resize(maxArgs, defaultValues);
         }
 

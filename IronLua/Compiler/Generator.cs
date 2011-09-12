@@ -91,13 +91,8 @@ namespace IronLua.Compiler
             var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(returnLabel, Expr.Constant(null)));
             var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
 
-            var constructor = typeof(LuaFunction)
-                .GetConstructor(new[] {typeof(Delegate), typeof(List<string>), typeof(bool)});
-
             scope = parentScope;
-            return Expr.New(
-                constructor,
-                new Expr[] {lambdaExpr, Expr.Constant(function.Parameters), Expr.Constant(function.Varargs)});
+            return lambdaExpr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
