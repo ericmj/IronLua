@@ -122,12 +122,12 @@ namespace IronLua.Compiler.Parser
                     default:
                         // Long string
                         if (input.Current == '[' && input.CanPeek &&
-                           (input.Current == '[' || input.Current == '='))
+                           (input.Peek == '[' || input.Peek == '='))
                             return LongStringLiteral();
 
                         // Hex numeric
                         if (input.Current == '0' && input.CanPeek &&
-                           (input.Current == 'X' || input.Current == 'x'))
+                           (input.Peek == 'X' || input.Peek == 'x'))
                             return NumericHexLiteral();
 
                         // Numeric
