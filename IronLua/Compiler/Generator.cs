@@ -22,7 +22,7 @@ namespace IronLua.Compiler
 {
     class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>,
                       IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>,
-                      IArgumentsVisitor<Expr[]>
+                      IArgumentsVisitor<Expr[]>, IFieldVisitor<FieldVisit>
     {
         static Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
@@ -490,7 +490,40 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Table expression)
         {
-            throw new NotImplementedException();
+            var newTableExpr = Expr.New(typeof(LuaTable).GetConstructor(new Type[0]));
+            var tableVar = Expr.Variable(typeof(LuaTable));
+            var tableAssign = Expr.Assign(tableVar, newTableExpr);
+
+            int intIndex = 1;
+            var fieldInitsExprs = expression.Fields
+                .Select(f => TableSetValue(tableVar, f.Visit(this), ref intIndex))
+                .ToArray();
+
+            var exprs = new Expr[fieldInitsExprs.Length + 2];
+            exprs[0] = tableAssign;
+            exprs[exprs.Length - 1] = tableVar;
+            Array.Copy(fieldInitsExprs, 0, exprs, 1, fieldInitsExprs.Length);
+
+            return Expr.Block(new [] {tableVar}, exprs);
+        }
+
+        Expr TableSetValue(Expr table, FieldVisit field, ref int intIndex)
+        {
+            var setValue = typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            switch (field.Type)
+            {
+                case FieldVisitType.Implicit:
+                    return Expr.Call(table, setValue,
+                                     Expr.Constant(intIndex++, typeof(object)),
+                                     Expr.Convert(field.Value, typeof(object)));
+                case FieldVisitType.Explicit:
+                    return Expr.Call(table, setValue,
+                                     Expr.Convert(field.Member, typeof(object)),
+                                     Expr.Convert(field.Value, typeof(object)));
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.UnaryOp expression)
@@ -621,8 +654,22 @@ namespace IronLua.Compiler
 
         Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.Table arguments)
         {
-            // TODO: Named arguments. Not like this
             return new[] {arguments.Value.Visit(this)};
+        }
+
+        FieldVisit IFieldVisitor<FieldVisit>.Visit(Field.MemberExpr field)
+        {
+            return FieldVisit.CreateExplicit(field.Member.Visit(this), field.Value.Visit(this));
+        }
+
+        FieldVisit IFieldVisitor<FieldVisit>.Visit(Field.MemberId field)
+        {
+            return FieldVisit.CreateExplicit(Expr.Constant(field.Member), field.Value.Visit(this));
+        }
+
+        FieldVisit IFieldVisitor<FieldVisit>.Visit(Field.Normal field)
+        {
+            return FieldVisit.CreateImplicit(field.Value.Visit(this));
         }
     }
 }

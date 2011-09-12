@@ -64,6 +64,7 @@
     <Compile Include="Compiler\Ast\Statement.cs" />
     <Compile Include="Compiler\Ast\UnaryOp.cs" />
     <Compile Include="Compiler\Ast\Variable.cs" />
+    <Compile Include="Compiler\FieldVisit.cs" />
     <Compile Include="Compiler\Generator.cs" />
     <Compile Include="Compiler\Parser\Input.cs" />
     <Compile Include="Compiler\Parser\Lexer.cs" />
