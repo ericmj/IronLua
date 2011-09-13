@@ -210,7 +210,36 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.ForIn statement)
         {
-            throw new NotImplementedException();
+            var iterFuncVar = Expr.Variable(typeof(object));
+            var iterStateVar = Expr.Variable(typeof(object));
+            var iterableVar = Expr.Variable(typeof(object));
+            var iterVars = new[] {iterFuncVar, iterStateVar, iterableVar};
+
+            var valueExprs = statement.Values.Select(v => Expr.Convert(v.Visit(this), typeof(object)));
+            var assignIterVars = VarargsExpandAssignment(iterVars, valueExprs);
+
+            var parentScope = scope;
+            scope = Scope.CreateChild(scope);
+            var locals = statement.Identifiers.Select(scope.AddLocal).ToList();
+
+            var invokeIterFunc = Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(2)),
+                                              typeof(object), iterFuncVar, iterStateVar, iterableVar);
+            var loop =
+                Expr.Loop(
+                    Expr.Block(
+                        locals,
+                        Expr.Call(typeof(Console).GetMethod("WriteLine", new [] {typeof(string)}), Expr.Constant("loop")), // !
+                        VarargsExpandAssignment(
+                            locals,
+                            new[] {invokeIterFunc}),
+                        Expr.IfThen(Expr.Equal(locals[0], Expr.Constant(null)), Expr.Break(scope.BreakLabel())),
+                        Visit(statement.Body)),
+                    scope.BreakLabel());
+
+            var expr = Expr.Block(iterVars, assignIterVars, loop);
+
+            scope = parentScope;
+            return expr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Function statement)
@@ -350,7 +379,7 @@ namespace IronLua.Compiler
             return valueExpr;
         }
 
-        Expr VarargsExpandAssignment(List<ParamExpr> locals, List<Expr> values)
+        Expr VarargsExpandAssignment(IEnumerable<ParameterExpression> locals, IEnumerable<Expr> values)
         {
             return Expr.Invoke(
                 Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
@@ -358,7 +387,7 @@ namespace IronLua.Compiler
                 Expr.NewArrayInit(typeof(object), values));
         }
 
-        Expr VarargsExpandAssignment(List<VariableVisit> variables, List<Expr> values)
+        Expr VarargsExpandAssignment(List<VariableVisit> variables, IEnumerable<Expr> values)
         {
             var valuesVar = Expr.Variable(typeof(object[]));
             var invokeExpr =
