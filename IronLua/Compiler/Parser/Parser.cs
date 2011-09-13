@@ -426,8 +426,10 @@ namespace IronLua.Compiler.Parser
         Block Block()
         {
             var statements = new List<Statement>();
+            LastStatement lastStatement = null;
+            bool continueBlock = true;
 
-            while (true)
+            while (continueBlock)
             {
                 switch (lexer.Current.Symbol)
                 {
@@ -457,15 +459,22 @@ namespace IronLua.Compiler.Parser
                         statements.Add(AssignOrFunctionCall());
                         break;
                     case Symbol.Return:
-                        return new Block(statements, Return());
+                        lastStatement = Return();
+                        continueBlock = false;
+                        break;
                     case Symbol.Break:
-                        return new Block(statements, new LastStatement.Break());
+                        lastStatement = new LastStatement.Break();
+                        continueBlock = false;
+                        break;
                     default:
-                        return new Block(statements, null);
+                        continueBlock = false;
+                        break;
                 }
 
                 lexer.TryConsume(Symbol.SemiColon);
             }
+
+            return new Block(statements, lastStatement);
         }
 
         /* Parses return
