@@ -22,8 +22,8 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue || args.Any(a => !a.HasValue))
                 return Defer(target, args);
 
-            var restrictions = target
-                .MergeTypeRestrictions(args)
+            var restrictions = RuntimeHelpers
+                .MergeTypeRestrictions(target, args)
                 .Merge(BindingRestrictions.GetInstanceRestriction(target.Expression, target.Value));
 
             var resizeArgs = OverloadArgs(target, args, restrictions);

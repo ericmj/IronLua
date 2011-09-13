@@ -1,3 +1,4 @@
+using System;
 using System.Dynamic;
 using System.Linq.Expressions;
 using Expr = System.Linq.Expressions.Expression;
@@ -33,9 +34,11 @@ namespace IronLua.Runtime.Binder
                     else
                         expression = Expr.MakeBinary(ExprType.Equal, target.Expression, Expr.Constant(null));
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), target.MergeTypeRestrictions());
+            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), RuntimeHelpers.MergeTypeRestrictions(target));
         }
     }
 }

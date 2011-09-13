@@ -61,7 +61,7 @@ namespace IronLua.Runtime.Binder
             if (expression == null)
                 expression = MetamethodFallback(target, arg);
 
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), target.MergeTypeRestrictions(arg));
+            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), RuntimeHelpers.MergeTypeRestrictions(target, arg));
         }
 
         Expr Relational(DynamicMetaObject left, DynamicMetaObject right)

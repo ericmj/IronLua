@@ -27,7 +27,7 @@ namespace IronLua.Runtime.Binder
             if (expression == null)
                 throw new Exception(); // TODO: Use errorSuggestion
 
-            return new DynamicMetaObject(expression, target.MergeTypeRestrictions());
+            return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
 
         static Expression ToBool(DynamicMetaObject target)

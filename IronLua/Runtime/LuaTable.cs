@@ -85,7 +85,7 @@ namespace IronLua.Runtime
                         indexes[0].Expression,
                         value.Expression);
 
-                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
+                return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
@@ -97,20 +97,18 @@ namespace IronLua.Runtime
                         Expr.Constant(binder.Name),
                         value.Expression);
 
-                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
+                return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
             {
-                var restrictions = this.MergeTypeRestrictions();
-
                 var expression =
                     Expr.Call(
                         Expression,
                         typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
                         Expr.Constant(binder.Name));
 
-                return new DynamicMetaObject(expression, restrictions);
+                return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
@@ -121,7 +119,7 @@ namespace IronLua.Runtime
                         typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
                         indexes[0].Expression);
 
-                return new DynamicMetaObject(expression, this.MergeTypeRestrictions());
+                return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
         }
     }
