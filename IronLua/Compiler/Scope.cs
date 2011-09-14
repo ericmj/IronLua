@@ -38,12 +38,12 @@ namespace IronLua.Compiler
             return false;
         }
 
-        public ParamExpr AddLocal(string name)
+        public ParamExpr AddLocal(string name, Type type = null)
         {
             // We have this behavior so that ex. "local x, x = 1, 2" works
             ParamExpr param;
             if (!variables.TryGetValue(name, out param))
-                variables.Add(name, param = Expr.Variable(typeof(object)));
+                variables.Add(name, param = Expr.Variable(type ?? typeof(object)));
 
             return param;
         }

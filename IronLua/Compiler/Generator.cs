@@ -84,9 +84,9 @@ namespace IronLua.Compiler
             scope = Scope.CreateFunctionChild(scope);
             var returnLabel = scope.AddReturnLabel();
 
-            var parameters = function.Parameters.Select(scope.AddLocal).ToList();
+            var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
             if (function.Varargs)
-                parameters.Add(scope.AddLocal(Constant.VARARGS));
+                parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
 
             var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(returnLabel, Expr.Constant(null)));
             var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
@@ -220,7 +220,7 @@ namespace IronLua.Compiler
 
             var parentScope = scope;
             scope = Scope.CreateChild(scope);
-            var locals = statement.Identifiers.Select(scope.AddLocal).ToList();
+            var locals = statement.Identifiers.Select(id => scope.AddLocal(id)).ToList();
 
             var invokeIterFunc = Expr.Dynamic(context.BinderCache.GetInvokeBinder(new CallInfo(2)),
                                               typeof(object), iterFuncVar, iterStateVar, iterableVar);
