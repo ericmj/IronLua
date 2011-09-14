@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace IronLua.Runtime
@@ -29,6 +30,20 @@ namespace IronLua.Runtime
             }
 
             return restrictions;
+        }
+
+        public static bool TryGetFirstVarargs(DynamicMetaObject target, out DynamicMetaObject first)
+        {
+            if (target.LimitType != typeof(Varargs))
+            {
+                first = target;
+                return false;
+            }
+
+            Expression expr = Expression.Call(Expression.Convert(target.Expression, typeof(Varargs)),
+                                              typeof(Varargs).GetMethod("First"));
+            first = new DynamicMetaObject(expr, MergeTypeRestrictions(target));
+            return true;
         }
     }
 }

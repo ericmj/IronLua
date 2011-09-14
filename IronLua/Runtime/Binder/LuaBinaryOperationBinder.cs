@@ -44,6 +44,10 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue || !arg.HasValue)
                 return Defer(target, arg);
 
+            DynamicMetaObject targetFirst, argFirst;
+            if (RuntimeHelpers.TryGetFirstVarargs(target, out targetFirst) | RuntimeHelpers.TryGetFirstVarargs(arg, out argFirst))
+                return FallbackBinaryOperation(targetFirst, argFirst, errorSuggestion);
+
             Expr expression = null;
             switch (binaryExprTypes[Operation])
             {

@@ -22,17 +22,24 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue)
                 return Defer(target);
 
-            Expr expression = null;
+            DynamicMetaObject firstVarargs;
+            if (RuntimeHelpers.TryGetFirstVarargs(target, out firstVarargs))
+                return FallbackUnaryOperation(firstVarargs, errorSuggestion);
+
+            Expr expression;
             switch (Operation)
             {
                 case ExprType.Negate:
-                    expression = Expr.MakeUnary(Operation, target.Expression, null);
+                    if (target.LimitType == typeof(double))
+                        expression = Expr.MakeUnary(Operation, Expr.Convert(target.Expression, typeof(double)), null);
+                    else
+                        throw new Exception(); // TODO: Use errorSuggestion
                     break;
                 case ExprType.Not:
                     if (target.LimitType == typeof(bool))
                         expression = Expr.MakeUnary(Operation, target.Expression, null);
                     else
-                        expression = Expr.MakeBinary(ExprType.Equal, target.Expression, Expr.Constant(null));
+                        expression = Expr.Equal(target.Expression, Expr.Constant(null));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

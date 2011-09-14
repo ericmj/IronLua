@@ -45,7 +45,7 @@ namespace IronLua.Runtime.Binder
                 return
                     Expression.Invoke(
                         Expression.Constant((Func<string, double, double>) Global.InternalToNumber),
-                        target.Expression, Expression.Constant(10.0, typeof(double?)));
+                        target.Expression, Expression.Constant(10.0));
 
             return null;
         }
