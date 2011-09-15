@@ -99,6 +99,8 @@
     <Compile Include="Runtime\Varargs.cs" />
     <Compile Include="Util\CharExtensions.cs" />
     <Compile Include="Util\EnumerableExtensions.cs" />
+    <Compile Include="Util\ParameterInfoExtensions.cs" />
+    <Compile Include="Util\TypeExtensions.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

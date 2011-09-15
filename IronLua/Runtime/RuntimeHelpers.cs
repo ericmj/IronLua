@@ -32,6 +32,14 @@ namespace IronLua.Runtime
             return restrictions;
         }
 
+        public static BindingRestrictions MergeInstanceRestrictions(params DynamicMetaObject[] dmos)
+        {
+            var restrictions = BindingRestrictions.Combine(dmos);
+            return dmos.Aggregate(
+                restrictions,
+                (current, dmo) => current.Merge(BindingRestrictions.GetInstanceRestriction(dmo.Expression, dmo.Value)));
+        }
+
         public static bool TryGetFirstVarargs(DynamicMetaObject target, out DynamicMetaObject first)
         {
             if (target.LimitType != typeof(Varargs))

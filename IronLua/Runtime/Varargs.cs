@@ -10,6 +10,10 @@ namespace IronLua.Runtime
     {
         readonly object[] data;
 
+        private Varargs()
+        {
+        }
+
         public Varargs(object[] data)
         {
             this.data = data;
