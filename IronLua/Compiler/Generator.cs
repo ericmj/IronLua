@@ -72,8 +72,13 @@ namespace IronLua.Compiler
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
             if (block.LastStatement != null)
                 statementExprs.Add(block.LastStatement.Visit(this));
+            var locals = scope.AllLocals();
 
-            var expr = Expr.Block(scope.AllLocals(), statementExprs);
+            // Don't output blocks if we don't declare any locals and it's a single statement
+            var expr = locals.Length == 0 && statementExprs.Count == 1
+                           ? statementExprs[0]
+                           : Expr.Block(locals, statementExprs);
+
             scope = parentScope;
             return expr;
         }
@@ -99,15 +104,22 @@ namespace IronLua.Compiler
         {
             var variables = statement.Variables.Select(v => v.Visit(this)).ToList();
 
+            // Execute overflowing values for side effects
+            var sideEffects = statement.Values
+                .Skip(variables.Count)
+                .Select(value => value.Visit(this))
+                .ToArray();
+
             // Try to wrap all values except the last with varargs select
-            var values = statement.Values
-                .Take(statement.Values.Count - 1)
+            var assignableValues = statement.Values.Take(variables.Count).ToList();
+            var values = assignableValues
+                .Take(assignableValues.Count - 1)
                 .Select(TryWrapWithVarargsSelect)
-                .Add(statement.Values.Last().Visit(this))
+                .Add(assignableValues.Last().Visit(this))
                 .ToList();
 
             if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
-                return VarargsExpandAssignment(variables, values);
+                return VarargsExpandAssignment(variables, values.Concat(sideEffects));
 
             // Assign values to temporaries
             var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
@@ -121,7 +133,7 @@ namespace IronLua.Compiler
 
             // Assign temporaries to globals
             var realAssigns = variables.Zip(tempVariablesResized, Assign);
-            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns).Concat(sideEffects));
         }
 
         Expr Assign(VariableVisit variable, Expr value)
@@ -228,7 +240,6 @@ namespace IronLua.Compiler
                 Expr.Loop(
                     Expr.Block(
                         locals,
-                        Expr.Call(typeof(Console).GetMethod("WriteLine", new [] {typeof(string)}), Expr.Constant("loop")), // !
                         VarargsExpandAssignment(
                             locals,
                             new[] {invokeIterFunc}),
@@ -328,29 +339,26 @@ namespace IronLua.Compiler
         {
             var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
 
+            // Execute overflowing values for side effects
+            var sideEffects = statement.Values
+                .Skip(locals.Count)
+                .Select(value => value.Visit(this))
+                .ToArray();
+
             // Try to wrap all values except the last with varargs select
-            var values = statement.Values
-                .Take(statement.Values.Count - 1)
+            var assignableValues = statement.Values.Take(locals.Count).ToList();
+            var values = assignableValues
+                .Take(assignableValues.Count - 1)
                 .Select(TryWrapWithVarargsSelect)
-                .Add(statement.Values.Last().Visit(this))
-                .ToList();
+                .Add(assignableValues.Last().Visit(this));
 
             if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
-                return VarargsExpandAssignment(locals, values);
+                return VarargsExpandAssignment(locals, values.Concat(sideEffects));
 
-            // Assign values to temporaries
-            var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
-            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
+            // Assign values to locals
+            var assignments = locals.Zip(values, Expr.Assign);
 
-            // Shrink or pad temporary's list with nil to match local's list length
-            // and cast temporaries to locals type
-            var tempVariablesResized = tempVariables
-                .Resize(statement.Identifiers.Count, new Expression.Nil().Visit(this))
-                .Zip(locals, (tempVar, local) => Expr.Convert(tempVar, local.Type));
-
-            // Assign temporaries to locals
-            var realAssigns = locals.Zip(tempVariablesResized, Expr.Assign);
-            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
+            return Expr.Block(assignments.Concat(sideEffects));
         }
 
         Expr TryWrapWithVarargsSelect(Expression expression)
@@ -384,7 +392,9 @@ namespace IronLua.Compiler
             return Expr.Invoke(
                 Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
                 Expr.RuntimeVariables(locals),
-                Expr.NewArrayInit(typeof(object), values));
+                Expr.NewArrayInit(
+                    typeof(object),
+                    values.Select(value => Expr.Convert(value, typeof(object)))));
         }
 
         Expr VarargsExpandAssignment(List<VariableVisit> variables, IEnumerable<Expr> values)
@@ -394,7 +404,9 @@ namespace IronLua.Compiler
                 Expr.Invoke(
                     Expr.Constant((Func<int, object[], object[]>)LuaOps.VarargsAssign),
                     Expr.Constant(variables.Count),
-                    Expr.NewArrayInit(typeof(object), values));
+                    Expr.NewArrayInit(
+                        typeof(object),
+                        values.Select(value => Expr.Convert(value, typeof(object)))));
             var valuesAssign = Expr.Assign(valuesVar, invokeExpr);
 
             var varAssigns = variables

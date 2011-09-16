@@ -25,26 +25,42 @@ namespace IronLua.Runtime.Binder
                 RuntimeHelpers.MergeTypeRestrictions(target, args).Merge(
                 RuntimeHelpers.MergeInstanceRestrictions(target));
 
+            List<Expr> sideEffects;
             var function = (Delegate)target.Value; // TODO: Check type cast
-            var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions);
+            var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions, out sideEffects);
 
-            var expression =
+            var invokeExpr =
                 Expr.Convert(
                     Expr.Invoke(
                         Expr.Convert(target.Expression, target.LimitType),
                         mappedArgs),
                     typeof(object));
 
-            return new DynamicMetaObject(expression, restrictions);
+            // Execute overflowing arguments for side effects
+            Expr expr;
+            if (sideEffects.Count == 0)
+            {
+                expr = invokeExpr;
+            }
+            else
+            {
+                var tempVar = Expr.Variable(typeof(object));
+                var assign = Expr.Assign(tempVar, invokeExpr);
+                sideEffects.Insert(0, assign);
+                sideEffects.Add(tempVar);
+                expr = Expr.Block(new[] {tempVar}, sideEffects);
+            }
+
+            return new DynamicMetaObject(expr, restrictions);
         }
 
-        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions)
+        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions, out List<Expr> sideEffects)
         {
             var arguments = args.Select(arg => new Argument(arg.Expression, arg.LimitType)).ToList();
 
             // Remove closure
             ParameterInfo[] parameters;
-            if (parameterInfos[0].ParameterType == typeof(Closure))
+            if (parameterInfos.Length > 0 && parameterInfos[0].ParameterType == typeof(Closure))
             {
                 parameters = new ParameterInfo[parameterInfos.Length - 1];
                 Array.Copy(parameterInfos, 1, parameters, 0, parameters.Length);
@@ -58,6 +74,7 @@ namespace IronLua.Runtime.Binder
             DefaultParamValues(arguments, parameters);
             DefaultTypeValues(arguments, parameters);
             OverflowIntoParams(arguments, parameters);
+            TrimArguments(arguments, parameters, out sideEffects);
             // TODO: Type coercion
             CastToParamType(arguments, parameters);
 
@@ -135,6 +152,15 @@ namespace IronLua.Runtime.Binder
 
             arguments.RemoveRange(arguments.Count - overflowingArgs.Count, overflowingArgs.Count);
             arguments.Add(new Argument(argExpr, lastParam.ParameterType));
+        }
+
+        void TrimArguments(List<Argument> arguments, ParameterInfo[] parameters, out List<Expr> sideEffects)
+        {
+            sideEffects = arguments
+                .Skip(parameters.Length)
+                .Select(arg => arg.Expression)
+                .ToList();
+            arguments.RemoveRange(parameters.Length, arguments.Count - parameters.Length);
         }
 
         void CastToParamType(List<Argument> arguments, ParameterInfo[] parameters)
