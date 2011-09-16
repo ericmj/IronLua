@@ -43,6 +43,14 @@ namespace IronLua.Runtime
             return metamethod(obj);
         }
 
+        public static object GetUnaryMinusMetamethod(Context context, object obj)
+        {
+            dynamic metamethod = context.GetMetamethod(Constant.UNARYMINUS_METAMETHOD, obj);
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            return metamethod(obj);
+        }
+
         public static object GetConcatMetamethod(Context context, object left, object right)
         {
             dynamic metamethod = context.GetMetamethod(Constant.CONCAT_METAMETHOD, left) ??

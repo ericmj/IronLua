@@ -33,19 +33,29 @@ namespace IronLua.Runtime.Binder
                     if (target.LimitType == typeof(double))
                         expression = Expr.MakeUnary(Operation, Expr.Convert(target.Expression, typeof(double)), null);
                     else
-                        throw new Exception(); // TODO: Use errorSuggestion
+                        expression = NegateMetamethodFallback(target);
                     break;
+
                 case ExprType.Not:
                     if (target.LimitType == typeof(bool))
                         expression = Expr.MakeUnary(Operation, target.Expression, null);
                     else
                         expression = Expr.Equal(target.Expression, Expr.Constant(null));
                     break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
             return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), RuntimeHelpers.MergeTypeRestrictions(target));
+        }
+
+        Expression NegateMetamethodFallback(DynamicMetaObject target)
+        {
+            return Expr.Invoke(
+                Expr.Constant((Func<Context, object, object>)LuaOps.GetUnaryMinusMetamethod),
+                Expr.Constant(context),
+                Expr.Convert(target.Expression, typeof(object)));
         }
     }
 }
