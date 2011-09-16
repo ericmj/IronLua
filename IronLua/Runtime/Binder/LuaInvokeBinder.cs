@@ -91,6 +91,7 @@ namespace IronLua.Runtime.Binder
             if (lastArg.LimitType != typeof(Varargs))
                 return;
 
+            // TODO: Only restrict on Varargs.Count and add arguments by indexing into Varargs value
             restrictions = restrictions.Merge(RuntimeHelpers.MergeInstanceRestrictions(lastArg));
 
             var varargs = (Varargs)lastArg.Value;

@@ -57,7 +57,7 @@ namespace IronLua.Library
             if ((left is string || left is double) && (right is double || right is string))
                 return String.Concat(left, right);
 
-            return Context.ConcatMetamethod(left, right);
+            return LuaOps.GetConcatMetamethod(Context, left, right);
         }
 
         public override void Setup(LuaTable table)
