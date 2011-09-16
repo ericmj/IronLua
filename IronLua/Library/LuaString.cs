@@ -52,14 +52,6 @@ namespace IronLua.Library
             return StringFormatter.Format(format, varargs);
         }
 
-        internal object Concat(object left, object right)
-        {
-            if ((left is string || left is double) && (right is double || right is string))
-                return String.Concat(left, right);
-
-            return LuaOps.GetConcatMetamethod(Context, left, right);
-        }
-
         public override void Setup(LuaTable table)
         {
             throw new NotImplementedException();

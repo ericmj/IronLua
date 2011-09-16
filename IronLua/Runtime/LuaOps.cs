@@ -27,6 +27,14 @@ namespace IronLua.Runtime
             return GetLengthMetamethod(context, obj);
         }
 
+        public static object Concat(Context context, object left, object right)
+        {
+            if ((left is string || left is double) && (right is double || right is string))
+                return String.Concat(left, right);
+
+            return GetConcatMetamethod(context, left, right);
+        }
+
         public static object GetLengthMetamethod(Context context, object obj)
         {
             dynamic metamethod = context.GetMetamethod(Constant.LENGTH_METAMETHOD, obj);

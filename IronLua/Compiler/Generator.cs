@@ -491,12 +491,11 @@ namespace IronLua.Compiler
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation in the DLR
             return
-                Expr.Call(
-                    Expr.Field(
-                        Expr.Constant(context),
-                        typeof(Context).GetField("StringLibrary", BindingFlags.NonPublic | BindingFlags.Instance)),
-                    typeof(LuaString).GetMethod("Concat", BindingFlags.NonPublic | BindingFlags.Instance),
-                    Expr.Convert(left, typeof(object)), Expr.Convert(right, typeof(object)));
+                Expr.Invoke(
+                    Expr.Constant((Func<Context, object, object, object>)LuaOps.Concat),
+                    Expr.Constant(context),
+                    Expr.Convert(left, typeof(object)),
+                    Expr.Convert(right, typeof(object)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Boolean expression)
