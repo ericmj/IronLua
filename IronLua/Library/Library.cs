@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using IronLua.Runtime;
+﻿using IronLua.Runtime;
 
 namespace IronLua.Library
 {

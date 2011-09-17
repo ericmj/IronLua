@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
-using System.Text;
 using IronLua.Library;
 using IronLua.Runtime.Binder;
 using Expr = System.Linq.Expressions.Expression;

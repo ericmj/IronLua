@@ -8,7 +8,7 @@ namespace IronLua.Library
 {
     static class StringFormatter
     {
-        static Dictionary<char, FormatSpecifier> formatSpecifiers =
+        static readonly  Dictionary<char, FormatSpecifier> formatSpecifiers =
             new Dictionary<char, FormatSpecifier>
                 {
                     {'c', FormatSpecifier.Character},
@@ -31,12 +31,12 @@ namespace IronLua.Library
         public static string Format(string format, object[] values)
         {
             var sb = new StringBuilder(format.Length);
-            int valueIndex = 0;
+            var valueIndex = 0;
 
-            for (int i=0; i<format.Length;)
+            for (var i=0; i<format.Length;)
             {
-                char current = format[i];
-                char next = i + 1 < format.Length ? format[i + 1] : '\0';
+                var current = format[i];
+                var next = i + 1 < format.Length ? format[i + 1] : '\0';
 
                 if (current == '%' && next == '%')
                 {
@@ -157,7 +157,7 @@ namespace IronLua.Library
             public int Width { get; set; }
             public int Precision { get; set; }
 
-            StringBuilder sb;
+            readonly StringBuilder sb;
 
             public FormatTag()
             {

@@ -39,9 +39,9 @@ namespace IronLua.Library
 
         public static object[] Find(string str, string pattern, int? init = 1, bool? plain = false)
         {
-            if (plain.HasValue && plain.Value == true && init.HasValue)
+            if (plain.HasValue && plain.Value && init.HasValue)
             {
-                int index = str.Substring(init.Value).IndexOf(pattern);
+                var index = str.Substring(init.Value).IndexOf(pattern);
                 return index != -1 ? new object[] {index, index+pattern.Length} : null;
             }
             throw new NotImplementedException();

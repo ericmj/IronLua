@@ -1,22 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using IronLua.Compiler;
 using IronLua.Compiler.Ast;
 using IronLua.Runtime;
-using IronLua.Runtime.Binder;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 using Expression = IronLua.Compiler.Ast.Expression;
-using IronLua.Library;
 
 namespace IronLua.Compiler
 {
@@ -24,7 +19,7 @@ namespace IronLua.Compiler
                       IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>,
                       IArgumentsVisitor<Expr[]>, IFieldVisitor<FieldVisit>
     {
-        static Dictionary<BinaryOp, ExprType> binaryExprTypes =
+        static readonly Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
                 {
                     {BinaryOp.Or,           ExprType.OrElse},
@@ -43,7 +38,7 @@ namespace IronLua.Compiler
                     {BinaryOp.Power,        ExprType.Power}
                 };
 
-        static Dictionary<UnaryOp, ExprType> unaryExprTypes =
+        static readonly Dictionary<UnaryOp, ExprType> unaryExprTypes =
             new Dictionary<UnaryOp, ExprType>
                 {
                     {UnaryOp.Negate, ExprType.Negate},
@@ -51,7 +46,7 @@ namespace IronLua.Compiler
                 };
 
         Scope scope;
-        Context context;
+        readonly Context context;
 
         public Generator(Context context)
         {
@@ -109,48 +104,6 @@ namespace IronLua.Compiler
                 return VarargsExpandAssignment(variables, values);
 
             return AssignWithTemporaries(variables, values, Assign);
-        }
-
-        Expr AssignWithTemporaries<T>(List<T> variables, List<Expr> values, Func<T, Expr, Expr> assigner)
-        {
-            // Assign values to temporaries
-            var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
-            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
-
-            // Shrink or pad temporary's list with nil to match variables's list length
-            // and cast temporaries to object type
-            var tempVariablesResized = tempVariables
-                .Resize(variables.Count, new Expression.Nil().Visit(this))
-                .Select(tempVar => Expr.Convert(tempVar, typeof(object)));
-
-            // Assign temporaries to globals
-            var realAssigns = variables.Zip(tempVariablesResized, assigner);
-            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
-        }
-
-        Expr Assign(VariableVisit variable, Expr value)
-        {
-            switch (variable.Type)
-            {
-                case VariableType.Identifier:
-                    ParamExpr local;
-                    if (scope.TryGetLocal(variable.Identifier, out local))
-                        return Expr.Assign(local, value);
-
-                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
-                                        typeof(object), Expr.Constant(context.Globals), value);
-
-                case VariableType.MemberId:
-                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
-                                        typeof(object), variable.Object, value);
-
-                case VariableType.MemberExpr:
-                    return Expr.Dynamic(context.BinderCache.GetSetIndexBinder(), typeof(object),
-                                        variable.Object, variable.Member, value);
-
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
@@ -260,40 +213,6 @@ namespace IronLua.Compiler
             return AssignToIdentifierList(statement.Name.Identifiers, bodyExpr);
         }
 
-        Expr AssignToIdentifierList(List<string> identifiers, Expr value)
-        {
-            Expr expr;
-            var firstId = identifiers.First();
-
-            ParamExpr local;
-            bool isLocal = scope.TryGetLocal(firstId, out local);
-
-            // If there is just a single identifier return the assignment to it
-            if (identifiers.Count == 1)
-            {
-                if (isLocal)
-                    return Expr.Assign(local, value);
-                return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(firstId),
-                                    typeof(object), Expr.Constant(context.Globals), value);
-            }
-            
-            // First element can be either a local or global variable
-            if (isLocal)
-                expr = local;
-            else
-                expr = Expr.Dynamic(context.BinderCache.GetGetMemberBinder(firstId),
-                                    typeof(object), Expr.Constant(context.Globals));
-
-            // Loop over all elements except the first and the last and perform get member on them
-            expr = identifiers
-                .Skip(1).Take(identifiers.Count - 2)
-                .Aggregate(expr, (e, id) => Expr.Dynamic(context.BinderCache.GetGetMemberBinder(id), typeof(object), e));
-
-            // Do the assignment on the last identifier
-            return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(identifiers.Last()),
-                                        typeof(object), expr, value);
-        }
-
         Expr IStatementVisitor<Expr>.Visit(Statement.FunctionCall statement)
         {
             return statement.Call.Visit(this);
@@ -336,78 +255,6 @@ namespace IronLua.Compiler
                 return VarargsExpandAssignment(locals, values);
 
             return AssignWithTemporaries(locals, values, Expr.Assign);
-        }
-
-        List<Expr> WrapWithVarargsFirst(List<Expression> values)
-        {
-            // Try to wrap all values except the last with varargs select
-            return values
-                .Take(values.Count - 1)
-                .Select(TryWrapWithVarargsFirst)
-                .Add(values.Last().Visit(this))
-                .ToList();
-        }
-
-        Expr TryWrapWithVarargsFirst(Expression value)
-        {
-            var valueExpr = Expr.Convert(value.Visit(this), typeof(object));
-
-            // If expr is a varargs or function call expression we need to return the first element in
-            // the Varargs list if the value is of type Varargs or do nothing
-            if (value.IsVarargs())
-                return Expr.Call(valueExpr, typeof(Varargs).GetMethod("First"));
-
-            if (value.IsFunctionCall())
-            {
-                var variable = Expr.Variable(typeof(object));
-
-                return
-                    Expr.Block(
-                        new[] {variable},
-                        Expr.Assign(variable, valueExpr),
-                        Expr.IfThenElse(
-                            Expr.TypeIs(variable, typeof(Varargs)),
-                            Expr.Call(variable, typeof(Varargs).GetMethod("First")),
-                            variable));
-            }
-
-            return valueExpr;
-        }
-
-        Expr VarargsExpandAssignment(IEnumerable<ParameterExpression> locals, IEnumerable<Expr> values)
-        {
-            return Expr.Invoke(
-                Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
-                Expr.RuntimeVariables(locals),
-                Expr.NewArrayInit(
-                    typeof(object),
-                    values.Select(value => Expr.Convert(value, typeof(object)))));
-        }
-
-        Expr VarargsExpandAssignment(List<VariableVisit> variables, IEnumerable<Expr> values)
-        {
-            var valuesVar = Expr.Variable(typeof(object[]));
-            var invokeExpr =
-                Expr.Invoke(
-                    Expr.Constant((Func<int, object[], object[]>)LuaOps.VarargsAssign),
-                    Expr.Constant(variables.Count),
-                    Expr.NewArrayInit(
-                        typeof(object),
-                        values.Select(value => Expr.Convert(value, typeof(object)))));
-            var valuesAssign = Expr.Assign(valuesVar, invokeExpr);
-
-            var varAssigns = variables
-                .Select((var, i) => Assign(var, Expr.ArrayIndex(valuesVar, Expr.Constant(i))))
-                .ToArray();
-
-            var exprs = new Expr[varAssigns.Length + 1];
-            exprs[0] = valuesAssign;
-            Array.Copy(varAssigns, 0, exprs, 1, varAssigns.Length);
-
-            return
-                Expr.Block(
-                    new[] {valuesVar},
-                    exprs);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
@@ -697,6 +544,153 @@ namespace IronLua.Compiler
         FieldVisit IFieldVisitor<FieldVisit>.Visit(Field.Normal field)
         {
             return FieldVisit.CreateImplicit(field.Value.Visit(this));
+        }
+
+        Expr AssignWithTemporaries<T>(List<T> variables, List<Expr> values, Func<T, Expr, Expr> assigner)
+        {
+            // Assign values to temporaries
+            var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
+            var tempAssigns = tempVariables.Zip(values, Expr.Assign);
+
+            // Shrink or pad temporary's list with nil to match variables's list length
+            // and cast temporaries to object type
+            var tempVariablesResized = tempVariables
+                .Resize(variables.Count, new Expression.Nil().Visit(this))
+                .Select(tempVar => Expr.Convert(tempVar, typeof(object)));
+
+            // Assign temporaries to globals
+            var realAssigns = variables.Zip(tempVariablesResized, assigner);
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
+        }
+
+        Expr Assign(VariableVisit variable, Expr value)
+        {
+            switch (variable.Type)
+            {
+                case VariableType.Identifier:
+                    ParamExpr local;
+                    if (scope.TryGetLocal(variable.Identifier, out local))
+                        return Expr.Assign(local, value);
+
+                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
+                                        typeof(object), Expr.Constant(context.Globals), value);
+
+                case VariableType.MemberId:
+                    return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(variable.Identifier),
+                                        typeof(object), variable.Object, value);
+
+                case VariableType.MemberExpr:
+                    return Expr.Dynamic(context.BinderCache.GetSetIndexBinder(), typeof(object),
+                                        variable.Object, variable.Member, value);
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        Expr AssignToIdentifierList(List<string> identifiers, Expr value)
+        {
+            Expr expr;
+            var firstId = identifiers.First();
+
+            ParamExpr local;
+            bool isLocal = scope.TryGetLocal(firstId, out local);
+
+            // If there is just a single identifier return the assignment to it
+            if (identifiers.Count == 1)
+            {
+                if (isLocal)
+                    return Expr.Assign(local, value);
+                return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(firstId),
+                                    typeof(object), Expr.Constant(context.Globals), value);
+            }
+
+            // First element can be either a local or global variable
+            if (isLocal)
+                expr = local;
+            else
+                expr = Expr.Dynamic(context.BinderCache.GetGetMemberBinder(firstId),
+                                    typeof(object), Expr.Constant(context.Globals));
+
+            // Loop over all elements except the first and the last and perform get member on them
+            expr = identifiers
+                .Skip(1).Take(identifiers.Count - 2)
+                .Aggregate(expr, (e, id) => Expr.Dynamic(context.BinderCache.GetGetMemberBinder(id), typeof(object), e));
+
+            // Do the assignment on the last identifier
+            return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(identifiers.Last()),
+                                        typeof(object), expr, value);
+        }
+        List<Expr> WrapWithVarargsFirst(List<Expression> values)
+        {
+            // Try to wrap all values except the last with varargs select
+            return values
+                .Take(values.Count - 1)
+                .Select(TryWrapWithVarargsFirst)
+                .Add(values.Last().Visit(this))
+                .ToList();
+        }
+
+        Expr TryWrapWithVarargsFirst(Expression value)
+        {
+            var valueExpr = Expr.Convert(value.Visit(this), typeof(object));
+
+            // If expr is a varargs or function call expression we need to return the first element in
+            // the Varargs list if the value is of type Varargs or do nothing
+            if (value.IsVarargs())
+                return Expr.Call(valueExpr, typeof(Varargs).GetMethod("First"));
+
+            if (value.IsFunctionCall())
+            {
+                var variable = Expr.Variable(typeof(object));
+
+                return
+                    Expr.Block(
+                        new[] { variable },
+                        Expr.Assign(variable, valueExpr),
+                        Expr.IfThenElse(
+                            Expr.TypeIs(variable, typeof(Varargs)),
+                            Expr.Call(variable, typeof(Varargs).GetMethod("First")),
+                            variable));
+            }
+
+            return valueExpr;
+        }
+
+        Expr VarargsExpandAssignment(IEnumerable<ParameterExpression> locals, IEnumerable<Expr> values)
+        {
+            return Expr.Invoke(
+                Expr.Constant((Action<IRuntimeVariables, object[]>)LuaOps.VarargsAssign),
+                Expr.RuntimeVariables(locals),
+                Expr.NewArrayInit(
+                    typeof(object),
+                    values.Select(value => Expr.Convert(value, typeof(object)))));
+        }
+
+        Expr VarargsExpandAssignment(List<VariableVisit> variables, IEnumerable<Expr> values)
+        {
+            var valuesVar = Expr.Variable(typeof(object[]));
+            var invokeExpr =
+                Expr.Invoke(
+                    Expr.Constant((Func<int, object[], object[]>)LuaOps.VarargsAssign),
+                    Expr.Constant(variables.Count),
+                    Expr.NewArrayInit(
+                        typeof(object),
+                        values.Select(value => Expr.Convert(value, typeof(object)))));
+            var valuesAssign = Expr.Assign(valuesVar, invokeExpr);
+
+            var varAssigns = variables
+                .Select((var, i) => Assign(var, Expr.ArrayIndex(valuesVar, Expr.Constant(i))))
+                .ToArray();
+
+            var exprs = new Expr[varAssigns.Length + 1];
+            exprs[0] = valuesAssign;
+            Array.Copy(varAssigns, 0, exprs, 1, varAssigns.Length);
+
+            return
+                Expr.Block(
+                    new[] { valuesVar },
+                    exprs);
         }
     }
 }

@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace IronLua
+﻿namespace IronLua
 {
-    static class ExceptionMessage
+    static internal class ExceptionMessage
     {
         public const string UNEXPECTED_EOF = "Unexpected end of file";
         public const string UNEXPECTED_EOS = "Unexpected end of string";

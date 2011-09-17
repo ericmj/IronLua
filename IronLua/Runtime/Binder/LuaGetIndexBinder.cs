@@ -6,7 +6,7 @@ namespace IronLua.Runtime.Binder
 {
     class LuaGetIndexBinder : GetIndexBinder
     {
-        Context context;
+        readonly Context context;
 
         public LuaGetIndexBinder(Context context)
             : base(new CallInfo(1))

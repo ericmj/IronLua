@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Globalization;
-using System.Reflection;
-using IronLua.Library;
-using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
@@ -12,7 +8,7 @@ namespace IronLua.Runtime.Binder
 {
     class LuaBinaryOperationBinder : BinaryOperationBinder
     {
-        static Dictionary<ExprType, BinaryOpType> binaryExprTypes =
+        static readonly Dictionary<ExprType, BinaryOpType> binaryExprTypes =
             new Dictionary<ExprType, BinaryOpType>
                 {
                     {ExprType.Equal,              BinaryOpType.Relational},
@@ -31,7 +27,7 @@ namespace IronLua.Runtime.Binder
                     {ExprType.Power,              BinaryOpType.Numeric}
                 };
 
-        Context context;
+        readonly Context context;
 
         public LuaBinaryOperationBinder(Context context, ExprType op)
             : base(op)

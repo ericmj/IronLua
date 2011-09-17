@@ -3,13 +3,12 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
-using IronLua.Util;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaUnaryOperationBinder : UnaryOperationBinder
     {
-        Context context;
+        readonly Context context;
 
         public LuaUnaryOperationBinder(Context context, ExprType operation)
             : base(operation)

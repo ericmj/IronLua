@@ -14,7 +14,7 @@ namespace IronLua.Compiler.Parser
 
         int storedLine;
         int storedColumn;
-        StringBuilder buffer;
+        readonly StringBuilder buffer;
 
         public Input(string source)
         {

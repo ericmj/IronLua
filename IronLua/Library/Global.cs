@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using IronLua.Runtime;
 
 namespace IronLua.Library
@@ -20,27 +16,26 @@ namespace IronLua.Library
             if ((stringStr = str as string) == null)
                 return null;
 
-            double value = InternalToNumber(stringStr, @base);
-            return value == double.NaN ? null : (object)value;
+            var value = InternalToNumber(stringStr, @base);
+            return double.IsNaN(value) ? null : (object)value;
         }
 
         internal static double InternalToNumber(string str, double @base)
         {
             double result = 0;
+            var intBase = (int)Math.Round(@base);
 
-            if (@base == 10.0)
+            if (intBase == 10)
             {
                 if (str.StartsWith("0x") || str.StartsWith("0X"))
                 {
                     if (NumberUtil.TryParseHexNumber(str.Substring(2), true, out result))
                         return result;
                 }
-                if (NumberUtil.TryParseDecimalNumber(str, out result))
-                    return result;
-                return double.NaN;
+                return NumberUtil.TryParseDecimalNumber(str, out result) ? result : double.NaN;
             }
 
-            if (@base == 16.0)
+            if (intBase == 16)
             {
                 if (str.StartsWith("0x") || str.StartsWith("0X"))
                 {
@@ -51,12 +46,12 @@ namespace IronLua.Library
             }
 
             var reversedStr = new String(str.Reverse().ToArray());
-            for (int i = 0; i < reversedStr.Length; i++ )
+            for (var i = 0; i < reversedStr.Length; i++ )
             {
-                int num = AlphaNumericToBase(reversedStr[i]);
-                if (num == -1 || num >= @base)
+                var num = AlphaNumericToBase(reversedStr[i]);
+                if (num == -1 || num >= intBase)
                     return double.NaN;
-                result += num * (@base * i + 1);
+                result += num * (intBase * i + 1);
             }
             return result;
         }

@@ -11,7 +11,7 @@ namespace IronLua.Runtime.Binder
 {
     class LuaInvokeBinder : InvokeBinder
     {
-        Context context;
+        readonly Context context;
 
         public LuaInvokeBinder(Context context, CallInfo callInfo)
             : base(callInfo)

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using IronLua.Compiler.Ast;
 using IronLua.Library;
 
@@ -58,8 +57,8 @@ namespace IronLua.Compiler.Parser
                     {BinaryOp.Power,        new Tuple<int, int>(9, 8)}  // Left associative
                 };
 
-        Input input;
-        Lexer lexer;
+        readonly Input input;
+        readonly Lexer lexer;
 
         public Parser(Input input)
         {

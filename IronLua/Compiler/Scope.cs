@@ -9,7 +9,7 @@ namespace IronLua.Compiler
     class Scope
     {
         Scope parent;
-        Dictionary<string, ParamExpr> variables;
+        readonly Dictionary<string, ParamExpr> variables;
         LabelTarget breakLabel;
         LabelTarget returnLabel;
 

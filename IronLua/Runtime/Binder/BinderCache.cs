@@ -1,24 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime.Binder
 {
     class BinderCache
     {
-        Context context;
-        Dictionary<ExprType, LuaBinaryOperationBinder> binaryOperationBinders;
-        Dictionary<ExprType, LuaUnaryOperationBinder> unaryOperationBinders;
-        Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
-        Dictionary<CallInfo, LuaInvokeBinder> invokeBinders;
-        Dictionary<Type, LuaConvertBinder> convertBinders;
-        Dictionary<string, LuaSetMemberBinder> setMemberBinders;
+        readonly Context context;
+        readonly Dictionary<ExprType, LuaBinaryOperationBinder> binaryOperationBinders;
+        readonly Dictionary<ExprType, LuaUnaryOperationBinder> unaryOperationBinders;
+        readonly Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
+        readonly Dictionary<CallInfo, LuaInvokeBinder> invokeBinders;
+        readonly Dictionary<Type, LuaConvertBinder> convertBinders;
+        readonly Dictionary<string, LuaSetMemberBinder> setMemberBinders;
+        readonly Dictionary<string, LuaGetMemberBinder> getMemberBinders;
         LuaSetIndexBinder setIndexBinder;
-        Dictionary<string, LuaGetMemberBinder> getMemberBinders;
         LuaGetIndexBinder getIndexBinder;
 
         public BinderCache(Context context)

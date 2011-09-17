@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using IronLua.Runtime.Binder;
 using Expr = System.Linq.Expressions.Expression;
-using System.Text;
-using IronLua.Util;
 
 namespace IronLua.Runtime
 {
     class LuaTable : IDynamicMetaObjectProvider
     {
-        Dictionary<object, object> values;
+        readonly Dictionary<object, object> values;
 
         public LuaTable()
         {

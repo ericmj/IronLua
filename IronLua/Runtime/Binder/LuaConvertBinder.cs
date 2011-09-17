@@ -3,7 +3,6 @@ using System.Dynamic;
 using System.Linq.Expressions;
 using IronLua.Library;
 using Expr = System.Linq.Expressions.Expression;
-using IronLua.Util;
 
 namespace IronLua.Runtime.Binder
 {

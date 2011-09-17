@@ -1,13 +1,13 @@
 ﻿namespace IronLua.Compiler.Ast
 {
-    interface IArgumentsVisitor<T>
+    interface IArgumentsVisitor<out T>
     {
         T Visit(Arguments.Normal arguments);
         T Visit(Arguments.String arguments);
         T Visit(Arguments.Table arguments);
     }
 
-    interface IExpressionVisitor<T>
+    interface IExpressionVisitor<out T>
     {
         T Visit(Expression.BinaryOp expression);
         T Visit(Expression.Boolean expression);
@@ -21,33 +21,33 @@
         T Visit(Expression.Varargs expression);
     }
 
-    interface IFieldVisitor<T>
+    interface IFieldVisitor<out T>
     {
         T Visit(Field.MemberExpr field);
         T Visit(Field.MemberId field);
         T Visit(Field.Normal field);
     }
 
-    interface IFunctionCallVisitor<T>
+    interface IFunctionCallVisitor<out T>
     {
         T Visit(FunctionCall.Normal functionCall);
         T Visit(FunctionCall.Table functionCall);
     }
 
-    interface ILastStatementVisitor<T>
+    interface ILastStatementVisitor<out T>
     {
         T Visit(LastStatement.Break lastStatement);
         T Visit(LastStatement.Return lastStatement);
     }
 
-    interface IPrefixExpressionVisitor<T>
+    interface IPrefixExpressionVisitor<out T>
     {
         T Visit(PrefixExpression.Expression prefixExpr);
         T Visit(PrefixExpression.FunctionCall prefixExpr);
         T Visit(PrefixExpression.Variable prefixExpr);
     }
 
-    interface IStatementVisitor<T>
+    interface IStatementVisitor<out T>
     {
         T Visit(Statement.Assign statement);
         T Visit(Statement.Do statement);
@@ -62,7 +62,7 @@
         T Visit(Statement.While statement);
     }
 
-    interface IVariableVisitor<T>
+    interface IVariableVisitor<out T>
     {
         T Visit(Variable.Identifier variable);
         T Visit(Variable.MemberExpr variable);

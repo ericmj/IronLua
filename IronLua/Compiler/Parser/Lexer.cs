@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using IronLua.Util;
 
 namespace IronLua.Compiler.Parser
@@ -32,7 +31,7 @@ namespace IronLua.Compiler.Parser
                     {"while", Symbol.While}
                 };
 
-        Input input;
+        readonly Input input;
 
         public Token Last { get; private set; }
         public Token Current { get; private set; }

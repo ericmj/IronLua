@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using System.Text;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaInvokeMemberBinder : InvokeMemberBinder
     {
-        Context context;
+        readonly Context context;
 
         public LuaInvokeMemberBinder(Context context, string name, CallInfo callInfo)
             : base(name, false, callInfo)
@@ -19,7 +17,7 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackInvokeMember(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         public override DynamicMetaObject FallbackInvoke(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)

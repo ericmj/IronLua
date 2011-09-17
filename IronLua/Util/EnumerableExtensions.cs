@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace IronLua.Util
 {
@@ -16,7 +14,7 @@ namespace IronLua.Util
 
         public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, T item)
         {
-            int i = 0;
+            var i = 0;
             foreach (var element in collection)
             {
                 if (i++ >= size)
@@ -30,7 +28,7 @@ namespace IronLua.Util
 
         public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, Func<T> initalizer)
         {
-            int i = 0;
+            var i = 0;
             foreach (var element in collection)
             {
                 if (i++ >= size)
@@ -44,7 +42,7 @@ namespace IronLua.Util
 
         public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, Func<int, T> initalizer)
         {
-            int i = 0;
+            var i = 0;
             foreach (var element in collection)
             {
                 if (i++ >= size)
@@ -58,7 +56,7 @@ namespace IronLua.Util
 
         public static IEnumerable<T> Resize<T>(this IEnumerable<T> collection, int size, IEnumerable<T> padder)
         {
-            int i = 0;
+            var i = 0;
             foreach (var element in collection)
             {
                 if (i++ >= size)

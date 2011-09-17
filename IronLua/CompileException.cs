@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 using IronLua.Compiler.Parser;
 
 namespace IronLua
 {
+    [Serializable]
     public class CompileException : IronLuaException
     {
         public string File { get; private set; }
