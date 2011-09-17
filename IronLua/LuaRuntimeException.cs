@@ -4,13 +4,14 @@ using System.Runtime.Serialization;
 namespace IronLua
 {
     [Serializable]
-    public class IronLuaException : Exception
+    public class LuaRuntimeException : LuaException
     {
-        public IronLuaException(string message = null, Exception inner = null) : base(message, inner)
+        public LuaRuntimeException(string message = null, Exception inner = null)
+            : base(message, inner)
         {
         }
-
-        protected IronLuaException(
+        
+        protected LuaRuntimeException(
             SerializationInfo info,
             StreamingContext context) : base(info, context)
         {

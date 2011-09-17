@@ -46,7 +46,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CompileException.cs" />
+    <Compile Include="LuaRuntimeException.cs" />
+    <Compile Include="LuaSyntaxException.cs" />
     <Compile Include="Compiler\Ast\AstExtensions.cs" />
     <Compile Include="Compiler\Ast\Arguments.cs" />
     <Compile Include="Compiler\Ast\BinaryOp.cs" />
@@ -75,7 +76,7 @@
     <Compile Include="Compiler\VariableVisit.cs" />
     <Compile Include="Constant.cs" />
     <Compile Include="ExceptionMessage.cs" />
-    <Compile Include="IronLuaException.cs" />
+    <Compile Include="LuaException.cs" />
     <Compile Include="Library\Global.cs" />
     <Compile Include="Library\Library.cs" />
     <Compile Include="Library\LuaString.cs" />

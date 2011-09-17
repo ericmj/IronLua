@@ -134,7 +134,7 @@ namespace IronLua.Compiler.Parser
                         loop = false;
                         break;
                     default:
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
                 }
             }
 
@@ -153,7 +153,7 @@ namespace IronLua.Compiler.Parser
 
             if (successful)
                 return result;
-            throw new CompileException(input, ExceptionMessage.MALFORMED_NUMBER, number);
+            throw new LuaSyntaxException(input, ExceptionMessage.MALFORMED_NUMBER, number);
         }
 
 
@@ -165,7 +165,7 @@ namespace IronLua.Compiler.Parser
         {
             var variable = PrefixExpression().LiftVariable();
             if (variable == null)
-                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             return variable;
         }
 
@@ -194,7 +194,7 @@ namespace IronLua.Compiler.Parser
                     var memberId = expression.LiftIdentifier();
                     if (memberId != null)
                         return new Field.MemberId(memberId, Expression());
-                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                    throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             }
         }
 
@@ -217,7 +217,7 @@ namespace IronLua.Compiler.Parser
             {
                 case Symbol.LeftParen:
                     if (lexer.Current.Line != lexer.Last.Line)
-                        throw new CompileException(input, ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
+                        throw new LuaSyntaxException(input, ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
                     lexer.Consume();
 
                     var arguments = new List<Expression>();
@@ -235,7 +235,7 @@ namespace IronLua.Compiler.Parser
                     return new Arguments.String(str);
 
                 default:
-                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                    throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             }
         }
 
@@ -305,7 +305,7 @@ namespace IronLua.Compiler.Parser
                     lexer.ExpectLexeme(Symbol.RightParen);
                     break;
                 default:
-                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                    throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             }
 
             while (true)
@@ -394,7 +394,7 @@ namespace IronLua.Compiler.Parser
                 default:
                     UnaryOp unaryOp;
                     if (!unaryOps.TryGetValue(lexer.Current.Symbol, out unaryOp))
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
                     lexer.Consume();
                     var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
@@ -503,7 +503,7 @@ namespace IronLua.Compiler.Parser
                 case Symbol.String:
                     return FunctionCall(prefixExpr);
                 default:
-                    throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                    throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
             }
         }
 
@@ -514,7 +514,7 @@ namespace IronLua.Compiler.Parser
         {
             var functionCall = prefixExpr.LiftFunctionCall();
             if (functionCall == null)
-                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
             return new Statement.FunctionCall(functionCall);
         }
@@ -525,7 +525,7 @@ namespace IronLua.Compiler.Parser
         {
             var variable = prefixExpr.LiftVariable();
             if (variable == null)
-                throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
 
             var variables = lexer.Current.Symbol == Symbol.Comma ? VariableList(variable) : new List<Variable> {variable};
             lexer.Expect(Symbol.Equal);
@@ -545,7 +545,7 @@ namespace IronLua.Compiler.Parser
             if (lexer.Current.Symbol == Symbol.Identifier)
                 return LocalAssign();
 
-            throw new CompileException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+            throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
         }
 
         /* Parses localAssign

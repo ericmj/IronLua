@@ -34,7 +34,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(this, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new LuaSyntaxException(this, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -49,7 +49,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new CompileException(this, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new LuaSyntaxException(this, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }

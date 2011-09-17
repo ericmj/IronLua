@@ -73,7 +73,7 @@ namespace IronLua.Compiler.Parser
             if (Current.Symbol == symbol)
                 Consume();
             else
-                throw new CompileException(input, ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
+                throw new LuaSyntaxException(input, ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
         }
 
         public string ExpectLexeme(Symbol symbol)
@@ -142,7 +142,7 @@ namespace IronLua.Compiler.Parser
                         if (input.Current.IsPunctuation())
                             return Punctuation();
 
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_CHAR, input.Current);
+                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_CHAR, input.Current);
 
                 }
             }
@@ -247,7 +247,7 @@ namespace IronLua.Compiler.Parser
 
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new CompileException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
 
             // Skip immediately following newline
             if (input.Current == '\r' || input.Current == '\n')
@@ -298,7 +298,7 @@ namespace IronLua.Compiler.Parser
             input.Advance();
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new CompileException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
 
             while (true)
             {
@@ -376,7 +376,7 @@ namespace IronLua.Compiler.Parser
                 case '.':
                     return input.Current == '.' ? LongPunctuation(c) : input.Output(Symbol.Dot);
                 default:
-                    throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, c);
+                    throw new LuaSyntaxException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, c);
             }
         }
 
@@ -412,7 +412,7 @@ namespace IronLua.Compiler.Parser
                     break;
             }
             
-            throw new CompileException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
+            throw new LuaSyntaxException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
         }
 
         /* String literal, such as "bla bla" */
@@ -455,7 +455,7 @@ namespace IronLua.Compiler.Parser
                         break;
 
                     case '\r': case '\n':
-                        throw new CompileException(input, ExceptionMessage.UNEXPECTED_EOS);
+                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_EOS);
 
                     default:
                         if (input.Current == end)
