@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using IronLua.Library;
@@ -18,6 +19,10 @@ namespace IronLua.Runtime
 
         internal Global GlobalLibrary;
         internal LuaString StringLibrary;
+
+        Func<object, object, object> getDynamicIndexCache;
+        Func<object, object, object, object> getDynamicNewIndexCache;
+        Func<Delegate, object, object, object> getDynamicCallCache;
 
         public Context()
         {
@@ -52,6 +57,51 @@ namespace IronLua.Runtime
                 throw new Exception(); // TODO
 
             return metatable.GetValue(methodName);
+        }
+
+        internal Func<object, object, object> GetDynamicIndex()
+        {
+            if (getDynamicIndexCache != null)
+                return getDynamicIndexCache;
+
+            var objVar = Expr.Parameter(typeof(object));
+            var keyVar = Expr.Parameter(typeof(object));
+            var expr = Expr.Lambda<Func<object, object, object>>(
+                Expr.Dynamic(BinderCache.GetGetIndexBinder(), typeof(object), objVar, keyVar),
+                objVar, keyVar);
+
+            return getDynamicIndexCache = expr.Compile();
+        }
+
+        internal Func<object, object, object, object> GetDynamicNewIndex()
+        {
+            if (getDynamicNewIndexCache != null)
+                return getDynamicNewIndexCache;
+
+            var objVar = Expr.Parameter(typeof(object));
+            var keyVar = Expr.Parameter(typeof(object));
+            var valueVar = Expr.Parameter(typeof(object));
+            var expr = Expr.Lambda<Func<object, object, object, object>>(
+                Expr.Dynamic(BinderCache.GetSetIndexBinder(), typeof(object), objVar, keyVar, valueVar),
+                objVar, keyVar, valueVar);
+
+            return getDynamicNewIndexCache = expr.Compile();
+        }
+
+        // NOTE: Only works for 2 arguments
+        internal Func<Delegate, object, object, object> GetDynamicCall2()
+        {
+            if (getDynamicCallCache != null)
+                return getDynamicCallCache;
+
+            var funcVar = Expr.Parameter(typeof(object));
+            var arg1Var = Expr.Parameter(typeof(object));
+            var arg2Var = Expr.Parameter(typeof(object));
+            var expr = Expr.Lambda<Func<object, object, object, object>>(
+                Expr.Dynamic(BinderCache.GetInvokeBinder(new CallInfo(2)), typeof(object), funcVar, arg1Var, arg2Var),
+                funcVar, arg1Var, arg2Var);
+
+            return getDynamicCallCache = expr.Compile();
         }
     }
 }

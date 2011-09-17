@@ -51,7 +51,7 @@ namespace IronLua.Runtime.Binder
 
         public InvokeBinder GetInvokeBinder(CallInfo callInfo)
         {
-            return GetCachedBinder(invokeBinders, callInfo, k => new LuaInvokeBinder(k));
+            return GetCachedBinder(invokeBinders, callInfo, k => new LuaInvokeBinder(context, k));
         }
 
         public ConvertBinder GetConvertBinder(Type type)
@@ -66,7 +66,7 @@ namespace IronLua.Runtime.Binder
 
         public SetIndexBinder GetSetIndexBinder()
         {
-            return setIndexBinder ?? (setIndexBinder = new LuaSetIndexBinder());
+            return setIndexBinder ?? (setIndexBinder = new LuaSetIndexBinder(context));
         }
 
         public GetMemberBinder GetGetMemberBinder(string name)
@@ -76,7 +76,7 @@ namespace IronLua.Runtime.Binder
 
         public GetIndexBinder GetGetIndexBinder()
         {
-            return getIndexBinder ?? (getIndexBinder = new LuaGetIndexBinder());
+            return getIndexBinder ?? (getIndexBinder = new LuaGetIndexBinder(context));
         }
 
         TValue GetCachedBinder<TKey, TValue>(Dictionary<TKey, TValue> cache, TKey key, Func<TKey, TValue> newer)

@@ -33,6 +33,9 @@ namespace IronLua
         public const string CONCAT_METAMETHOD = "__concat";
         public const string LENGTH_METAMETHOD = "__len";
         public const string UNARYMINUS_METAMETHOD = "__unm";
+        public const string INDEX_METAMETHOD = "__index";
+        public const string NEWINDEX_METAMETHOD = "__newindex";
+        public const string CALL_METAMETHOD = "__call";
 
         public const string VARARGS = "$VARARGS$";
     }

@@ -53,7 +53,7 @@ namespace IronLua.Runtime.Binder
         Expression NegateMetamethodFallback(DynamicMetaObject target)
         {
             return Expr.Invoke(
-                Expr.Constant((Func<Context, object, object>)LuaOps.GetUnaryMinusMetamethod),
+                Expr.Constant((Func<Context, object, object>)LuaOps.UnaryMinusMetamethod),
                 Expr.Constant(context),
                 Expr.Convert(target.Expression, typeof(object)));
         }

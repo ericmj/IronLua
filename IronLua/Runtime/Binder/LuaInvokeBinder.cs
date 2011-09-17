@@ -11,9 +11,12 @@ namespace IronLua.Runtime.Binder
 {
     class LuaInvokeBinder : InvokeBinder
     {
-        public LuaInvokeBinder(CallInfo callInfo)
+        Context context;
+
+        public LuaInvokeBinder(Context context, CallInfo callInfo)
             : base(callInfo)
         {
+            this.context = context;
         }
 
         public override DynamicMetaObject FallbackInvoke(DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
@@ -21,12 +24,15 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue || args.Any(a => !a.HasValue))
                 return Defer(target, args);
 
+            if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
+                return MetamethodFallback(target, args);
+
             var restrictions =
                 RuntimeHelpers.MergeTypeRestrictions(target, args).Merge(
                 RuntimeHelpers.MergeInstanceRestrictions(target));
 
             List<Expr> sideEffects;
-            var function = (Delegate)target.Value; // TODO: Check type cast
+            var function = (Delegate)target.Value;
             var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions, out sideEffects);
 
             var invokeExpr =
@@ -52,6 +58,19 @@ namespace IronLua.Runtime.Binder
             }
 
             return new DynamicMetaObject(expr, restrictions);
+        }
+
+        DynamicMetaObject MetamethodFallback(DynamicMetaObject target, DynamicMetaObject[] args)
+        {
+            var expression = Expr.Invoke(
+                Expr.Constant((Func<Context, object, object[], object>)LuaOps.CallMetamethod),
+                Expr.Constant(context),
+                Expr.Convert(target.Expression, typeof(object)),
+                Expr.NewArrayInit(
+                    typeof(object),
+                    args.Select(arg => Expr.Convert(arg.Expression, typeof(object)))));
+
+            return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
 
         IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions, out List<Expr> sideEffects)
@@ -81,6 +100,7 @@ namespace IronLua.Runtime.Binder
             return arguments.Select(arg => arg.Expression);
         }
 
+        // TODO: Add support for object[] as an alternative for Varargs?
         void ExpandLastArg(List<Argument> arguments, DynamicMetaObject[] args, ref BindingRestrictions restrictions)
         {
             if (args.Length == 0)
@@ -95,6 +115,7 @@ namespace IronLua.Runtime.Binder
             restrictions = restrictions.Merge(RuntimeHelpers.MergeInstanceRestrictions(lastArg));
 
             var varargs = (Varargs)lastArg.Value;
+            arguments.RemoveAt(arguments.Count - 1);
             arguments.AddRange(varargs.Select(value => new Argument(Expr.Constant(value), value.GetType())));
         }
 

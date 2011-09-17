@@ -1,18 +1,29 @@
+using System;
 using System.Dynamic;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaSetIndexBinder : SetIndexBinder
     {
-        public LuaSetIndexBinder() : base(new CallInfo(1))
+        Context context;
+
+        public LuaSetIndexBinder(Context context)
+            : base(new CallInfo(1))
         {
+            this.context = context;
         }
 
-        public override DynamicMetaObject FallbackSetIndex(
-            DynamicMetaObject target, DynamicMetaObject[] indexes,
-            DynamicMetaObject value, DynamicMetaObject errorSuggestion)
+        public override DynamicMetaObject FallbackSetIndex(DynamicMetaObject target, DynamicMetaObject[] indexes, DynamicMetaObject value, DynamicMetaObject errorSuggestion)
         {
-            throw new System.NotImplementedException();
+            var expression = Expr.Invoke(
+                Expr.Constant((Func<Context, object, object, object, object>)LuaOps.NewIndexMetamethod),
+                Expr.Constant(context),
+                Expr.Convert(target.Expression, typeof(object)),
+                Expr.Convert(indexes[0].Expression, typeof(object)),
+                Expr.Convert(value.Expression, typeof(object)));
+
+            return new DynamicMetaObject(expression, BindingRestrictions.Empty);
         }
     }
 }

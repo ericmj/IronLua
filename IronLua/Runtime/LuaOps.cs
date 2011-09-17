@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime
 {
@@ -24,7 +25,7 @@ namespace IronLua.Runtime
             if ((table = obj as LuaTable) != null)
                 return table.Length();
 
-            return GetLengthMetamethod(context, obj);
+            return LengthMetamethod(context, obj);
         }
 
         public static object Concat(Context context, object left, object right)
@@ -32,10 +33,10 @@ namespace IronLua.Runtime
             if ((left is string || left is double) && (right is double || right is string))
                 return String.Concat(left, right);
 
-            return GetConcatMetamethod(context, left, right);
+            return ConcatMetamethod(context, left, right);
         }
 
-        public static object GetLengthMetamethod(Context context, object obj)
+        public static object LengthMetamethod(Context context, object obj)
         {
             dynamic metamethod = context.GetMetamethod(Constant.LENGTH_METAMETHOD, obj);
             if (metamethod == null)
@@ -43,7 +44,7 @@ namespace IronLua.Runtime
             return metamethod(obj);
         }
 
-        public static object GetUnaryMinusMetamethod(Context context, object obj)
+        public static object UnaryMinusMetamethod(Context context, object obj)
         {
             dynamic metamethod = context.GetMetamethod(Constant.UNARYMINUS_METAMETHOD, obj);
             if (metamethod == null)
@@ -51,7 +52,39 @@ namespace IronLua.Runtime
             return metamethod(obj);
         }
 
-        public static object GetConcatMetamethod(Context context, object left, object right)
+        public static object IndexMetamethod(Context context, object obj, object key)
+        {
+            dynamic metamethod = context.GetMetamethod(Constant.INDEX_METAMETHOD, obj);
+
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            if (metamethod is Delegate)
+                return metamethod(obj, key);
+
+            return context.GetDynamicIndex()(obj, key);
+        }
+
+        public static object NewIndexMetamethod(Context context, object obj, object key, object value)
+        {
+            dynamic metamethod = context.GetMetamethod(Constant.NEWINDEX_METAMETHOD, obj);
+
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            if (metamethod is Delegate)
+                return metamethod(obj, key, value);
+
+            return context.GetDynamicNewIndex()(obj, key, value);
+        }
+
+        public static object CallMetamethod(Context context, object obj, object[] args)
+        {
+            dynamic metamethod = context.GetMetamethod(Constant.CALL_METAMETHOD, obj);
+            if (metamethod == null)
+                throw new Exception(); // TODO
+            return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
+        }
+
+        public static object ConcatMetamethod(Context context, object left, object right)
         {
             dynamic metamethod = context.GetMetamethod(Constant.CONCAT_METAMETHOD, left) ??
                                  context.GetMetamethod(Constant.CONCAT_METAMETHOD, right);
