@@ -9,7 +9,7 @@ namespace IronLua.Runtime
 {
     static class RuntimeHelpers
     {
-        public static BindingRestrictions MergeTypeRestrictions(DynamicMetaObject dmo1, params DynamicMetaObject[] dmos)
+        public static BindingRestrictions MergeTypeRestrictions(DynamicMetaObject dmo1, DynamicMetaObject[] dmos)
         {
             var newDmos = new DynamicMetaObject[dmos.Length + 1];
             newDmos[0] = dmo1;
