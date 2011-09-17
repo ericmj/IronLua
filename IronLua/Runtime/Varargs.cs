@@ -33,7 +33,7 @@ namespace IronLua.Runtime
 
         public IEnumerator<object> GetEnumerator()
         {
-            return (IEnumerator<object>)data.GetEnumerator();
+            return ((IEnumerable<object>)data).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
