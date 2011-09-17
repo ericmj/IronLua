@@ -301,7 +301,11 @@ namespace IronLua.Compiler
 
         Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Return lastStatement)
         {
-            var returnLabel = scope.GetReturnLabel(); // TODO: Check for null
+            var returnLabel = scope.GetReturnLabel();
+
+            if (returnLabel == null)
+                return Expr.Empty();
+
             var returnValues = lastStatement.Values
                 .Select(expr => Expr.Convert(expr.Visit(this), typeof(object))).ToArray();
 
