@@ -38,7 +38,7 @@ namespace IronLua.Runtime
 
         public static object LengthMetamethod(Context context, object obj)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.LENGTH_METAMETHOD, obj);
+            dynamic metamethod = context.GetMetamethod(obj, Constant.LENGTH_METAMETHOD);
             if (metamethod == null)
                 throw new Exception(); // TODO
             return metamethod(obj);
@@ -46,7 +46,7 @@ namespace IronLua.Runtime
 
         public static object UnaryMinusMetamethod(Context context, object obj)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.UNARYMINUS_METAMETHOD, obj);
+            dynamic metamethod = context.GetMetamethod(obj, Constant.UNARYMINUS_METAMETHOD);
             if (metamethod == null)
                 throw new Exception(); // TODO
             return metamethod(obj);
@@ -54,7 +54,7 @@ namespace IronLua.Runtime
 
         public static object IndexMetamethod(Context context, object obj, object key)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.INDEX_METAMETHOD, obj);
+            dynamic metamethod = context.GetMetamethod(obj, Constant.INDEX_METAMETHOD);
 
             if (metamethod == null)
                 throw new Exception(); // TODO
@@ -66,7 +66,7 @@ namespace IronLua.Runtime
 
         public static object NewIndexMetamethod(Context context, object obj, object key, object value)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.NEWINDEX_METAMETHOD, obj);
+            dynamic metamethod = context.GetMetamethod(obj, Constant.NEWINDEX_METAMETHOD);
 
             if (metamethod == null)
                 throw new Exception(); // TODO
@@ -78,7 +78,7 @@ namespace IronLua.Runtime
 
         public static object CallMetamethod(Context context, object obj, object[] args)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.CALL_METAMETHOD, obj);
+            dynamic metamethod = context.GetMetamethod(obj, Constant.CALL_METAMETHOD);
             if (metamethod == null)
                 throw new Exception(); // TODO
             return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
@@ -86,8 +86,8 @@ namespace IronLua.Runtime
 
         public static object ConcatMetamethod(Context context, object left, object right)
         {
-            dynamic metamethod = context.GetMetamethod(Constant.CONCAT_METAMETHOD, left) ??
-                                 context.GetMetamethod(Constant.CONCAT_METAMETHOD, right);
+            dynamic metamethod = context.GetMetamethod(left, Constant.CONCAT_METAMETHOD) ??
+                                 context.GetMetamethod(right, Constant.CONCAT_METAMETHOD);
             if (metamethod == null)
                 throw new Exception(); // TODO
             return metamethod(left, right);
@@ -120,7 +120,7 @@ namespace IronLua.Runtime
         {
             var methodName = GetMethodName(op);
 
-            dynamic metamethod = context.GetMetamethod( methodName, left) ?? context.GetMetamethod(methodName, right);
+            dynamic metamethod = context.GetMetamethod(left, methodName) ?? context.GetMetamethod(right, methodName);
             if (metamethod == null)
                 throw new Exception(); // TODO
             return metamethod(left, right);
@@ -156,8 +156,8 @@ namespace IronLua.Runtime
         static dynamic GetRelationalMetamethod(Context context, ExpressionType op, object left, object right)
         {
             var methodName = GetMethodName(op);
-            dynamic metamethodLeft = context.GetMetamethod(methodName, left);
-            dynamic metamethodRight = context.GetMetamethod(methodName, right);
+            dynamic metamethodLeft = context.GetMetamethod(left, methodName);
+            dynamic metamethodRight = context.GetMetamethod(right, methodName);
             return metamethodLeft != metamethodRight ? null : metamethodLeft;
         }
 

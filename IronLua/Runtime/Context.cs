@@ -50,13 +50,23 @@ namespace IronLua.Runtime
             //StringLibrary.Setup(StringGlobals);
         }
 
-        internal object GetMetamethod(string methodName, object obj)
+        internal LuaTable GetMetatable(object obj)
         {
-            LuaTable metatable;
-            if (!Metatables.TryGetValue(obj.GetType(), out metatable))
-                throw new Exception(); // TODO
+            LuaTable table;
 
-            return metatable.GetValue(methodName);
+            if ((table = obj as LuaTable) != null)
+                return table.Metatable;
+
+            if (Metatables.TryGetValue(obj.GetType(), out table))
+                return table;
+
+            throw new Exception(); // TODO
+        }
+
+        internal object GetMetamethod(object obj, string methodName)
+        {
+            var metatable = GetMetatable(obj);
+            return metatable == null ? null : metatable.GetValue(methodName);
         }
 
         internal Func<object, object, object> GetDynamicIndex()

@@ -15,12 +15,13 @@ namespace IronLua.Runtime
     class LuaTable : IDynamicMetaObjectProvider
     {
         Dictionary<object, object> values;
-        LuaTable metatable;
 
         public LuaTable()
         {
             values = new Dictionary<object, object>();
         }
+
+        public LuaTable Metatable { get; set; }
 
         public DynamicMetaObject GetMetaObject(Expression parameter)
         {
