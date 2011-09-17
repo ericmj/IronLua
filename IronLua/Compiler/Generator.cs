@@ -103,24 +103,16 @@ namespace IronLua.Compiler
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
         {
             var variables = statement.Variables.Select(v => v.Visit(this)).ToList();
-
-            // Execute overflowing values for side effects
-            var sideEffects = statement.Values
-                .Skip(variables.Count)
-                .Select(value => value.Visit(this))
-                .ToArray();
-
-            // Try to wrap all values except the last with varargs select
-            var assignableValues = statement.Values.Take(variables.Count).ToList();
-            var values = assignableValues
-                .Take(assignableValues.Count - 1)
-                .Select(TryWrapWithVarargsSelect)
-                .Add(assignableValues.Last().Visit(this))
-                .ToList();
+            var values = WrapWithVarargsFirst(statement.Values);
 
             if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
-                return VarargsExpandAssignment(variables, values.Concat(sideEffects));
+                return VarargsExpandAssignment(variables, values);
 
+            return AssignWithTemporaries(variables, values, Assign);
+        }
+
+        Expr AssignWithTemporaries<T>(List<T> variables, List<Expr> values, Func<T, Expr, Expr> assigner)
+        {
             // Assign values to temporaries
             var tempVariables = values.Select(expr => Expr.Variable(expr.Type)).ToList();
             var tempAssigns = tempVariables.Zip(values, Expr.Assign);
@@ -128,12 +120,12 @@ namespace IronLua.Compiler
             // Shrink or pad temporary's list with nil to match variables's list length
             // and cast temporaries to object type
             var tempVariablesResized = tempVariables
-                .Resize(statement.Variables.Count, new Expression.Nil().Visit(this))
+                .Resize(variables.Count, new Expression.Nil().Visit(this))
                 .Select(tempVar => Expr.Convert(tempVar, typeof(object)));
 
             // Assign temporaries to globals
-            var realAssigns = variables.Zip(tempVariablesResized, Assign);
-            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns).Concat(sideEffects));
+            var realAssigns = variables.Zip(tempVariablesResized, assigner);
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
         Expr Assign(VariableVisit variable, Expr value)
@@ -338,39 +330,34 @@ namespace IronLua.Compiler
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
             var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
-
-            // Execute overflowing values for side effects
-            var sideEffects = statement.Values
-                .Skip(locals.Count)
-                .Select(value => value.Visit(this))
-                .ToArray();
-
-            // Try to wrap all values except the last with varargs select
-            var assignableValues = statement.Values.Take(locals.Count).ToList();
-            var values = assignableValues
-                .Take(assignableValues.Count - 1)
-                .Select(TryWrapWithVarargsSelect)
-                .Add(assignableValues.Last().Visit(this));
+            var values = WrapWithVarargsFirst(statement.Values);
 
             if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
-                return VarargsExpandAssignment(locals, values.Concat(sideEffects));
+                return VarargsExpandAssignment(locals, values);
 
-            // Assign values to locals
-            var assignments = locals.Zip(values, Expr.Assign);
-
-            return Expr.Block(assignments.Concat(sideEffects));
+            return AssignWithTemporaries(locals, values, Expr.Assign);
         }
 
-        Expr TryWrapWithVarargsSelect(Expression expression)
+        List<Expr> WrapWithVarargsFirst(List<Expression> values)
         {
+            // Try to wrap all values except the last with varargs select
+            return values
+                .Take(values.Count - 1)
+                .Select(TryWrapWithVarargsFirst)
+                .Add(values.Last().Visit(this))
+                .ToList();
+        }
+
+        Expr TryWrapWithVarargsFirst(Expression value)
+        {
+            var valueExpr = Expr.Convert(value.Visit(this), typeof(object));
+
             // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
-            var valueExpr = expression.Visit(this);
-
-            if (expression.IsVarargs())
+            if (value.IsVarargs())
                 return Expr.Call(valueExpr, typeof(Varargs).GetMethod("First"));
 
-            if (expression.IsFunctionCall())
+            if (value.IsFunctionCall())
             {
                 var variable = Expr.Variable(typeof(object));
 
