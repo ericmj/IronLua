@@ -75,46 +75,29 @@ namespace IronLua.Runtime
             // NOTE: Do we need to merge/combine restrictions of indexes - check BindGetIndex(...) also
             public override DynamicMetaObject BindSetIndex(SetIndexBinder binder, DynamicMetaObject[] indexes, DynamicMetaObject value)
             {
-                var expression =
-                    Expr.Call(
-                        Expression,
-                        typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance),
-                        indexes[0].Expression,
-                        value.Expression);
+                var expression = Expr.Call(Expression, Methods.LuaTableSetValue, indexes[0].Expression, value.Expression);
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
             {
-                var expression =
-                    Expr.Call(
-                        Expression,
-                        typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance),
-                        Expr.Constant(binder.Name),
-                        value.Expression);
+                var expression = Expr.Call(Expression, Methods.LuaTableSetValue, Expr.Constant(binder.Name),
+                                           value.Expression);
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
             {
-                var expression =
-                    Expr.Call(
-                        Expression,
-                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
-                        Expr.Constant(binder.Name));
+                var expression = Expr.Call(Expression, Methods.LuaTableGetValue, Expr.Constant(binder.Name));
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
             {
-                var expression =
-                    Expr.Call(
-                        Expression,
-                        typeof(LuaTable).GetMethod("GetValue", BindingFlags.NonPublic | BindingFlags.Instance),
-                        indexes[0].Expression);
+                var expression = Expr.Call(Expression, Methods.LuaTableGetValue, indexes[0].Expression);
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }

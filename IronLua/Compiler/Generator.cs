@@ -310,8 +310,9 @@ namespace IronLua.Compiler
             if (returnValues.Length == 1)
                 return Expr.Return(returnLabel, returnValues[0]);
 
-            var constructor = typeof(Varargs).GetConstructor(new[] {typeof(object[])});
-            return Expr.Return(returnLabel, Expr.New(constructor, Expr.NewArrayInit(typeof(object), returnValues)));
+            return Expr.Return(
+                returnLabel,
+                Expr.New(Methods.NewVarargs, Expr.NewArrayInit(typeof(object), returnValues)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.BinaryOp expression)
@@ -364,7 +365,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Table expression)
         {
-            var newTableExpr = Expr.New(typeof(LuaTable).GetConstructor(new Type[0]));
+            var newTableExpr = Expr.New(Methods.NewLuaTable);
             var tableVar = Expr.Variable(typeof(LuaTable));
             var tableAssign = Expr.Assign(tableVar, newTableExpr);
 
@@ -383,16 +384,14 @@ namespace IronLua.Compiler
 
         Expr TableSetValue(Expr table, FieldVisit field, ref int intIndex)
         {
-            var setValue = typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance);
-
             switch (field.Type)
             {
                 case FieldVisitType.Implicit:
-                    return Expr.Call(table, setValue,
+                    return Expr.Call(table, Methods.LuaTableSetValue,
                                      Expr.Constant(intIndex++, typeof(object)),
                                      Expr.Convert(field.Value, typeof(object)));
                 case FieldVisitType.Explicit:
-                    return Expr.Call(table, setValue,
+                    return Expr.Call(table, Methods.LuaTableSetValue,
                                      Expr.Convert(field.Member, typeof(object)),
                                      Expr.Convert(field.Value, typeof(object)));
                 default:
@@ -638,7 +637,7 @@ namespace IronLua.Compiler
             // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
             if (value.IsVarargs())
-                return Expr.Call(valueExpr, typeof(Varargs).GetMethod("First"));
+                return Expr.Call(valueExpr, Methods.VarargsFirst);
 
             if (value.IsFunctionCall())
             {
@@ -650,7 +649,7 @@ namespace IronLua.Compiler
                         Expr.Assign(variable, valueExpr),
                         Expr.IfThenElse(
                             Expr.TypeIs(variable, typeof(Varargs)),
-                            Expr.Call(variable, typeof(Varargs).GetMethod("First")),
+                            Expr.Call(variable, Methods.VarargsFirst),
                             variable));
             }
 

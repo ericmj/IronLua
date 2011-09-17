@@ -129,7 +129,7 @@ namespace IronLua.Runtime
                 return false;
 
             // There are no metamethods for 'a > b' and 'a >= b' so they are translated to 'b < a' and 'b <= a' respectively
-            bool invert = op == ExpressionType.GreaterThan || op == ExpressionType.GreaterThanOrEqual;
+            var invert = op == ExpressionType.GreaterThan || op == ExpressionType.GreaterThanOrEqual;
 
             dynamic metamethod = GetRelationalMetamethod(context, op, left, right);
 
@@ -169,7 +169,7 @@ namespace IronLua.Runtime
         public static void VarargsAssign(IRuntimeVariables variables, object[] values)
         {
             var variablesArray = VarargsAssign(variables.Count, values);
-            for (int i = 0; i < variables.Count; i++)
+            for (var i = 0; i < variables.Count; i++)
                 variables[i] = variablesArray[i];
         }
 
@@ -177,8 +177,8 @@ namespace IronLua.Runtime
         {
             var variables = new object[numVariables];
 
-            int varCount = 0;
-            for (int valueCount = 0; valueCount < values.Length && varCount < variables.Length; valueCount++)
+            var varCount = 0;
+            for (var valueCount = 0; valueCount < values.Length && varCount < variables.Length; valueCount++)
             {
                 var value = values[valueCount];
                 Varargs varargs;
@@ -195,7 +195,7 @@ namespace IronLua.Runtime
 
         static void AssignVarargsToVariables(object[] variables, Varargs varargs, ref int varCount)
         {
-            for (int varargsCount = 0;
+            for (var varargsCount = 0;
                  varargsCount < varargs.Count && varCount < variables.Length;
                  varargsCount++, varCount++)
             {

@@ -162,7 +162,7 @@ namespace IronLua.Runtime.Binder
             else if (lastParam.ParameterType == typeof(Varargs))
             {
                 argExpr = Expr.New(
-                    typeof(Varargs).GetConstructor(new[] {typeof(object[])}),
+                    Methods.NewVarargs,
                     Expr.NewArrayInit(
                         typeof(object),
                         overflowingArgs.Select(arg => Expr.Convert(arg.Expression, typeof(object)))));
