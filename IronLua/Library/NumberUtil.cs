@@ -14,7 +14,6 @@ namespace IronLua.Library
         /* Parses a decimal number */
         public static bool TryParseDecimalNumber(string number, out double result)
         {
-
             return Double.TryParse(number, DECIMAL_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out result);
         }
 

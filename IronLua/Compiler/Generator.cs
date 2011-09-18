@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using IronLua.Compiler.Ast;
 using IronLua.Runtime;
@@ -114,44 +113,21 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.For statement)
         {
-            // TODO: Check if number conversion failed by checking for double.NaN
-            var convertBinder = context.BinderCache.GetConvertBinder(typeof(double));
-            Func<Expression, Expr> toNumber = e => Expr.Dynamic(convertBinder, typeof(double), e.Visit(this));
-
             var parentScope = scope;
             scope = Scope.CreateChild(parentScope);
 
             var loopVariable = scope.AddLocal(statement.Identifier);
-            var var = toNumber(statement.Var);
-            var limit = toNumber(statement.Limit);
+            var var = ConvertToNumber(statement.Var);
+            var limit = ConvertToNumber(statement.Limit);
             var step = statement.Step == null
                            ? new Expression.Number(1.0).Visit(this)
-                           : toNumber(statement.Step);
+                           : ConvertToNumber(statement.Step);
 
             var varVar = Expr.Variable(typeof(double));
             var limitVar = Expr.Variable(typeof(double));
             var stepVar = Expr.Variable(typeof(double));
 
-            var breakConditionExpr =
-                Expr.MakeBinary(
-                    ExprType.OrElse,
-                    Expr.MakeBinary(
-                        ExprType.AndAlso,
-                        Expr.GreaterThan(stepVar, Expr.Constant(0.0)),
-                        Expr.GreaterThan(varVar, limitVar)),
-                    Expr.MakeBinary(
-                        ExprType.AndAlso,
-                        Expr.LessThanOrEqual(stepVar, Expr.Constant(0.0)),
-                        Expr.LessThan(varVar, limitVar)));
-
-            var loopExpr =
-                Expr.Loop(
-                    Expr.Block(
-                        Expr.IfThen(breakConditionExpr, Expr.Break(scope.BreakLabel())),
-                        Expr.Assign(loopVariable, Expr.Convert(varVar, typeof(object))),
-                        Visit(statement.Body),
-                        Expr.AddAssign(varVar, stepVar)),
-                    scope.BreakLabel());
+            var breakConditionExpr = ForLoopBreakCondition(limitVar, stepVar, varVar);
 
             var expr =
                 Expr.Block(
@@ -159,7 +135,10 @@ namespace IronLua.Compiler
                     Expr.Assign(varVar, var),
                     Expr.Assign(limitVar, limit),
                     Expr.Assign(stepVar, step),
-                    loopExpr);
+                    CheckNumberForNan(varVar, ExceptionMessage.FOR_INITAL_NOT_NUMBER),
+                    CheckNumberForNan(limitVar, ExceptionMessage.FOR_LIMIT_NOT_NUMBER),
+                    CheckNumberForNan(stepVar, ExceptionMessage.FOR_STEP_NOT_NUMBER),
+                    ForLoop(statement, stepVar, loopVariable, varVar, breakConditionExpr));
 
             scope = parentScope;
             return expr;
@@ -694,6 +673,53 @@ namespace IronLua.Compiler
                 Expr.Block(
                     new[] { valuesVar },
                     exprs);
+        }
+
+        LoopExpression ForLoop(Statement.For statement, ParameterExpression stepVar, ParameterExpression loopVariable,
+                               ParameterExpression varVar, BinaryExpression breakConditionExpr)
+        {
+            var loopExpr =
+                Expr.Loop(
+                    Expr.Block(
+                        Expr.IfThen(breakConditionExpr, Expr.Break(scope.BreakLabel())),
+                        Expr.Assign(loopVariable, Expr.Convert(varVar, typeof(object))),
+                        Visit(statement.Body),
+                        Expr.AddAssign(varVar, stepVar)),
+                    scope.BreakLabel());
+            return loopExpr;
+        }
+
+        BinaryExpression ForLoopBreakCondition(ParameterExpression limitVar, ParameterExpression stepVar, ParameterExpression varVar)
+        {
+            var breakConditionExpr =
+                Expr.MakeBinary(
+                    ExprType.OrElse,
+                    Expr.MakeBinary(
+                        ExprType.AndAlso,
+                        Expr.GreaterThan(stepVar, Expr.Constant(0.0)),
+                        Expr.GreaterThan(varVar, limitVar)),
+                    Expr.MakeBinary(
+                        ExprType.AndAlso,
+                        Expr.LessThanOrEqual(stepVar, Expr.Constant(0.0)),
+                        Expr.LessThan(varVar, limitVar)));
+            return breakConditionExpr;
+        }
+
+        Expr ConvertToNumber(Expression expression)
+        {
+            var convertBinder = context.BinderCache.GetConvertBinder(typeof(double));
+            return Expr.Dynamic(convertBinder, typeof(double), expression.Visit(this));
+        }
+
+        Expr CheckNumberForNan(Expr number, string exceptionMessage)
+        {
+            return Expr.IfThen(
+                Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), number),
+                Expr.Throw(
+                    Expr.New(
+                        Methods.NewSyntaxException,
+                        Expr.Constant(exceptionMessage),
+                        Expr.Default(typeof(Exception)))));
         }
     }
 }

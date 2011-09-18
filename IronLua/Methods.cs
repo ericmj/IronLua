@@ -24,5 +24,8 @@ namespace IronLua
 
         public static readonly MethodInfo VarargsFirst =
             typeof(Varargs).GetMethod("First");
+
+        public static readonly ConstructorInfo NewSyntaxException =
+            typeof(LuaSyntaxException).GetConstructor(new[] {typeof(string), typeof(Exception)});
     }
 }
