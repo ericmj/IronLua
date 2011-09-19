@@ -116,13 +116,9 @@ namespace IronLua.Compiler
             var parentScope = scope;
             scope = Scope.CreateChild(parentScope);
 
-            var loopVariable = scope.AddLocal(statement.Identifier);
-            var var = ConvertToNumber(statement.Var);
-            var limit = ConvertToNumber(statement.Limit);
-            var step = statement.Step == null
-                           ? new Expression.Number(1.0).Visit(this)
-                           : ConvertToNumber(statement.Step);
+            var step = statement.Step == null ? new Expression.Number(1.0).Visit(this) : ConvertToNumber(statement.Step);
 
+            var loopVariable = scope.AddLocal(statement.Identifier);
             var varVar = Expr.Variable(typeof(double));
             var limitVar = Expr.Variable(typeof(double));
             var stepVar = Expr.Variable(typeof(double));
@@ -132,12 +128,12 @@ namespace IronLua.Compiler
             var expr =
                 Expr.Block(
                     new[] {loopVariable, varVar, limitVar, stepVar},
-                    Expr.Assign(varVar, var),
-                    Expr.Assign(limitVar, limit),
+                    Expr.Assign(varVar, ConvertToNumber(statement.Var)),
+                    Expr.Assign(limitVar, ConvertToNumber(statement.Limit)),
                     Expr.Assign(stepVar, step),
-                    CheckNumberForNan(varVar, ExceptionMessage.FOR_INITAL_NOT_NUMBER),
-                    CheckNumberForNan(limitVar, ExceptionMessage.FOR_LIMIT_NOT_NUMBER),
-                    CheckNumberForNan(stepVar, ExceptionMessage.FOR_STEP_NOT_NUMBER),
+                    CheckNumberForNan(varVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "inital value")),
+                    CheckNumberForNan(limitVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "limit")),
+                    CheckNumberForNan(stepVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "step")),
                     ForLoop(statement, stepVar, loopVariable, varVar, breakConditionExpr));
 
             scope = parentScope;

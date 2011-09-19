@@ -14,8 +14,6 @@
         public const string AMBIGUOUS_SYNTAX_FUNCTION_CALL = "Ambiguous syntax (function call or new statement)";
 
         // Runtime
-        public const string FOR_INITAL_NOT_NUMBER = "'for' inital value must be a number";
-        public const string FOR_LIMIT_NOT_NUMBER = "'for' limit must be a number";
-        public const string FOR_STEP_NOT_NUMBER = "'for' step value must be a number";
+        public const string FOR_VALUE_NOT_NUMBER = "For loop {0} must be a number";
     }
 }
