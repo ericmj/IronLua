@@ -1,6 +1,6 @@
 ﻿namespace IronLua
 {
-    static internal class ExceptionMessage
+    static class ExceptionMessage
     {
         // Syntax
         public const string UNEXPECTED_EOF = "Unexpected end of file";
@@ -14,6 +14,10 @@
         public const string AMBIGUOUS_SYNTAX_FUNCTION_CALL = "Ambiguous syntax (function call or new statement)";
 
         // Runtime
-        public const string FOR_VALUE_NOT_NUMBER = "For loop {0} must be a number";
+        public const string FOR_VALUE_NOT_NUMBER = "For loop {0} must be a number";    
+
+        // Library
+        public const string STRING_FORMAT_BAD_ARGUMENT = "Bad argument #{0} to 'format' (number expected, got string)";
+        public const string STRING_FORMAT_INVALID_OPTION = "Invalid option '{0}', to 'format'";
     }
 }

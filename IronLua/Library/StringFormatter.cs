@@ -32,6 +32,7 @@ namespace IronLua.Library
         {
             var sb = new StringBuilder(format.Length);
             var valueIndex = 0;
+            var tagCount = 1;
 
             for (var i=0; i<format.Length;)
             {
@@ -45,7 +46,7 @@ namespace IronLua.Library
                 }
                 else if (current == '%')
                 {
-                    var tag = ParseTag(format, ref i);
+                    var tag = ParseTag(format, tagCount++, ref i);
                     var objectValue = values[valueIndex++];
                     string stringValue;
 
@@ -66,10 +67,10 @@ namespace IronLua.Library
             return sb.ToString();
         }
 
-        static FormatTag ParseTag(string format, ref int i)
+        static FormatTag ParseTag(string format, int tagCount, ref int i)
         {
             i++;
-            var tag = new FormatTag();
+            var tag = new FormatTag(tagCount);
 
             ParseFlags(tag, format, ref i);
             ParseWidth(tag, format, ref i);
@@ -136,7 +137,7 @@ namespace IronLua.Library
         {
             FormatSpecifier specifier;
             if (!formatSpecifiers.TryGetValue(format[i], out specifier))
-                throw new Exception(); // TODO
+                throw new LuaRuntimeException(ExceptionMessage.STRING_FORMAT_INVALID_OPTION, format);
 
             tag.Specifier = specifier;
             i++;
@@ -157,10 +158,12 @@ namespace IronLua.Library
             public int Width { get; set; }
             public int Precision { get; set; }
 
+            readonly int Count;
             readonly StringBuilder sb;
 
-            public FormatTag()
+            public FormatTag(int count)
             {
+                Count = count;
                 sb = new StringBuilder();
                 Precision = -1;
             }
@@ -204,6 +207,9 @@ namespace IronLua.Library
                     case FormatSpecifier.HexadecimalIntegerUpper:
                         FormatHexInt(value, true);
                         break;
+                    case FormatSpecifier.String:
+                        FormatString(value.ToString());
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -214,17 +220,20 @@ namespace IronLua.Library
             public string Format(string value)
             {
                 sb.Clear();
-
                 if (Specifier != FormatSpecifier.String)
-                    throw new Exception(); // TODO
+                    throw new LuaRuntimeException(ExceptionMessage.STRING_FORMAT_BAD_ARGUMENT, Count);
+                FormatString(value);
+                return sb.ToString();
+            }
 
+            void FormatString(string value)
+            {
                 // Truncate
                 if (Precision != -1 && value.Length > Precision)
                     value = value.Substring(0, Precision);
 
                 sb.Append(value);
                 Pad();
-                return sb.ToString();
             }
 
             void FormatChar(double value)
