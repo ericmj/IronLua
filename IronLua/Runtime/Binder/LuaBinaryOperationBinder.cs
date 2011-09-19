@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using Expr = System.Linq.Expressions.Expression;
+using ParamExpr = System.Linq.Expressions.ParameterExpression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime.Binder
@@ -143,11 +144,36 @@ namespace IronLua.Runtime.Binder
             var leftExpr = LuaConvertBinder.ToNumber(left);
             var rightExpr = LuaConvertBinder.ToNumber(right);
 
-            // TODO: Check if number conversion failed by checking for double.NaN
-
             if (leftExpr == null)
                 return null;
+
+            if (left.LimitType == typeof(string))
+                return FallbackIfNumberIsNan(leftExpr, rightExpr);
+
             return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightExpr), typeof(object));
+        }
+
+        Expr FallbackIfNumberIsNan(Expr leftExpr, Expr rightExpr)
+        {
+            // If we have performed a string to number conversion check that conversion went well by checking
+            // number for NaN. If conversion failed do metatable fallback. Also assign to temp variable for single evaluation.
+
+            var leftVar = Expr.Variable(typeof(double));
+
+            var expr = Expr.IfThenElse(
+                Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), leftVar),
+                Expr.Invoke(
+                    Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.NumericMetamethod),
+                    Expr.Constant(context),
+                    Expr.Constant(Operation),
+                    Expr.Convert(leftVar, typeof(object)),
+                    Expr.Convert(rightExpr, typeof(object))),
+                leftVar);
+
+            return Expr.Block(
+                new[] {leftVar},
+                Expr.Assign(leftVar, leftExpr),
+                expr);
         }
 
         Expr MetamethodFallback(DynamicMetaObject left, DynamicMetaObject right)

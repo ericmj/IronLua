@@ -15,16 +15,14 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackConvert(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
         {
-            Expr expression;
+            Expr expression = null;
             if (Type == typeof(double))
                 expression = ToNumber(target);
             else if (Type == typeof(bool))
                 expression = ToBool(target);
-            else
-                throw new Exception(); // TODO: Use errorSuggestion
 
             if (expression == null)
-                throw new Exception(); // TODO: Use errorSuggestion
+                throw new InvalidOperationException();
 
             return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }

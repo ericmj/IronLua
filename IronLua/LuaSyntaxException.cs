@@ -16,7 +16,7 @@ namespace IronLua
         {
         }
 
-        public LuaSyntaxException(string file, int line, int column, string message, Exception inner = null)
+        internal LuaSyntaxException(string file, int line, int column, string message, Exception inner = null)
             : base(message, inner)
         {
             File = file;

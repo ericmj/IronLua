@@ -153,7 +153,7 @@ namespace IronLua.Runtime.Binder
             {
                 var elementType = lastParam.ParameterType.GetElementType();
                 if (overflowingArgs.Any(arg => arg.Type != elementType && !arg.Type.IsSubclassOf(elementType)))
-                    throw new Exception(); // TODO
+                    return;
 
                 argExpr = Expr.NewArrayInit(
                     elementType,
