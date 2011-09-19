@@ -4,10 +4,9 @@ using IronLua.Runtime;
 
 namespace IronLua.Library
 {
-    // TODO: Rename to Base
-    class Global : Library
+    class BaseLibrary : Library
     {
-        public Global(Context context) : base(context)
+        public BaseLibrary(Context context) : base(context)
         {
         }
 

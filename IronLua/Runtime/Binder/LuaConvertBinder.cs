@@ -41,7 +41,7 @@ namespace IronLua.Runtime.Binder
             if (target.LimitType == typeof(string))
                 return
                     Expression.Invoke(
-                        Expression.Constant((Func<string, double, double>) Global.InternalToNumber),
+                        Expression.Constant((Func<string, double, double>) BaseLibrary.InternalToNumber),
                         target.Expression, Expression.Constant(10.0));
 
             return null;

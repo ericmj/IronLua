@@ -15,8 +15,8 @@ namespace IronLua.Runtime
         public BinderCache BinderCache { get; private set; }
         public Dictionary<Type, LuaTable> Metatables { get; private set; }
 
-        internal Global GlobalLibrary;
-        internal LuaString StringLibrary;
+        internal BaseLibrary BaseLibrary;
+        internal StringLibrary StringLibrary;
 
         Func<object, object, object> getDynamicIndexCache;
         Func<object, object, object, object> getDynamicNewIndexCache;
@@ -40,11 +40,11 @@ namespace IronLua.Runtime
 
         void SetupLibraries()
         {
-            GlobalLibrary = new Global(this);
-            StringLibrary = new LuaString(this);
+            BaseLibrary = new BaseLibrary(this);
+            StringLibrary = new StringLibrary(this);
 
             Globals = new LuaTable();
-            GlobalLibrary.Setup(Globals);
+            BaseLibrary.Setup(Globals);
             //StringLibrary.Setup(StringGlobals);
         }
 

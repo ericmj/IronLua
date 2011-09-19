@@ -5,9 +5,9 @@ using IronLua.Runtime;
 
 namespace IronLua.Library
 {
-    class LuaString : Library
+    class StringLibrary : Library
     {
-        public LuaString(Context context) : base(context)
+        public StringLibrary(Context context) : base(context)
         {
         }
 

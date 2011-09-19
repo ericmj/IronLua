@@ -164,13 +164,13 @@ namespace IronLua.Runtime
                 return metamethod(left, right);
 
             string typeName;
-            if (context.GlobalLibrary.ToNumber(left) == null)
+            if (context.BaseLibrary.ToNumber(left) == null)
             {
                 if (!RuntimeHelpers.TryGetTypeName(left, out typeName))
                     throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
             }
 
-            Debug.Assert(context.GlobalLibrary.ToNumber(right) != null);
+            Debug.Assert(context.BaseLibrary.ToNumber(right) != null);
             if (!RuntimeHelpers.TryGetTypeName(right, out typeName))
                 throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
 

@@ -77,9 +77,9 @@
     <Compile Include="Constant.cs" />
     <Compile Include="ExceptionMessage.cs" />
     <Compile Include="LuaException.cs" />
-    <Compile Include="Library\Global.cs" />
+    <Compile Include="Library\BaseLibrary.cs" />
     <Compile Include="Library\Library.cs" />
-    <Compile Include="Library\LuaString.cs" />
+    <Compile Include="Library\StringLibrary.cs" />
     <Compile Include="Library\NumberUtil.cs" />
     <Compile Include="Library\StringFormatter.cs" />
     <Compile Include="Methods.cs" />
