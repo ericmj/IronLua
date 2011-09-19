@@ -179,7 +179,7 @@ namespace IronLua.Runtime.Binder
         Expr MetamethodFallback(DynamicMetaObject left, DynamicMetaObject right)
         {
             return Expr.Invoke(
-                Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.GetBinaryOpMetamethod),
+                Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.BinaryOpMetamethod),
                 Expr.Constant(context),
                 Expr.Constant(Operation),
                 Expr.Convert(left.Expression, typeof(object)),

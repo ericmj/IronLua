@@ -50,21 +50,23 @@ namespace IronLua.Runtime
 
         internal LuaTable GetMetatable(object obj)
         {
-            LuaTable table;
+            if (obj == null)
+                return null;
 
+            LuaTable table;
             if ((table = obj as LuaTable) != null)
                 return table.Metatable;
 
             if (Metatables.TryGetValue(obj.GetType(), out table))
                 return table;
 
-            throw new Exception(); // TODO
+            throw new ArgumentOutOfRangeException("obj", "Argument is of non-supported type");
         }
 
         internal object GetMetamethod(object obj, string methodName)
         {
             var metatable = GetMetatable(obj);
-            return metatable == null ? null : metatable.GetValue(methodName);
+            return methodName == null || metatable == null ? null : metatable.GetValue(methodName);
         }
 
         internal Func<object, object, object> GetDynamicIndex()
@@ -96,7 +98,7 @@ namespace IronLua.Runtime
             return getDynamicNewIndexCache = expr.Compile();
         }
 
-        // NOTE: Only works for 2 arguments
+        // Only works for 2 arguments
         internal Func<Delegate, object, object, object> GetDynamicCall2()
         {
             if (getDynamicCallCache != null)

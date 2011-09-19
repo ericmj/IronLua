@@ -1,7 +1,11 @@
 ﻿using System;
-using System.Linq.Expressions;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using IronLua.Library;
 using Expr = System.Linq.Expressions.Expression;
+using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime
 {
@@ -36,121 +40,176 @@ namespace IronLua.Runtime
         public static object LengthMetamethod(Context context, object obj)
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.LENGTH_METAMETHOD);
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            return metamethod(obj);
+            if (metamethod != null)
+                return metamethod(obj);
+
+            string typeName;
+            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
+                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "get length of", typeName);
         }
 
         public static object UnaryMinusMetamethod(Context context, object obj)
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.UNARYMINUS_METAMETHOD);
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            return metamethod(obj);
+            if (metamethod != null)
+                return metamethod(obj);
+
+            string typeName;
+            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
+                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
         }
 
         public static object IndexMetamethod(Context context, object obj, object key)
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.INDEX_METAMETHOD);
 
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            if (metamethod is Delegate)
-                return metamethod(obj, key);
+            if (metamethod != null)
+            {
+                if (metamethod is Delegate)
+                    return metamethod(obj, key);
+                if (metamethod is LuaTable)
+                    return context.GetDynamicIndex()(obj, key);
+            }
 
-            return context.GetDynamicIndex()(obj, key);
+            string typeName;
+            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
+                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", typeName);
         }
 
         public static object NewIndexMetamethod(Context context, object obj, object key, object value)
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.NEWINDEX_METAMETHOD);
 
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            if (metamethod is Delegate)
-                return metamethod(obj, key, value);
+            if (metamethod != null)
+            {
+                if (metamethod is Delegate)
+                    return metamethod(obj, key, value);
+                if (metamethod is LuaTable)
+                    return context.GetDynamicNewIndex()(obj, key, value);
+            }
 
-            return context.GetDynamicNewIndex()(obj, key, value);
+            string typeName;
+            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
+                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", typeName);
         }
 
         public static object CallMetamethod(Context context, object obj, object[] args)
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.CALL_METAMETHOD);
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
+            if (metamethod != null)
+                return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
+
+            string typeName;
+            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
+                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "call", typeName);
         }
 
         public static object ConcatMetamethod(Context context, object left, object right)
         {
             dynamic metamethod = context.GetMetamethod(left, Constant.CONCAT_METAMETHOD) ??
                                  context.GetMetamethod(right, Constant.CONCAT_METAMETHOD);
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            return metamethod(left, right);
+            if (metamethod != null)
+                return metamethod(left, right);
+
+            string typeName;
+            if (left is string)
+            {
+                if (!RuntimeHelpers.TryGetTypeName(right, out typeName))
+                    throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
+                Debug.Assert(typeName != "string");
+            }
+            else
+            {
+                if (!RuntimeHelpers.TryGetTypeName(left, out typeName))
+                    throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
+            }
+
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "concatenate", typeName);
         }
 
-        public static object GetBinaryOpMetamethod(Context context, ExpressionType op, object left, object right)
+        public static object BinaryOpMetamethod(Context context, ExprType op, object left, object right)
         {
             switch (op)
             {
-                case ExpressionType.Add:
-                case ExpressionType.Subtract:
-                case ExpressionType.Multiply:
-                case ExpressionType.Divide:
-                case ExpressionType.Modulo:
-                case ExpressionType.Power:
+                case ExprType.Add:
+                case ExprType.Subtract:
+                case ExprType.Multiply:
+                case ExprType.Divide:
+                case ExprType.Modulo:
+                case ExprType.Power:
                     return NumericMetamethod(context, op, left, right);
 
-                case ExpressionType.GreaterThan:
-                case ExpressionType.GreaterThanOrEqual:
-                case ExpressionType.LessThan:
-                case ExpressionType.LessThanOrEqual:
+                case ExprType.GreaterThan:
+                case ExprType.GreaterThanOrEqual:
+                case ExprType.LessThan:
+                case ExprType.LessThanOrEqual:
                     return RelationalMetamethod(context, op, left, right);
 
                 default:
-                    throw new Exception(); // TODO
+                    throw new ArgumentOutOfRangeException("op");
             }
         }
 
-        static object NumericMetamethod(Context context, ExpressionType op, object left, object right)
+        public static object NumericMetamethod(Context context, ExprType op, object left, object right)
         {
             var methodName = GetMethodName(op);
 
             dynamic metamethod = context.GetMetamethod(left, methodName) ?? context.GetMetamethod(right, methodName);
-            if (metamethod == null)
-                throw new Exception(); // TODO
-            return metamethod(left, right);
+            if (metamethod != null)
+                return metamethod(left, right);
+
+            string typeName;
+            if (context.GlobalLibrary.ToNumber(left) == null)
+            {
+                if (!RuntimeHelpers.TryGetTypeName(left, out typeName))
+                    throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
+            }
+
+            Debug.Assert(context.GlobalLibrary.ToNumber(right) != null);
+            if (!RuntimeHelpers.TryGetTypeName(right, out typeName))
+                throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
+
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
         }
 
-        static object RelationalMetamethod(Context context, ExpressionType op, object left, object right)
+        public static object RelationalMetamethod(Context context, ExprType op, object left, object right)
         {
             if (left.GetType() != right.GetType())
                 return false;
 
             // There are no metamethods for 'a > b' and 'a >= b' so they are translated to 'b < a' and 'b <= a' respectively
-            var invert = op == ExpressionType.GreaterThan || op == ExpressionType.GreaterThanOrEqual;
+            var invert = op == ExprType.GreaterThan || op == ExprType.GreaterThanOrEqual;
 
             dynamic metamethod = GetRelationalMetamethod(context, op, left, right);
 
-            if (metamethod == null)
-            {
-                // In the absence of a '<=' metamethod, try '<', 'a <= b' is translated to 'not (b < a)'
-                if (op != ExpressionType.LessThanOrEqual && op != ExpressionType.GreaterThanOrEqual)
-                    return false;
+            if (metamethod != null)
+                return invert ? metamethod(right, left) : metamethod(left, right);
 
-                metamethod = GetRelationalMetamethod(context, ExpressionType.LessThan, left, right);
-                if (metamethod == null)
-                    return false;
+            // In the absence of a '<=' metamethod, try '<', 'a <= b' is translated to 'not (b < a)'
+            if (op != ExprType.LessThanOrEqual && op != ExprType.GreaterThanOrEqual)
+                return false;
 
-                // TODO: Remove Global.Not and output a dynamic unary expression with ExprType.Not
+            metamethod = GetRelationalMetamethod(context, ExprType.LessThan, left, right);
+            if (metamethod != null)
                 return invert ? LuaOps.Not(metamethod(right, left)) : LuaOps.Not(metamethod(left, right));
-            }
 
-            return invert ? metamethod(right, left) : metamethod(left, right);
+            string leftTypeName, rightTypeName;
+            if (!RuntimeHelpers.TryGetTypeName(left, out leftTypeName))
+                throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
+            if (!RuntimeHelpers.TryGetTypeName(right, out rightTypeName))
+                throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
+
+            if (leftTypeName == rightTypeName)
+                throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_TWO_ERROR, "compare", leftTypeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_WITH_ERROR, "compare", leftTypeName, rightTypeName);
         }
 
-        static dynamic GetRelationalMetamethod(Context context, ExpressionType op, object left, object right)
+        static dynamic GetRelationalMetamethod(Context context, ExprType op, object left, object right)
         {
             var methodName = GetMethodName(op);
             dynamic metamethodLeft = context.GetMetamethod(left, methodName);
@@ -158,12 +217,10 @@ namespace IronLua.Runtime
             return metamethodLeft != metamethodRight ? null : metamethodLeft;
         }
 
-        static string GetMethodName(ExpressionType op)
+        static string GetMethodName(ExprType op)
         {
             string methodName;
-            if (!Constant.METAMETHODS.TryGetValue(op, out methodName))
-                throw new Exception(); // TODO
-            return methodName;
+            return Constant.METAMETHODS.TryGetValue(op, out methodName) ? methodName : null;
         }
 
         public static void VarargsAssign(IRuntimeVariables variables, object[] values)
@@ -176,35 +233,22 @@ namespace IronLua.Runtime
         public static object[] VarargsAssign(int numVariables, object[] values)
         {
             var variables = new object[numVariables];
-
-            var varCount = 0;
-            for (var valueCount = 0; valueCount < values.Length && varCount < variables.Length; valueCount++)
-            {
-                var value = values[valueCount];
-                Varargs varargs;
-
-                // TODO: Fix! Should only expand last varargs, other varargs should only call .First()
-                if ((varargs = value as Varargs) != null)
-                    AssignVarargsToVariables(variables, varargs, ref varCount);
-                else
-                    variables[varCount++] = value;
-            }
-
+            AssignValuesToVariables(variables, values, 0);
             return variables;
         }
 
-        static void AssignVarargsToVariables(object[] variables, Varargs varargs, ref int varCount)
+        static void AssignValuesToVariables(object[] variables, IList<object> values, int varCount)
         {
-            for (var varargsCount = 0;
-                 varargsCount < varargs.Count && varCount < variables.Length;
-                 varargsCount++, varCount++)
-            {
-                Varargs varargs2;
+            for (var valueCount = 0; valueCount < values.Count - 1 && varCount < variables.Length; valueCount++, varCount++)
+                variables[varCount] = values[valueCount];
 
-                if (varargsCount + 1 == varargs.Count && (varargs2 = varargs[varargsCount] as Varargs) != null)
-                    AssignVarargsToVariables(variables, varargs2, ref varCount);
+            if (varCount < variables.Length)
+            {
+                Varargs varargs;
+                if ((varargs = values.Last() as Varargs) != null)
+                    AssignValuesToVariables(variables, varargs, varCount);
                 else
-                    variables[varCount] = varargs[varargsCount];
+                    variables[varCount] = values.Last();
             }
         }
     }

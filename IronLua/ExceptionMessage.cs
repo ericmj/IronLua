@@ -14,8 +14,11 @@
         public const string AMBIGUOUS_SYNTAX_FUNCTION_CALL = "Ambiguous syntax (function call or new statement)";
 
         // Runtime
-        public const string FOR_VALUE_NOT_NUMBER = "For loop {0} must be a number";    
-
+        public const string FOR_VALUE_NOT_NUMBER = "For loop {0} must be a number";
+        public const string OP_TYPE_ERROR = "Attempt to {0} a {1} value";
+        public const string OP_TYPE_WITH_ERROR = "Attempt to {0} {1} with {2}";
+        public const string OP_TYPE_TWO_ERROR = "Attempt to {0} two {1} values";
+            
         // Library
         public const string STRING_FORMAT_BAD_ARGUMENT = "Bad argument #{0} to 'format' (number expected, got string)";
         public const string STRING_FORMAT_INVALID_OPTION = "Invalid option '{0}', to 'format'";
