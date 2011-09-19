@@ -239,16 +239,23 @@ namespace IronLua.Runtime
 
         static void AssignValuesToVariables(object[] variables, IList<object> values, int varCount)
         {
-            for (var valueCount = 0; valueCount < values.Count - 1 && varCount < variables.Length; valueCount++, varCount++)
-                variables[varCount] = values[valueCount];
+            Varargs varargs;
 
-            if (varCount < variables.Length)
+            for (var valueCount = 0; valueCount < values.Count && varCount < variables.Length; valueCount++, varCount++)
             {
-                Varargs varargs;
-                if ((varargs = values.Last() as Varargs) != null)
-                    AssignValuesToVariables(variables, varargs, varCount);
+                var value = values[valueCount];
+                if ((varargs = value as Varargs) != null)
+                {
+                    // Expand varargs if it's the last value otherwise just take the first value in varargs
+                    if (valueCount + 1 == values.Count)
+                        AssignValuesToVariables(variables, varargs, varCount);
+                    else
+                        variables[varCount] = varargs.First();
+                }
                 else
-                    variables[varCount] = values.Last();
+                {
+                    variables[varCount] = value;
+                }
             }
         }
     }
