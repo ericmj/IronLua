@@ -4,16 +4,20 @@ using IronLua.Runtime;
 
 namespace IronLua.Library
 {
+    // TODO: Rename to Base
     class Global : Library
     {
         public Global(Context context) : base(context)
         {
         }
 
-        public object ToNumber(object str, double @base = 10.0)
+        public object ToNumber(object obj, double @base = 10.0)
         {
+            if (obj is double)
+                return obj;
+
             string stringStr;
-            if ((stringStr = str as string) == null)
+            if ((stringStr = obj as string) == null)
                 return null;
 
             var value = InternalToNumber(stringStr, @base);
