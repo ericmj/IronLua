@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using IronLua.Runtime;
 
@@ -8,6 +9,27 @@ namespace IronLua.Library
     {
         public BaseLibrary(Context context) : base(context)
         {
+        }
+
+        public Varargs Assert(bool v, object message = null, params object[] additional)
+        {
+            if (v)
+            {
+                var returnValues = new List<object>(2 + additional.Length) {true};
+                if (message != null)
+                    returnValues.Add(message);
+                returnValues.AddRange(additional);
+                return new Varargs(returnValues);
+            }
+
+            if (message == null)
+                throw new LuaRuntimeException("Assertion failed");
+            throw new LuaRuntimeException(message.ToString());
+        }
+
+        public void CollectGarbage(string opt, string arg = null)
+        {
+            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
         public object ToNumber(object obj, double @base = 10.0)
@@ -74,6 +96,8 @@ namespace IronLua.Library
         public override void Setup(LuaTable table)
         {
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
+            table.SetValue("asert", (Func<bool, object, object[], Varargs>)Assert);
+            table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
         }
     }
 }
