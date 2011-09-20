@@ -148,31 +148,31 @@ namespace IronLua.Runtime.Binder
                 return null;
 
             if (left.LimitType == typeof(string))
-                return FallbackIfNumberIsNan(leftExpr, rightExpr);
+                return FallbackIfNumberIsNan(leftExpr, left, right);
 
             return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightExpr), typeof(object));
         }
 
-        Expr FallbackIfNumberIsNan(Expr leftExpr, Expr rightExpr)
+        Expr FallbackIfNumberIsNan(Expr conversionResult, DynamicMetaObject left, DynamicMetaObject right)
         {
             // If we have performed a string to number conversion check that conversion went well by checking
             // number for NaN. If conversion failed do metatable fallback. Also assign to temp variable for single evaluation.
 
-            var leftVar = Expr.Variable(typeof(double));
+            var conversionVar = Expr.Variable(typeof(double));
 
-            var expr = Expr.IfThenElse(
-                Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), leftVar),
+            var expr = Expr.Condition(
+                Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), conversionVar),
                 Expr.Invoke(
                     Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.NumericMetamethod),
                     Expr.Constant(context),
                     Expr.Constant(Operation),
-                    Expr.Convert(leftVar, typeof(object)),
-                    Expr.Convert(rightExpr, typeof(object))),
-                leftVar);
+                    Expr.Convert(left.Expression, typeof(object)),
+                    Expr.Convert(right.Expression, typeof(object))),
+                Expr.Convert(conversionVar, typeof(object)));
 
             return Expr.Block(
-                new[] {leftVar},
-                Expr.Assign(leftVar, leftExpr),
+                new[] {conversionVar},
+                Expr.Assign(conversionVar, conversionResult),
                 expr);
         }
 
