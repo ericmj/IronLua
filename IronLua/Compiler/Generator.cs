@@ -52,16 +52,18 @@ namespace IronLua.Compiler
             this.context = context;
         }
 
-        public Expression<Action> Compile(Block block)
+        public Expression<Func<dynamic>> Compile(Block block)
         {
-            var expr = Visit(block);
-            return Expr.Lambda<Action>(expr);
+            scope = Scope.CreateRoot();
+            var blockExpr = Visit(block);
+            var expr = Expr.Block(blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
+            return Expr.Lambda<Func<dynamic>>(expr);
         }
 
         Expr Visit(Block block)
         {
             var parentScope = scope;
-            scope = scope == null ? Scope.CreateRoot() : Scope.CreateChild(parentScope);
+            scope = Scope.CreateChild(parentScope);
 
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
             if (block.LastStatement != null)
@@ -81,13 +83,12 @@ namespace IronLua.Compiler
         {
             var parentScope = scope;
             scope = Scope.CreateFunctionChild(scope);
-            var returnLabel = scope.AddReturnLabel();
 
             var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
             if (function.Varargs)
                 parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
 
-            var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(returnLabel, Expr.Constant(null)));
+            var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
             var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
 
             scope = parentScope;

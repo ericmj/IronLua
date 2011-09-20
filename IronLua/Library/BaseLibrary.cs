@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using IronLua.Compiler;
+using IronLua.Compiler.Parser;
 using IronLua.Runtime;
 
 namespace IronLua.Library
@@ -30,6 +33,18 @@ namespace IronLua.Library
         public void CollectGarbage(string opt, string arg = null)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+        }
+
+        public object DoFile(string filename = null)
+        {
+            var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
+            var input = new Input(source);
+            var parser = new Parser(input);
+            var ast = parser.Parse();
+            var gen = new Generator(Context);
+            var expr = gen.Compile(ast);
+            var func = expr.Compile();
+            return func();
         }
 
         public object ToNumber(object obj, double @base = 10.0)
@@ -98,6 +113,7 @@ namespace IronLua.Library
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
             table.SetValue("asert", (Func<bool, object, object[], Varargs>)Assert);
             table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
+            table.SetValue("dofile", (Func<string, object>)DoFile);
         }
     }
 }

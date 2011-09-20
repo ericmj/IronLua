@@ -55,7 +55,7 @@ namespace IronLua.Compiler
 
         public static Scope CreateRoot()
         {
-            return new Scope();
+            return new Scope { returnLabel = Expr.Label(typeof(object)) };
         }
 
         public static Scope CreateChild(Scope parent)
@@ -69,12 +69,11 @@ namespace IronLua.Compiler
 
         public static Scope CreateFunctionChild(Scope parent)
         {
-            return new Scope {parent = parent};
-        }
-
-        public LabelTarget AddReturnLabel()
-        {
-            return returnLabel = Expr.Label(typeof(object));
+            return new Scope
+                       {
+                           parent = parent,
+                           returnLabel = Expr.Label(typeof(object))
+                       };
         }
 
         public LabelTarget GetReturnLabel()
