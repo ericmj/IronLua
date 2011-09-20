@@ -27,5 +27,8 @@ namespace IronLua
 
         public static readonly ConstructorInfo NewSyntaxException =
             typeof(LuaSyntaxException).GetConstructor(new[] {typeof(string), typeof(Exception)});
+
+        public static ConstructorInfo NewRuntimeException =
+            typeof(LuaRuntimeException).GetConstructor(new[] { typeof(string), typeof(object[]) });
     }
 }
