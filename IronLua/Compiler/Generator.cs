@@ -116,7 +116,9 @@ namespace IronLua.Compiler
             var parentScope = scope;
             scope = Scope.CreateChild(parentScope);
 
-            var step = statement.Step == null ? new Expression.Number(1.0).Visit(this) : ConvertToNumber(statement.Step);
+            var step = statement.Step == null
+                           ? new Expression.Number(1.0).Visit(this)
+                           : ExprHelpers.ConvertToNumber(context, statement.Step.Visit(this));
 
             var loopVariable = scope.AddLocal(statement.Identifier);
             var varVar = Expr.Variable(typeof(double));
@@ -127,13 +129,13 @@ namespace IronLua.Compiler
 
             var expr =
                 Expr.Block(
-                    new[] {loopVariable, varVar, limitVar, stepVar},
-                    Expr.Assign(varVar, ConvertToNumber(statement.Var)),
-                    Expr.Assign(limitVar, ConvertToNumber(statement.Limit)),
+                    new[] { loopVariable, varVar, limitVar, stepVar },
+                    Expr.Assign(varVar, ExprHelpers.ConvertToNumber(context, statement.Var.Visit(this))),
+                    Expr.Assign(limitVar, ExprHelpers.ConvertToNumber(context, statement.Limit.Visit(this))),
                     Expr.Assign(stepVar, step),
-                    CheckNumberForNan(varVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "inital value")),
-                    CheckNumberForNan(limitVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "limit")),
-                    CheckNumberForNan(stepVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "step")),
+                    ExprHelpers.CheckNumberForNan(varVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "inital value")),
+                    ExprHelpers.CheckNumberForNan(limitVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "limit")),
+                    ExprHelpers.CheckNumberForNan(stepVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "step")),
                     ForLoop(statement, stepVar, loopVariable, varVar, breakConditionExpr));
 
             scope = parentScope;
@@ -699,23 +701,6 @@ namespace IronLua.Compiler
                         Expr.LessThanOrEqual(stepVar, Expr.Constant(0.0)),
                         Expr.LessThan(varVar, limitVar)));
             return breakConditionExpr;
-        }
-
-        Expr ConvertToNumber(Expression expression)
-        {
-            var convertBinder = context.BinderCache.GetConvertBinder(typeof(double));
-            return Expr.Dynamic(convertBinder, typeof(double), expression.Visit(this));
-        }
-
-        Expr CheckNumberForNan(Expr number, string exceptionMessage)
-        {
-            return Expr.IfThen(
-                Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), number),
-                Expr.Throw(
-                    Expr.New(
-                        Methods.NewSyntaxException,
-                        Expr.Constant(exceptionMessage),
-                        Expr.Default(typeof(Exception)))));
         }
     }
 }
