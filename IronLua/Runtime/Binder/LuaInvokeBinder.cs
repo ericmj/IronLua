@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using IronLua.Compiler;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -32,8 +34,12 @@ namespace IronLua.Runtime.Binder
                 RuntimeHelpers.MergeInstanceRestrictions(target));
 
             List<Expr> sideEffects;
+            Expr failExpr;
             var function = (Delegate)target.Value;
-            var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions, out sideEffects);
+            var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions, out sideEffects, out failExpr);
+
+            if (failExpr != null)
+                return new DynamicMetaObject(Expr.Block(failExpr, Expr.Default(typeof(object))), restrictions);
 
             var invokeExpr =
                 Expr.Convert(
@@ -73,7 +79,7 @@ namespace IronLua.Runtime.Binder
             return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
 
-        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions, out List<Expr> sideEffects)
+        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)
         {
             var arguments = args.Select(arg => new Argument(arg.Expression, arg.LimitType)).ToList();
 
@@ -91,11 +97,11 @@ namespace IronLua.Runtime.Binder
 
             ExpandLastArg(arguments, args, ref restrictions);
             DefaultParamValues(arguments, parameters);
-            DefaultTypeValues(arguments, parameters);
             OverflowIntoParams(arguments, parameters);
             TrimArguments(arguments, parameters, out sideEffects);
-            // TODO: Type coercion
-            CastToParamType(arguments, parameters);
+            ConvertArgumentToParamType(arguments, parameters, out failExpr);
+            if (failExpr == null)
+                CheckNumberOfArguments(arguments, parameters, out failExpr);
 
             return arguments.Select(arg => arg.Expression);
         }
@@ -127,14 +133,6 @@ namespace IronLua.Runtime.Binder
                 .Select(param => new Argument(Expr.Constant(param.DefaultValue), param.ParameterType));
 
             arguments.AddRange(defaultArgs);
-        }
-
-        void DefaultTypeValues(List<Argument> arguments, ParameterInfo[] parameters)
-        {
-            var typeDefaultArgs = parameters
-                .Skip(arguments.Count)
-                .Select(param => new Argument(Expr.Constant(param.ParameterType.GetDefaultValue()), param.ParameterType));
-            arguments.AddRange(typeDefaultArgs);
         }
 
         void OverflowIntoParams(List<Argument> arguments, ParameterInfo[] parameters)
@@ -178,6 +176,12 @@ namespace IronLua.Runtime.Binder
 
         void TrimArguments(List<Argument> arguments, ParameterInfo[] parameters, out List<Expr> sideEffects)
         {
+            if (arguments.Count <= parameters.Length)
+            {
+                sideEffects = new List<Expr>();
+                return;
+            }
+
             sideEffects = arguments
                 .Skip(parameters.Length)
                 .Select(arg => arg.Expression)
@@ -185,12 +189,70 @@ namespace IronLua.Runtime.Binder
             arguments.RemoveRange(parameters.Length, arguments.Count - parameters.Length);
         }
 
-        void CastToParamType(List<Argument> arguments, ParameterInfo[] parameters)
+        void ConvertArgumentToParamType(List<Argument> arguments, ParameterInfo[] parameters, out Expr failExpr)
         {
+            failExpr = null;
+
             for (int i = 0; i < arguments.Count; i++)
             {
-                // NOTE: Do we need to check if we can do this cast? Sympl doesn't.
-                arguments[i].Expression = Expr.Convert(arguments[i].Expression, parameters[i].ParameterType);
+                var arg = arguments[i];
+                var param = parameters[i];
+
+                if (param.ParameterType == typeof(bool) && arg.Type != typeof(bool))
+                {
+                    arg.Expression = ExprHelpers.ConvertToBoolean(context, arg.Expression);
+                }
+                else if (param.ParameterType == typeof(double) && arg.Type == typeof(string))
+                {
+                    arg.Expression = ExprHelpers.ConvertToNumberAndCheck(
+                        context, arg.Expression,
+                        ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, i + 1, "number", "string");
+                }
+                else if (param.ParameterType == typeof(string) && arg.Type != typeof(string))
+                {
+                    arg.Expression = Expr.Call(arg.Expression, Methods.ObjectToString, arg.Expression);
+                }
+                else
+                {
+                    if (arg.Type == param.ParameterType || arg.Type.IsSubclassOf(param.ParameterType))
+                    {
+                        arg.Expression = Expr.Convert(arg.Expression, param.ParameterType);
+                    }
+                    else
+                    {
+                        Func<Expr, Expr> typeNameExpr =
+                            obj => Expr.Invoke(
+                                Expr.Constant((Func<object, string>)RuntimeHelpers.GetTypeName),
+                                Expr.Convert(obj, typeof(object)));
+
+                        // Ugly reflection hack
+                        failExpr = Expr.Throw(
+                            Expr.New(
+                                Methods.NewRuntimeException,
+                                Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT),
+                                Expr.NewArrayInit(
+                                    typeof(object),
+                                    Expr.Constant(i + 1, typeof(object)),
+                                    typeNameExpr(Expr.Constant(Activator.CreateInstance(param.ParameterType))),
+                                    typeNameExpr(arg.Expression))));
+                        break;
+                    }
+                }
+            }
+        }
+
+        void CheckNumberOfArguments(List<Argument> arguments, ParameterInfo[] parameters, out Expr failExpr)
+        {
+            failExpr = null;
+            Debug.Assert(arguments.Count <= parameters.Length);
+
+            if (arguments.Count < parameters.Length)
+            {
+                failExpr = Expr.Throw(
+                    Expr.New(
+                        Methods.NewRuntimeException,
+                        Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT),
+                        Expr.Constant(new object[] {arguments.Count + 1, "value"})));
             }
         }
 

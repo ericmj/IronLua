@@ -221,7 +221,7 @@ namespace IronLua.Library
             {
                 sb.Clear();
                 if (Specifier != FormatSpecifier.String)
-                    throw new LuaRuntimeException(ExceptionMessage.STRING_FORMAT_BAD_ARGUMENT, Count);
+                    throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, Count + 1, "number", "string");
                 FormatString(value);
                 return sb.ToString();
             }
