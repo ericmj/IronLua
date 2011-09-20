@@ -53,24 +53,22 @@ namespace IronLua.Runtime
         }
 
         // TODO: Move to library
-        public static bool TryGetTypeName(object obj, out string name)
+        public static string GetTypeName(object obj)
         {
-            name = null;
-
             if (obj == null)
-                name = "nil";
+                return "nil";
             if (obj is bool)
-                name = "boolean";
+                return "boolean";
             if (obj is double)
-                name = "number";
+                return "number";
             if (obj is string)
-                name = "string";
+                return "string";
             if (obj is Delegate)
-                name = "function";
+                return "function";
             if (obj is LuaTable)
-                name = "table";
+                return "table";
 
-            return name != null;
+            return obj.GetType().FullName;
         }
     }
 }

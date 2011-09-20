@@ -43,10 +43,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return metamethod(obj);
 
-            string typeName;
-            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
-                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
-            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "get length of", typeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "get length of", RuntimeHelpers.GetTypeName(obj));
         }
 
         public static object UnaryMinusMetamethod(Context context, object obj)
@@ -55,10 +52,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return metamethod(obj);
 
-            string typeName;
-            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
-                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
-            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", RuntimeHelpers.GetTypeName(obj));
         }
 
         public static object IndexMetamethod(Context context, object obj, object key)
@@ -73,10 +67,7 @@ namespace IronLua.Runtime
                     return context.GetDynamicIndex()(obj, key);
             }
 
-            string typeName;
-            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
-                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
-            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", typeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", RuntimeHelpers.GetTypeName(obj));
         }
 
         public static object NewIndexMetamethod(Context context, object obj, object key, object value)
@@ -91,10 +82,7 @@ namespace IronLua.Runtime
                     return context.GetDynamicNewIndex()(obj, key, value);
             }
 
-            string typeName;
-            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
-                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
-            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", typeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", RuntimeHelpers.GetTypeName(obj));
         }
 
         public static object CallMetamethod(Context context, object obj, object[] args)
@@ -103,10 +91,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
 
-            string typeName;
-            if (!RuntimeHelpers.TryGetTypeName(obj, out typeName))
-                throw new ArgumentOutOfRangeException("obj", "Argument is of non-suported type");
-            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "call", typeName);
+            throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "call", RuntimeHelpers.GetTypeName(obj));
         }
 
         public static object ConcatMetamethod(Context context, object left, object right)
@@ -116,19 +101,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return metamethod(left, right);
 
-            string typeName;
-            if (left is string)
-            {
-                if (!RuntimeHelpers.TryGetTypeName(right, out typeName))
-                    throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
-                Debug.Assert(typeName != "string");
-            }
-            else
-            {
-                if (!RuntimeHelpers.TryGetTypeName(left, out typeName))
-                    throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
-            }
-
+            var typeName = left is string ? RuntimeHelpers.GetTypeName(left) : RuntimeHelpers.GetTypeName(right);
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "concatenate", typeName);
         }
 
@@ -163,17 +136,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return metamethod(left, right);
 
-            string typeName;
-            if (context.BaseLibrary.ToNumber(left) == null)
-            {
-                if (!RuntimeHelpers.TryGetTypeName(left, out typeName))
-                    throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
-            }
-
-            Debug.Assert(context.BaseLibrary.ToNumber(right) != null);
-            if (!RuntimeHelpers.TryGetTypeName(right, out typeName))
-                throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
-
+            var typeName = RuntimeHelpers.GetTypeName(context.BaseLibrary.ToNumber(left) == null ? left : right);
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
         }
 
@@ -198,11 +161,8 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return invert ? LuaOps.Not(metamethod(right, left)) : LuaOps.Not(metamethod(left, right));
 
-            string leftTypeName, rightTypeName;
-            if (!RuntimeHelpers.TryGetTypeName(left, out leftTypeName))
-                throw new ArgumentOutOfRangeException("left", "Argument is of non-suported type");
-            if (!RuntimeHelpers.TryGetTypeName(right, out rightTypeName))
-                throw new ArgumentOutOfRangeException("right", "Argument is of non-suported type");
+            var leftTypeName = RuntimeHelpers.GetTypeName(left);
+            var rightTypeName = RuntimeHelpers.GetTypeName(right);
 
             if (leftTypeName == rightTypeName)
                 throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_TWO_ERROR, "compare", leftTypeName);
