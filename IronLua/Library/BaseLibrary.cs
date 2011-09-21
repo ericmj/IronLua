@@ -38,13 +38,26 @@ namespace IronLua.Library
         public object DoFile(string filename = null)
         {
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
-            var input = new Input(source);
-            var parser = new Parser(input);
-            var ast = parser.Parse();
-            var gen = new Generator(Context);
-            var expr = gen.Compile(ast);
-            var func = expr.Compile();
-            return func();
+            try
+            {
+                var input = new Input(source);
+                var parser = new Parser(input);
+                var ast = parser.Parse();
+                var gen = new Generator(Context);
+                var expr = gen.Compile(ast);
+                var func = expr.Compile();
+                return func();
+            }
+            catch(LuaSyntaxException e)
+            {
+                throw new LuaRuntimeException(e.Message, e);
+            }
+        }
+
+        public void Error(string message, double level = 1.0)
+        {
+            // TODO: Use level when call stacks are implemented
+            throw new LuaRuntimeException(message);
         }
 
         public object ToNumber(object obj, double @base = 10.0)
@@ -114,6 +127,8 @@ namespace IronLua.Library
             table.SetValue("asert", (Func<bool, object, object[], Varargs>)Assert);
             table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetValue("dofile", (Func<string, object>)DoFile);
+            table.SetValue("error", (Action<string, double>)Error);
+            table.SetValue("_G", table);
         }
     }
 }
