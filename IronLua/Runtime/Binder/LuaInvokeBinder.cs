@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using IronLua.Compiler;
@@ -36,17 +37,13 @@ namespace IronLua.Runtime.Binder
             List<Expr> sideEffects;
             Expr failExpr;
             var function = (Delegate)target.Value;
-            var mappedArgs = MapArguments(args, function.Method.GetParameters(), ref restrictions, out sideEffects, out failExpr);
+            var methodInfo = function.Method;
+            var mappedArgs = MapArguments(args, methodInfo.GetParameters(), ref restrictions, out sideEffects, out failExpr);
 
             if (failExpr != null)
                 return new DynamicMetaObject(Expr.Block(failExpr, Expr.Default(typeof(object))), restrictions);
 
-            var invokeExpr =
-                Expr.Convert(
-                    Expr.Invoke(
-                        Expr.Convert(target.Expression, target.LimitType),
-                        mappedArgs),
-                    typeof(object));
+            var invokeExpr = InvokeExpression(target, mappedArgs, methodInfo);
 
             // Execute overflowing arguments for side effects
             Expr expr;
@@ -64,6 +61,17 @@ namespace IronLua.Runtime.Binder
             }
 
             return new DynamicMetaObject(expr, restrictions);
+        }
+
+        static Expr InvokeExpression(DynamicMetaObject target, IEnumerable<Expr> mappedArgs, MethodInfo methodInfo)
+        {
+            var invokeExpr = Expr.Invoke(
+                Expr.Convert(target.Expression, target.LimitType),
+                mappedArgs);
+
+            if (methodInfo.ReturnType == typeof(void))
+                return Expr.Block(invokeExpr, Expr.Default(typeof(object)));
+            return Expr.Convert(invokeExpr, typeof(object));
         }
 
         DynamicMetaObject MetamethodFallback(DynamicMetaObject target, DynamicMetaObject[] args)
