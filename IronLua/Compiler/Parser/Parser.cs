@@ -497,13 +497,8 @@ namespace IronLua.Compiler.Parser
                 case Symbol.Comma:
                 case Symbol.Equal:
                     return Assign(prefixExpr);
-                case Symbol.Colon:
-                case Symbol.LeftParen:
-                case Symbol.LeftBrace:
-                case Symbol.String:
-                    return FunctionCall(prefixExpr);
                 default:
-                    throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_SYMBOL, lexer.Current.Symbol);
+                    return FunctionCall(prefixExpr);
             }
         }
 
