@@ -351,7 +351,7 @@ namespace IronLua.Compiler
             var tableVar = Expr.Variable(typeof(LuaTable));
             var tableAssign = Expr.Assign(tableVar, newTableExpr);
 
-            int intIndex = 1;
+            double intIndex = 1;
             var fieldInitsExprs = expression.Fields
                 .Select(f => TableSetValue(tableVar, f.Visit(this), ref intIndex))
                 .ToArray();
@@ -364,7 +364,7 @@ namespace IronLua.Compiler
             return Expr.Block(new [] {tableVar}, exprs);
         }
 
-        Expr TableSetValue(Expr table, FieldVisit field, ref int intIndex)
+        Expr TableSetValue(Expr table, FieldVisit field, ref double intIndex)
         {
             switch (field.Type)
             {
