@@ -75,6 +75,16 @@ namespace IronLua.Library
             return metatable2 ?? metatable;
         }
 
+        public Varargs IPairs(LuaTable t)
+        {
+            var length = t.Length();
+            var state = 1.0;
+            Func<object> func =
+                () => state > length ? null : new Varargs(state, t.GetValue(state++));
+
+            return new Varargs(func, t, 0.0);
+        }
+
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (obj is double)
@@ -146,6 +156,7 @@ namespace IronLua.Library
             table.SetValue("_G", table);
             table.SetValue("getfenv", (Func<double, object>)GetFEnv);
             table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
+            table.SetValue("ipairs", (Func<LuaTable, Varargs>)IPairs);
         }
     }
 }

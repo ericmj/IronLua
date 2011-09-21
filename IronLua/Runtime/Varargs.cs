@@ -13,7 +13,7 @@ namespace IronLua.Runtime
         {
         }
 
-        public Varargs(object[] data)
+        public Varargs(params object[] data)
         {
             this.data = data;
         }
