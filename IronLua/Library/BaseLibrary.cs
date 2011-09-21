@@ -60,6 +60,21 @@ namespace IronLua.Library
             throw new LuaRuntimeException(message);
         }
 
+        public object GetFEnv(double f)
+        {
+            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+        }
+
+        public object GetMetatable(object obj)
+        {
+            var metatable = Context.GetMetatable(obj);
+            if (metatable == null)
+                return null;
+
+            var metatable2 = metatable.GetValue(Constant.METATABLE_METAFIELD);
+            return metatable2 ?? metatable;
+        }
+
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (obj is double)
@@ -129,6 +144,8 @@ namespace IronLua.Library
             table.SetValue("dofile", (Func<string, object>)DoFile);
             table.SetValue("error", (Action<string, double>)Error);
             table.SetValue("_G", table);
+            table.SetValue("getfenv", (Func<double, object>)GetFEnv);
+            table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
         }
     }
 }

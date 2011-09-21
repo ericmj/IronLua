@@ -33,6 +33,7 @@ namespace IronLua
         public const string INDEX_METAMETHOD = "__index";
         public const string NEWINDEX_METAMETHOD = "__newindex";
         public const string CALL_METAMETHOD = "__call";
+        public const string METATABLE_METAFIELD = "__metatable";
 
         public const string VARARGS = "$VARARGS$";
     }
