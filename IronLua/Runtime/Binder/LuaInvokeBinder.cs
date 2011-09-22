@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using IronLua.Compiler;
+using IronLua.Library;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -38,7 +39,7 @@ namespace IronLua.Runtime.Binder
             Expr failExpr;
             var function = (Delegate)target.Value;
             var methodInfo = function.Method;
-            var mappedArgs = MapArguments(args, methodInfo.GetParameters(), ref restrictions, out sideEffects, out failExpr);
+            var mappedArgs = MapArguments(args, methodInfo, ref restrictions, out sideEffects, out failExpr);
 
             if (failExpr != null)
                 return new DynamicMetaObject(Expr.Block(failExpr, Expr.Default(typeof(object))), restrictions);
@@ -87,28 +88,27 @@ namespace IronLua.Runtime.Binder
             return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
 
-        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, ParameterInfo[] parameterInfos, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)
+        IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, MethodInfo methodInfo, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)
         {
+            var parameters = methodInfo.GetParameters();
+            var isInternal = methodInfo.GetCustomAttributes(false).Any(a => a is InternalAttribute);
             var arguments = args.Select(arg => new Argument(arg.Expression, arg.LimitType)).ToList();
 
             // Remove closure
-            ParameterInfo[] parameters;
-            if (parameterInfos.Length > 0 && parameterInfos[0].ParameterType == typeof(Closure))
+            if (parameters.Length > 0 && parameters[0].ParameterType == typeof(Closure))
             {
-                parameters = new ParameterInfo[parameterInfos.Length - 1];
-                Array.Copy(parameterInfos, 1, parameters, 0, parameters.Length);
-            }
-            else
-            {
-                parameters = parameterInfos;
+                parameters = new ParameterInfo[parameters.Length - 1];
+                Array.Copy(parameters, 1, parameters, 0, parameters.Length);
             }
 
             ExpandLastArg(arguments, args, ref restrictions);
             DefaultParamValues(arguments, parameters);
             OverflowIntoParams(arguments, parameters);
             TrimArguments(arguments, parameters, out sideEffects);
+            if (!isInternal)
+                DefaultParamTypeValues(arguments, parameters);
             ConvertArgumentToParamType(arguments, parameters, out failExpr);
-            if (failExpr == null)
+            if (failExpr == null && isInternal)
                 CheckNumberOfArguments(arguments, parameters, out failExpr);
 
             return arguments.Select(arg => arg.Expression);
@@ -195,6 +195,14 @@ namespace IronLua.Runtime.Binder
                 .Select(arg => arg.Expression)
                 .ToList();
             arguments.RemoveRange(parameters.Length, arguments.Count - parameters.Length);
+        }
+
+        void DefaultParamTypeValues(List<Argument> arguments, ParameterInfo[] parameters)
+        {
+            var typeDefaultArgs = parameters
+                .Skip(arguments.Count)
+                .Select(param => new Argument(Expr.Constant(param.ParameterType.GetDefaultValue()), param.ParameterType));
+            arguments.AddRange(typeDefaultArgs);
         }
 
         void ConvertArgumentToParamType(List<Argument> arguments, ParameterInfo[] parameters, out Expr failExpr)
