@@ -116,6 +116,31 @@ namespace IronLua.Library
             }
         }
 
+        public Varargs LoadFile(string filename = null)
+        {
+            var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
+            try
+            {
+                return new Varargs(CompileString(source));
+            }
+            catch (LuaSyntaxException e)
+            {
+                return new Varargs(null, e.Message);
+            }
+        }
+
+        public Varargs LoadString(string str, string chunkname = "=(loadstring)")
+        {
+            try
+            {
+                return new Varargs(CompileString(str));
+            }
+            catch (LuaSyntaxException e)
+            {
+                return new Varargs(null, e.Message);
+            }
+        }
+
         [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
@@ -200,6 +225,8 @@ namespace IronLua.Library
             table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
             table.SetValue("ipairs", (Func<LuaTable, Varargs>)IPairs);
             table.SetValue("load", (Func<Delegate, string, Varargs>)Load);
+            table.SetValue("loadfile", (Func<string, Varargs>)LoadFile);
+            table.SetValue("loadstring", (Func<string, string, Varargs>)LoadString);
         }
     }
 }
