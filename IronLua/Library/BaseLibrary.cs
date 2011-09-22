@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Runtime;
@@ -14,6 +15,7 @@ namespace IronLua.Library
         {
         }
 
+        [Internal]
         public Varargs Assert(bool v, object message = null, params object[] additional)
         {
             if (v)
@@ -30,41 +32,40 @@ namespace IronLua.Library
             throw new LuaRuntimeException(message.ToString());
         }
 
+        [Internal]
         public void CollectGarbage(string opt, string arg = null)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
+        [Internal]
         public object DoFile(string filename = null)
         {
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
             try
             {
-                var input = new Input(source);
-                var parser = new Parser(input);
-                var ast = parser.Parse();
-                var gen = new Generator(Context);
-                var expr = gen.Compile(ast);
-                var func = expr.Compile();
-                return func();
+                return CompileString(source)();
             }
-            catch(LuaSyntaxException e)
+            catch (LuaSyntaxException e)
             {
                 throw new LuaRuntimeException(e.Message, e);
             }
         }
 
+        [Internal]
         public void Error(string message, double level = 1.0)
         {
             // TODO: Use level when call stacks are implemented
             throw new LuaRuntimeException(message);
         }
 
+        [Internal]
         public object GetFEnv(double f)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
+        [Internal]
         public object GetMetatable(object obj)
         {
             var metatable = Context.GetMetatable(obj);
@@ -75,6 +76,7 @@ namespace IronLua.Library
             return metatable2 ?? metatable;
         }
 
+        [Internal]
         public Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
@@ -85,6 +87,36 @@ namespace IronLua.Library
             return new Varargs(func, t, 0.0);
         }
 
+        [Internal]
+        public Varargs Load(Delegate func, string chunkname = "=(load)")
+        {
+            var invoker = Context.GetDynamicCall0();
+            var sb = new StringBuilder(1024);
+
+            while (true)
+            {
+                var result = invoker(func);
+                if (result == null)
+                    break;
+
+                var str = result.ToString();
+                if (String.IsNullOrEmpty(str))
+                    break;
+
+                sb.Append(str);
+            }
+
+            try
+            {
+                return new Varargs(CompileString(sb.ToString()));
+            }
+            catch (LuaSyntaxException e)
+            {
+                return new Varargs(null, e.Message);
+            }
+        }
+
+        [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (obj is double)
@@ -146,6 +178,16 @@ namespace IronLua.Library
             return -1;
         }
 
+        Func<object> CompileString(string source)
+        {
+            var input = new Input(source);
+            var parser = new Parser(input);
+            var ast = parser.Parse();
+            var gen = new Generator(Context);
+            var expr = gen.Compile(ast);
+            return expr.Compile();
+        }
+
         public override void Setup(LuaTable table)
         {
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
@@ -157,6 +199,7 @@ namespace IronLua.Library
             table.SetValue("getfenv", (Func<double, object>)GetFEnv);
             table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
             table.SetValue("ipairs", (Func<LuaTable, Varargs>)IPairs);
+            table.SetValue("load", (Func<Delegate, string, Varargs>)Load);
         }
     }
 }
