@@ -1,19 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using IronLua.Runtime.Binder;
+using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime
 {
     class LuaTable : IDynamicMetaObjectProvider
     {
-        readonly Dictionary<object, object> values;
+        int[] buckets;
+        Entry[] entries;
+        int freeList;
+        int freeCount;
+        int count;
 
         public LuaTable()
         {
-            values = new Dictionary<object, object>();
+            const int prime = 3;
+
+            buckets = new int[prime];
+            for (var i = 0; i < buckets.Length; i++)
+                buckets[i] = -1;
+
+            entries = new Entry[prime];
+            freeList = -1;
         }
 
         public LuaTable Metatable { get; set; }
@@ -23,25 +36,119 @@ namespace IronLua.Runtime
             return new MetaTable(parameter, BindingRestrictions.Empty, this);
         }
 
-        internal object GetValue(object key)
+        internal object SetValue(object key, object value)
         {
-            object value;
-            values.TryGetValue(key, out value);
+            var hashCode = key.GetHashCode() & Int32.MaxValue;
+            var modHashCode = hashCode % buckets.Length;
+
+            for (var i = buckets[modHashCode]; i >= 0; i = entries[i].Next)
+            {
+                if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
+                {
+                    entries[i].Value = value;
+                    return value;
+                }
+            }
+
+            int free;
+            if (freeCount > 0)
+            {
+                free = freeList;
+                freeList = entries[free].Next;
+                freeCount--;
+            }
+            else
+            {
+                if (count == entries.Length)
+                {
+                    Resize();
+                    modHashCode = hashCode % buckets.Length;
+                }
+                free = count;
+                count++;
+            }
+
+            entries[free].HashCode = hashCode;
+            entries[free].Next = buckets[modHashCode];
+            entries[free].Key = key;
+            entries[free].Value = value;
+            buckets[modHashCode] = free;
             return value;
         }
 
-        internal object SetValue(object key, object value)
+        public object GetValue(object key)
         {
-            if (value == null)
-                values.Remove(key);
-            else
-                values[key] = value;
-            return value;
+            var pos = FindEntry(key);
+            return pos < 0 ? null : entries[pos].Value;
+        }
+
+        public bool Remove(object key)
+        {
+            var hashCode = key.GetHashCode() & Int32.MaxValue;
+            var modHashCode = hashCode % buckets.Length;
+            var last = -1;
+
+            for (var i = buckets[modHashCode]; i >= 0; i = entries[i].Next)
+            {
+                if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
+                {
+                    if (last < 0)
+                        buckets[modHashCode] = entries[i].Next;
+                    else
+                        entries[last].Next = entries[i].Next;
+
+                    entries[i].HashCode = -1;
+                    entries[i].Next = freeList;
+                    entries[i].Key = null;
+                    entries[i].Value = null;
+                    freeList = i;
+                    freeCount++;
+                    return true;
+                }
+                last = i;
+            }
+
+            return false;
+        }
+
+        int FindEntry(object key)
+        {
+            var hashCode = key.GetHashCode() & Int32.MaxValue;
+            var modHashCode = hashCode % buckets.Length;
+
+            for (var i = buckets[modHashCode]; i >= 0; i = entries[i].Next)
+            {
+                if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
+                    return i;
+            }
+
+            return -1;
+        }
+
+        void Resize()
+        {
+            var prime = HashHelpers.GetPrime(count * 2);
+
+            var newBuckets = new int[prime];
+            for (var i = 0; i < newBuckets.Length; i++)
+                newBuckets[i] = -1;
+
+            var newEntries = new Entry[prime];
+            Array.Copy(entries, 0, newEntries, 0, count);
+            for (var i = 0; i < count; i++)
+            {
+                var modHashCode = newEntries[i].HashCode % prime;
+                newEntries[i].Next = newBuckets[modHashCode];
+                newBuckets[modHashCode] = i;
+            }
+
+            buckets = newBuckets;
+            entries = newEntries;
         }
 
         internal int Length()
         {
-            var lastNum = 0;
+            /*var lastNum = 0;
             foreach (var key in values.Keys.OfType<double>().OrderBy(key => key))
             {
                 var intKey = (int)key;
@@ -53,7 +160,16 @@ namespace IronLua.Runtime
                 
                 lastNum = intKey;
             }
-            return lastNum;
+            return lastNum;*/
+            throw new NotImplementedException();
+        }
+
+        class Entry
+        {
+            public int HashCode;
+            public object Key;
+            public object Value;
+            public int Next;
         }
 
         class MetaTable : DynamicMetaObject

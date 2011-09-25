@@ -103,6 +103,7 @@
     <Compile Include="Runtime\Varargs.cs" />
     <Compile Include="Util\CharExtensions.cs" />
     <Compile Include="Util\EnumerableExtensions.cs" />
+    <Compile Include="Util\HashHelpers.cs" />
     <Compile Include="Util\ParameterInfoExtensions.cs" />
     <Compile Include="Util\TypeExtensions.cs" />
   </ItemGroup>
