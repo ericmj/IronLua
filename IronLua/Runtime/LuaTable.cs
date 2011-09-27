@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -9,6 +10,9 @@ using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime
 {
+#if DEBUG
+    [DebuggerTypeProxy(typeof(LuaTableDebugView))]
+#endif
     class LuaTable : IDynamicMetaObjectProvider
     {
         int[] buckets;
@@ -34,6 +38,26 @@ namespace IronLua.Runtime
         public DynamicMetaObject GetMetaObject(Expression parameter)
         {
             return new MetaTable(parameter, BindingRestrictions.Empty, this);
+        }
+
+        internal Varargs Next(object index = null)
+        {
+            if (index == null)
+            {
+                for (var i = 0; i < entries.Length; i++)
+                {
+                    if (entries[i].Key != null)
+                        return new Varargs(entries[i].Key, entries[i].Value);
+                }
+                return null;
+            }
+
+            for (var i = FindEntry(index) + 1; i < entries.Length; i++)
+            {
+                if (entries[i].Key != null)
+                    return new Varargs(entries[i].Key, entries[i].Value);
+            }
+            return null;
         }
 
         internal object SetValue(object key, object value)
@@ -82,7 +106,7 @@ namespace IronLua.Runtime
             return value;
         }
 
-        public object GetValue(object key)
+        internal object GetValue(object key)
         {
             var pos = FindEntry(key);
             return pos < 0 ? null : entries[pos].Value;
@@ -167,7 +191,7 @@ namespace IronLua.Runtime
             return lastNum;
         }
 
-        class Entry
+        struct Entry
         {
             public int HashCode;
             public object Key;
@@ -230,5 +254,36 @@ namespace IronLua.Runtime
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
         }
+
+#if DEBUG
+        class LuaTableDebugView
+        {
+            LuaTable table;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public KeyValuePair<object, object>[] Items
+            {
+                get
+                {
+                    var index = 0;
+                    var pairs = new KeyValuePair<object, object>[table.count];
+
+                    for (var i = 0; i < table.count; i++)
+                    {
+                        if (table.entries[i].HashCode >= 0)
+                            pairs[index++] = new KeyValuePair<object, object>(table.entries[i].Key,
+                                                                              table.entries[i].Value);
+                    }
+
+                    return pairs;
+                }
+            }
+
+            public LuaTableDebugView(LuaTable table)
+            {
+                this.table = table;
+            }
+        }
+#endif
     }
 }

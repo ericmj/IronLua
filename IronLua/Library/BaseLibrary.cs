@@ -116,6 +116,7 @@ namespace IronLua.Library
             }
         }
 
+        [Internal]
         public Varargs LoadFile(string filename = null)
         {
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
@@ -129,6 +130,7 @@ namespace IronLua.Library
             }
         }
 
+        [Internal]
         public Varargs LoadString(string str, string chunkname = "=(loadstring)")
         {
             try
@@ -139,6 +141,12 @@ namespace IronLua.Library
             {
                 return new Varargs(null, e.Message);
             }
+        }
+
+        [Internal]
+        public Varargs Next(LuaTable table, object index = null)
+        {
+            return table.Next(index);
         }
 
         [Internal]
@@ -216,7 +224,7 @@ namespace IronLua.Library
         public override void Setup(LuaTable table)
         {
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
-            table.SetValue("asert", (Func<bool, object, object[], Varargs>)Assert);
+            table.SetValue("assert", (Func<bool, object, object[], Varargs>)Assert);
             table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetValue("dofile", (Func<string, object>)DoFile);
             table.SetValue("error", (Action<string, double>)Error);
@@ -227,6 +235,7 @@ namespace IronLua.Library
             table.SetValue("load", (Func<Delegate, string, Varargs>)Load);
             table.SetValue("loadfile", (Func<string, Varargs>)LoadFile);
             table.SetValue("loadstring", (Func<string, string, Varargs>)LoadString);
+            table.SetValue("next", (Func<LuaTable, object, Varargs>)Next);
         }
     }
 }
