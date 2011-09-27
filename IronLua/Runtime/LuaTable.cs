@@ -38,6 +38,12 @@ namespace IronLua.Runtime
 
         internal object SetValue(object key, object value)
         {
+            if (value == null)
+            {
+                Remove(key);
+                return null;
+            }
+
             var hashCode = key.GetHashCode() & Int32.MaxValue;
             var modHashCode = hashCode % buckets.Length;
 
@@ -82,7 +88,7 @@ namespace IronLua.Runtime
             return pos < 0 ? null : entries[pos].Value;
         }
 
-        public bool Remove(object key)
+        void Remove(object key)
         {
             var hashCode = key.GetHashCode() & Int32.MaxValue;
             var modHashCode = hashCode % buckets.Length;
@@ -103,15 +109,13 @@ namespace IronLua.Runtime
                     entries[i].Value = null;
                     freeList = i;
                     freeCount++;
-                    return true;
+                    return;
                 }
                 last = i;
             }
-
-            return false;
         }
 
-        int FindEntry(object key)
+        internal int FindEntry(object key)
         {
             var hashCode = key.GetHashCode() & Int32.MaxValue;
             var modHashCode = hashCode % buckets.Length;
@@ -148,8 +152,8 @@ namespace IronLua.Runtime
 
         internal int Length()
         {
-            /*var lastNum = 0;
-            foreach (var key in values.Keys.OfType<double>().OrderBy(key => key))
+            var lastNum = 0;
+            foreach (var key in entries.Select(e => e.Key).OfType<double>().OrderBy(key => key))
             {
                 var intKey = (int)key;
 
@@ -160,8 +164,7 @@ namespace IronLua.Runtime
                 
                 lastNum = intKey;
             }
-            return lastNum;*/
-            throw new NotImplementedException();
+            return lastNum;
         }
 
         class Entry
