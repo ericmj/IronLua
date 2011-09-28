@@ -71,40 +71,12 @@ namespace IronLua.Runtime.Binder
             {
                 if (!(Operation == ExprType.Equal || Operation == ExprType.NotEqual))
                     return null;
-
-                return
-                    Expr.MakeBinary(
-                        Operation,
-                        Expr.Convert(left.Expression, left.LimitType),
-                        Expr.Convert(right.Expression, right.LimitType));
             }
 
-            if (left.LimitType == typeof(double) && right.LimitType == typeof(double))
-            {
-                return
-                    Expr.MakeBinary(
-                        Operation,
-                        Expr.Convert(left.Expression, left.LimitType),
-                        Expr.Convert(right.Expression, right.LimitType));
-            }
-
-            if (left.LimitType == typeof(string) && right.LimitType == typeof(string))
-            {
-                var compareExpr =
-                    Expr.Invoke(
-                        Expr.Constant((Func<string, string, StringComparison, int>)String.Compare),
-                        left.Expression,
-                        right.Expression,
-                        Expr.Constant(StringComparison.InvariantCulture));
-
-                return
-                    Expr.MakeBinary(
-                        Operation,
-                        compareExpr,
-                        Expr.Constant(0));
-            }
-
-            return Expr.Constant(false);
+            return Expr.MakeBinary(
+                Operation,
+                Expr.Convert(left.Expression, left.LimitType),
+                Expr.Convert(right.Expression, right.LimitType));
         }
 
         Expr Logical(DynamicMetaObject left, DynamicMetaObject right)
