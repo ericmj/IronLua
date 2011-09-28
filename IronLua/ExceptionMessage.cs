@@ -19,7 +19,8 @@
         public const string OP_TYPE_WITH_ERROR = "Attempt to {0} {1} with {2}";
         public const string OP_TYPE_TWO_ERROR = "Attempt to {0} two {1} values";
         // TODO: Add "to '...'" when we implement call stacks
-        public const string INVOKE_BAD_ARGUMENT = "Bad argument #{0} ({1} expected)";
+        public const string INVOKE_BAD_ARGUMENT = "Bad argument #{0} ({1})";
+        public const string INVOKE_BAD_ARGUMENT_EXPECTED = "Bad argument #{0} ({1} expected)";
         public const string INVOKE_BAD_ARGUMENT_GOT = "Bad argument #{0} ({1} expected, got {2})";
             
         // Library

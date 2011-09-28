@@ -173,10 +173,29 @@ namespace IronLua.Library
         }
 
         [Internal]
+        public void Print(params object[] args)
+        {
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (i > 0)
+                    Console.Out.Write("\t");
+                Console.Out.Write(args[i]);
+            }
+            Console.Out.WriteLine();
+        }
+
+        [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
-            if (obj is double)
-                return obj;
+            if (@base == 10.0)
+            {
+                if (obj is double)
+                    return obj;
+            }
+            else if (@base < 2.0 || @base > 36.0)
+            {
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 2, "base out of range");
+            }
 
             string stringStr;
             if ((stringStr = obj as string) == null)
@@ -261,6 +280,7 @@ namespace IronLua.Library
             table.SetValue("next", (Func<LuaTable, object, Varargs>)Next);
             table.SetValue("pairs", (Func<LuaTable, Varargs>)Pairs);
             table.SetValue("pcall", (Func<Delegate, object[], Varargs>)PCall);
+            table.SetValue("print", (Action<object[]>)Print);
         }
     }
 }

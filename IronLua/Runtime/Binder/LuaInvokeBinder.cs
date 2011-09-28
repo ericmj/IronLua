@@ -267,7 +267,7 @@ namespace IronLua.Runtime.Binder
                 failExpr = Expr.Throw(
                     Expr.New(
                         Methods.NewRuntimeException,
-                        Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT),
+                        Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT_EXPECTED),
                         Expr.Constant(new object[] {arguments.Count + 1, "value"})));
             }
         }
