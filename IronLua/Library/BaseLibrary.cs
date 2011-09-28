@@ -16,7 +16,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public Varargs Assert(bool v, object message = null, params object[] additional)
+        public static Varargs Assert(bool v, object message = null, params object[] additional)
         {
             if (v)
             {
@@ -53,7 +53,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public void Error(string message, double level = 1.0)
+        public static void Error(string message, double level = 1.0)
         {
             // TODO: Use level when call stacks are implemented
             throw new LuaRuntimeException(message);
@@ -77,7 +77,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public Varargs IPairs(LuaTable t)
+        public static Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
             Func<double, object> func =
@@ -147,13 +147,13 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public Varargs Next(LuaTable table, object index = null)
+        public static Varargs Next(LuaTable table, object index = null)
         {
             return table.Next(index);
         }
 
         [Internal]
-        public Varargs Pairs(LuaTable t)
+        public static Varargs Pairs(LuaTable t)
         {
             return new Varargs(t, (Func<LuaTable, object, Varargs>)Next, null);
         }
@@ -173,7 +173,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public void Print(params object[] args)
+        public static void Print(params object[] args)
         {
             for (var i = 0; i < args.Length; i++)
             {
@@ -185,26 +185,26 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public bool RawEqual(object v1, object v2)
+        public static bool RawEqual(object v1, object v2)
         {
             return v1.Equals(v2);
         }
 
         [Internal]
-        public object RawGet(LuaTable table, object index)
+        public static object RawGet(LuaTable table, object index)
         {
             return table.GetValue(index);
         }
 
         [Internal]
-        public LuaTable RawSet(LuaTable table, object index, object value)
+        public static LuaTable RawSet(LuaTable table, object index, object value)
         {
             table.SetValue(index, value);
             return table;
         }
 
         [Internal]
-        public Varargs Select(object index, params object[] args)
+        public static Varargs Select(object index, params object[] args)
         {
             double num;
             string str;
@@ -224,7 +224,7 @@ namespace IronLua.Library
             else
             {
                 throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 1, "number",
-                                              RuntimeHelpers.GetTypeName(index));
+                                              Type(index));
             }
 
             var numIndex = (int)num - 1;
@@ -243,7 +243,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public LuaTable SetMetatable(LuaTable table, LuaTable metatable)
+        public static LuaTable SetMetatable(LuaTable table, LuaTable metatable)
         {
             if (table.Metatable != null && table.Metatable.GetValue(Constant.METATABLE_METAFIELD) != null)
                 throw new LuaRuntimeException(ExceptionMessage.PROTECTED_METATABLE);
@@ -253,7 +253,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public object ToNumber(object obj, double @base = 10.0)
+        public static object ToNumber(object obj, double @base = 10.0)
         {
             if (@base == 10.0)
             {
@@ -270,7 +270,7 @@ namespace IronLua.Library
                 return null;
 
             var value = InternalToNumber(stringStr, @base);
-            return double.IsNaN(value) ? null : (object)value;
+            return Double.IsNaN(value) ? null : (object)value;
         }
 
         [Internal]
@@ -282,6 +282,25 @@ namespace IronLua.Library
                 return e.ToString();
 
             return Context.GetDynamicCall1()(metaToString, e);
+        }
+
+        [Internal]
+        public static string Type(object v)
+        {
+            if (v == null)
+                return "nil";
+            if (v is bool)
+                return "boolean";
+            if (v is double)
+                return "number";
+            if (v is string)
+                return "string";
+            if (v is Delegate)
+                return "function";
+            if (v is LuaTable)
+                return "table";
+
+            return v.GetType().FullName;
         }
 
         internal static double InternalToNumber(string str, double @base)
@@ -296,7 +315,7 @@ namespace IronLua.Library
                     if (NumberUtil.TryParseHexNumber(str.Substring(2), true, out result))
                         return result;
                 }
-                return NumberUtil.TryParseDecimalNumber(str, out result) ? result : double.NaN;
+                return NumberUtil.TryParseDecimalNumber(str, out result) ? result : Double.NaN;
             }
 
             if (intBase == 16)
@@ -306,7 +325,7 @@ namespace IronLua.Library
                     if (NumberUtil.TryParseHexNumber(str.Substring(2), false, out result))
                         return result;
                 }
-                return double.NaN;
+                return Double.NaN;
             }
 
             var reversedStr = new String(str.Reverse().ToArray());
@@ -314,7 +333,7 @@ namespace IronLua.Library
             {
                 var num = AlphaNumericToBase(reversedStr[i]);
                 if (num == -1 || num >= intBase)
-                    return double.NaN;
+                    return Double.NaN;
                 result += num * (intBase * i + 1);
             }
             return result;
@@ -367,6 +386,7 @@ namespace IronLua.Library
             table.SetValue("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
             table.SetValue("tostring", (Func<object, object>)ToString);
+            table.SetValue("type", (Func<object, string>)Type);
         }
     }
 }

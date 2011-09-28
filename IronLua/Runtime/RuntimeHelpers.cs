@@ -51,24 +51,5 @@ namespace IronLua.Runtime
             first = new DynamicMetaObject(expr, MergeTypeRestrictions(target));
             return true;
         }
-
-        // TODO: Move to library
-        public static string GetTypeName(object obj)
-        {
-            if (obj == null)
-                return "nil";
-            if (obj is bool)
-                return "boolean";
-            if (obj is double)
-                return "number";
-            if (obj is string)
-                return "string";
-            if (obj is Delegate)
-                return "function";
-            if (obj is LuaTable)
-                return "table";
-
-            return obj.GetType().FullName;
-        }
     }
 }

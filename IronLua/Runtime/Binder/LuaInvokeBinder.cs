@@ -238,7 +238,7 @@ namespace IronLua.Runtime.Binder
                     {
                         Func<Expr, Expr> typeNameExpr =
                             obj => Expr.Invoke(
-                                Expr.Constant((Func<object, string>)RuntimeHelpers.GetTypeName),
+                                Expr.Constant((Func<object, string>)BaseLibrary.Type),
                                 Expr.Convert(obj, typeof(object)));
 
                         // Ugly reflection hack
