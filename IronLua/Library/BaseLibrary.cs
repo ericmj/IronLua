@@ -185,6 +185,25 @@ namespace IronLua.Library
         }
 
         [Internal]
+        public bool RawEqual(object v1, object v2)
+        {
+            return v1.Equals(v2);
+        }
+
+        [Internal]
+        public object RawGet(LuaTable table, object index)
+        {
+            return table.GetValue(index);
+        }
+
+        [Internal]
+        public LuaTable RawSet(LuaTable table, object index, object value)
+        {
+            table.SetValue(index, value);
+            return table;
+        }
+
+        [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (@base == 10.0)
@@ -265,7 +284,6 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
             table.SetValue("assert", (Func<bool, object, object[], Varargs>)Assert);
             table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetValue("dofile", (Func<string, object>)DoFile);
@@ -281,6 +299,11 @@ namespace IronLua.Library
             table.SetValue("pairs", (Func<LuaTable, Varargs>)Pairs);
             table.SetValue("pcall", (Func<Delegate, object[], Varargs>)PCall);
             table.SetValue("print", (Action<object[]>)Print);
+            table.SetValue("rawequal", (Func<object, object, bool>)RawEqual);
+            table.SetValue("rawget", (Func<LuaTable, object, object>)RawGet);
+            table.SetValue("rawset", (Func<LuaTable, object, object, object>)RawSet);
+
+            table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
         }
     }
 }
