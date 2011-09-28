@@ -91,7 +91,7 @@ namespace IronLua.Runtime.Binder
         IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, MethodInfo methodInfo, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)
         {
             var parameters = methodInfo.GetParameters();
-            var isInternal = methodInfo.GetCustomAttributes(false).Any(a => a is InternalAttribute);
+            var isFromLua = methodInfo.Name.StartsWith(Constant.FUNCTION_PREFIX);
             var arguments = args.Select(arg => new Argument(arg.Expression, arg.LimitType)).ToList();
 
             // Remove closure
@@ -106,10 +106,10 @@ namespace IronLua.Runtime.Binder
             DefaultParamValues(arguments, parameters);
             OverflowIntoParams(arguments, parameters);
             TrimArguments(arguments, parameters, out sideEffects);
-            if (!isInternal)
+            if (isFromLua)
                 DefaultParamTypeValues(arguments, parameters);
             ConvertArgumentToParamType(arguments, parameters, out failExpr);
-            if (failExpr == null && isInternal)
+            if (failExpr == null && !isFromLua)
                 CheckNumberOfArguments(arguments, parameters, out failExpr);
 
             return arguments.Select(arg => arg.Expression);

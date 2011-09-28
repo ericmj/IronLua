@@ -47,7 +47,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
-    <Compile Include="Library\InternalAttribute.cs" />
     <Compile Include="LuaRuntimeException.cs" />
     <Compile Include="LuaSyntaxException.cs" />
     <Compile Include="Compiler\Ast\AstExtensions.cs" />

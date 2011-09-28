@@ -15,7 +15,6 @@ namespace IronLua.Library
         {
         }
 
-        [Internal]
         public static Varargs Assert(bool v, object message = null, params object[] additional)
         {
             if (v)
@@ -32,13 +31,11 @@ namespace IronLua.Library
             throw new LuaRuntimeException(message.ToString());
         }
 
-        [Internal]
         public void CollectGarbage(string opt, string arg = null)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
-        [Internal]
         public object DoFile(string filename = null)
         {
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
@@ -52,20 +49,17 @@ namespace IronLua.Library
             }
         }
 
-        [Internal]
         public static void Error(string message, double level = 1.0)
         {
             // TODO: Use level when call stacks are implemented
             throw new LuaRuntimeException(message);
         }
 
-        [Internal]
         public object GetFEnv(object f = null)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
-        [Internal]
         public object GetMetatable(object obj)
         {
             var metatable = Context.GetMetatable(obj);
@@ -76,7 +70,6 @@ namespace IronLua.Library
             return metatable2 ?? metatable;
         }
 
-        [Internal]
         public static Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
@@ -90,7 +83,6 @@ namespace IronLua.Library
             return new Varargs(func, t, 0.0);
         }
 
-        [Internal]
         public Varargs Load(Delegate func, string chunkname = "=(load)")
         {
             var invoker = Context.GetDynamicCall0();
@@ -119,7 +111,6 @@ namespace IronLua.Library
             }
         }
 
-        [Internal]
         public Varargs LoadFile(string filename = null)
         {
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
@@ -133,7 +124,6 @@ namespace IronLua.Library
             }
         }
 
-        [Internal]
         public Varargs LoadString(string str, string chunkname = "=(loadstring)")
         {
             try
@@ -146,19 +136,16 @@ namespace IronLua.Library
             }
         }
 
-        [Internal]
         public static Varargs Next(LuaTable table, object index = null)
         {
             return table.Next(index);
         }
 
-        [Internal]
         public static Varargs Pairs(LuaTable t)
         {
             return new Varargs(t, (Func<LuaTable, object, Varargs>)Next, null);
         }
 
-        [Internal]
         public Varargs PCall(Delegate f, params object[] args)
         {
             try
@@ -172,7 +159,6 @@ namespace IronLua.Library
             }
         }
 
-        [Internal]
         public static void Print(params object[] args)
         {
             for (var i = 0; i < args.Length; i++)
@@ -184,26 +170,22 @@ namespace IronLua.Library
             Console.Out.WriteLine();
         }
 
-        [Internal]
         public static bool RawEqual(object v1, object v2)
         {
             return v1.Equals(v2);
         }
 
-        [Internal]
         public static object RawGet(LuaTable table, object index)
         {
             return table.GetValue(index);
         }
 
-        [Internal]
         public static LuaTable RawSet(LuaTable table, object index, object value)
         {
             table.SetValue(index, value);
             return table;
         }
 
-        [Internal]
         public static Varargs Select(object index, params object[] args)
         {
             double num;
@@ -236,13 +218,11 @@ namespace IronLua.Library
             return new Varargs(returnArgs);
         }
 
-        [Internal]
         public object SetFEnv(object f, LuaTable table)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
-        [Internal]
         public static LuaTable SetMetatable(LuaTable table, LuaTable metatable)
         {
             if (table.Metatable != null && table.Metatable.GetValue(Constant.METATABLE_METAFIELD) != null)
@@ -252,7 +232,6 @@ namespace IronLua.Library
             return table;
         }
 
-        [Internal]
         public static object ToNumber(object obj, double @base = 10.0)
         {
             if (@base == 10.0)
@@ -273,7 +252,6 @@ namespace IronLua.Library
             return Double.IsNaN(value) ? null : (object)value;
         }
 
-        [Internal]
         public object ToString(object e)
         {
             // TODO: Fix casing of boolean's
@@ -284,7 +262,6 @@ namespace IronLua.Library
             return Context.GetDynamicCall1()(metaToString, e);
         }
 
-        [Internal]
         public static string Type(object v)
         {
             if (v == null)

@@ -36,6 +36,7 @@ namespace IronLua
         public const string METATABLE_METAFIELD = "__metatable";
         public const string TOSTRING_METAFIELD = "__tostring";
 
-        public const string VARARGS = "$VARARGS$";
+        public const string VARARGS = "$varargs$";
+        public const string FUNCTION_PREFIX = "lua$";
     }
 }

@@ -79,7 +79,7 @@ namespace IronLua.Compiler
             return expr;
         }
 
-        Expr Visit(FunctionBody function)
+        Expr Visit(string name, FunctionBody function)
         {
             var parentScope = scope;
             scope = Scope.CreateFunctionChild(scope);
@@ -89,7 +89,7 @@ namespace IronLua.Compiler
                 parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
 
             var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
-            var lambdaExpr = Expr.Lambda(bodyExpr, parameters);
+            var lambdaExpr = Expr.Lambda(bodyExpr, Constant.FUNCTION_PREFIX + name, parameters);
 
             scope = parentScope;
             return lambdaExpr;
@@ -187,7 +187,7 @@ namespace IronLua.Compiler
                 statement.Name.Table = null;
             }
 
-            var bodyExpr = Visit(statement.Body);
+            var bodyExpr = Visit(statement.Name.Identifiers.Last(), statement.Body);
             return AssignToIdentifierList(statement.Name.Identifiers, bodyExpr);
         }
 
@@ -237,7 +237,7 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
         {
-            return Expr.Assign(scope.AddLocal(statement.Identifier), Visit(statement.Body));
+            return Expr.Assign(scope.AddLocal(statement.Identifier), Visit(statement.Identifier, statement.Body));
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Repeat statement)
@@ -322,7 +322,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Function expression)
         {
-            return Visit(expression.Body);
+            return Visit("lambda", expression.Body);
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Nil expression)
