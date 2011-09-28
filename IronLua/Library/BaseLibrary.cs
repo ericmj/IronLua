@@ -204,6 +204,39 @@ namespace IronLua.Library
         }
 
         [Internal]
+        public Varargs Select(object index, params object[] args)
+        {
+            double num;
+            string str;
+
+            if ((str = index as string) != null)
+            {
+                if (str == "#")
+                    return new Varargs(args.Length);
+                num = InternalToNumber(str, 10.0);
+                if (Double.IsNaN(num))
+                    throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 1, "number", "string");
+            }
+            else if (index is double)
+            {
+                num = (double)index;
+            }
+            else
+            {
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 1, "number",
+                                              RuntimeHelpers.GetTypeName(index));
+            }
+
+            var numIndex = (int)num - 1;
+            if (numIndex >= args.Length || numIndex < 0)
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 1, "index out of range");
+
+            var returnArgs = new object[args.Length - numIndex];
+            Array.Copy(args, numIndex, returnArgs, 0, args.Length - numIndex);
+            return new Varargs(returnArgs);
+        }
+
+        [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (@base == 10.0)
@@ -302,6 +335,7 @@ namespace IronLua.Library
             table.SetValue("rawequal", (Func<object, object, bool>)RawEqual);
             table.SetValue("rawget", (Func<LuaTable, object, object>)RawGet);
             table.SetValue("rawset", (Func<LuaTable, object, object, object>)RawSet);
+            table.SetValue("select", (Func<object, object[], Varargs>)Select);
 
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
         }
