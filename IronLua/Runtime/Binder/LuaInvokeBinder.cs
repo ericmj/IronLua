@@ -97,8 +97,9 @@ namespace IronLua.Runtime.Binder
             // Remove closure
             if (parameters.Length > 0 && parameters[0].ParameterType == typeof(Closure))
             {
-                parameters = new ParameterInfo[parameters.Length - 1];
-                Array.Copy(parameters, 1, parameters, 0, parameters.Length);
+                var tempParameters = new ParameterInfo[parameters.Length - 1];
+                Array.Copy(parameters, 1, tempParameters, 0, tempParameters.Length);
+                parameters = tempParameters;
             }
 
             ExpandLastArg(arguments, args, ref restrictions);
@@ -114,7 +115,6 @@ namespace IronLua.Runtime.Binder
             return arguments.Select(arg => arg.Expression);
         }
 
-        // TODO: Add support for object[] as an alternative for Varargs?
         void ExpandLastArg(List<Argument> arguments, DynamicMetaObject[] args, ref BindingRestrictions restrictions)
         {
             if (args.Length == 0)
