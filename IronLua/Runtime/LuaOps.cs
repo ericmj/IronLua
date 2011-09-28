@@ -141,7 +141,7 @@ namespace IronLua.Runtime
             if (metamethod != null)
                 return metamethod(left, right);
 
-            var typeName = BaseLibrary.Type(context.BaseLibrary.ToNumber(left) == null ? left : right);
+            var typeName = BaseLibrary.Type(BaseLibrary.ToNumber(left) == null ? left : right);
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
         }
 
