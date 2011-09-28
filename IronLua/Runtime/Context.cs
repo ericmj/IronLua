@@ -21,7 +21,7 @@ namespace IronLua.Runtime
         Func<object, object, object> getDynamicIndexCache;
         Func<object, object, object, object> getDynamicNewIndexCache;
         Func<Delegate, object> getDynamicCallCache0;
-        Func<Delegate, object, object, object> getDynamicCallCache2;
+        Func<Delegate, object, object> getDynamicCallCache1;
 
         public Context()
         {
@@ -111,19 +111,18 @@ namespace IronLua.Runtime
             return getDynamicCallCache0 = expr.Compile();
         }
 
-        internal Func<Delegate, object, object, object> GetDynamicCall2()
+        internal Func<Delegate, object, object> GetDynamicCall1()
         {
-            if (getDynamicCallCache2 != null)
-                return getDynamicCallCache2;
+            if (getDynamicCallCache1 != null)
+                return getDynamicCallCache1;
 
             var funcVar = Expr.Parameter(typeof(Delegate));
-            var arg1Var = Expr.Parameter(typeof(object));
-            var arg2Var = Expr.Parameter(typeof(object));
-            var expr = Expr.Lambda<Func<Delegate, object, object, object>>(
-                Expr.Dynamic(BinderCache.GetInvokeBinder(new CallInfo(2)), typeof(object), funcVar, arg1Var, arg2Var),
-                funcVar, arg1Var, arg2Var);
+            var argVar = Expr.Parameter(typeof(object));
+            var expr = Expr.Lambda<Func<Delegate, object, object>>(
+                Expr.Dynamic(BinderCache.GetInvokeBinder(new CallInfo(1)), typeof(object), funcVar, argVar),
+                funcVar, argVar);
 
-            return getDynamicCallCache2 = expr.Compile();
+            return getDynamicCallCache1 = expr.Compile();
         }
     }
 }

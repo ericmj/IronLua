@@ -89,7 +89,12 @@ namespace IronLua.Runtime
         {
             dynamic metamethod = context.GetMetamethod(obj, Constant.CALL_METAMETHOD);
             if (metamethod != null)
-                return context.GetDynamicCall2()(metamethod, obj, new Varargs(args));
+            {
+                var array = new object[args.Length + 1];
+                array[0] = obj;
+                Array.Copy(args, 0, array, 1, args.Length);
+                return context.GetDynamicCall1()(metamethod, new Varargs(array));
+            }
 
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "call", RuntimeHelpers.GetTypeName(obj));
         }

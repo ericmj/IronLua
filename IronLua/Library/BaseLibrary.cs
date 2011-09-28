@@ -80,9 +80,12 @@ namespace IronLua.Library
         public Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
-            var state = 1.0;
-            Func<object> func =
-                () => state > length ? null : new Varargs(state, t.GetValue(state++));
+            Func<double, object> func =
+                index =>
+                    {
+                        index++;
+                        return index > length ? null : new Varargs(index, t.GetValue(index));
+                    };
 
             return new Varargs(func, t, 0.0);
         }
@@ -147,6 +150,26 @@ namespace IronLua.Library
         public Varargs Next(LuaTable table, object index = null)
         {
             return table.Next(index);
+        }
+
+        [Internal]
+        public Varargs Pairs(LuaTable t)
+        {
+            return new Varargs(t, (Func<LuaTable, object, Varargs>)Next, null);
+        }
+
+        [Internal]
+        public Varargs PCall(Delegate f, params object[] args)
+        {
+            try
+            {
+                var result = Context.GetDynamicCall1()(f, new Varargs(args));
+                return new Varargs(true, result);
+            }
+            catch (LuaRuntimeException e)
+            {
+                return new Varargs(false, e.Message);
+            }
         }
 
         [Internal]
@@ -236,6 +259,8 @@ namespace IronLua.Library
             table.SetValue("loadfile", (Func<string, Varargs>)LoadFile);
             table.SetValue("loadstring", (Func<string, string, Varargs>)LoadString);
             table.SetValue("next", (Func<LuaTable, object, Varargs>)Next);
+            table.SetValue("pairs", (Func<LuaTable, Varargs>)Pairs);
+            table.SetValue("pcall", (Func<Delegate, object[], Varargs>)PCall);
         }
     }
 }
