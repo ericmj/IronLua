@@ -273,6 +273,17 @@ namespace IronLua.Library
             return double.IsNaN(value) ? null : (object)value;
         }
 
+        [Internal]
+        public object ToString(object e)
+        {
+            // TODO: Fix casing of boolean's
+            var metaToString = Context.GetMetamethod(e, Constant.TOSTRING_METAFIELD);
+            if (metaToString == null)
+                return e.ToString();
+
+            return Context.GetDynamicCall1()(metaToString, e);
+        }
+
         internal static double InternalToNumber(string str, double @base)
         {
             double result = 0;
@@ -354,8 +365,8 @@ namespace IronLua.Library
             table.SetValue("select", (Func<object, object[], Varargs>)Select);
             table.SetValue("setfenv", (Func<object, LuaTable, object>)SetFEnv);
             table.SetValue("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
-
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
+            table.SetValue("tostring", (Func<object, object>)ToString);
         }
     }
 }
