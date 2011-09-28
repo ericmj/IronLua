@@ -27,5 +27,6 @@
         //public const string BAD_ARGUMENT_INVALID_OPTION = "Bad argument #{0} to '{1}' (invalid option '{2}')";
         public const string STRING_FORMAT_INVALID_OPTION = "Invalid option '{0}', to 'format'";
         public const string FUNCTION_NOT_IMPLEMENTED = "Function '{0}' not implemented";
+        public const string PROTECTED_METATABLE = "Cannot change a protected metatable";
     }
 }

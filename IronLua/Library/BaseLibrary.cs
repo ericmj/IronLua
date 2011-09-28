@@ -60,7 +60,7 @@ namespace IronLua.Library
         }
 
         [Internal]
-        public object GetFEnv(double f)
+        public object GetFEnv(object f = null)
         {
             throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
@@ -237,6 +237,22 @@ namespace IronLua.Library
         }
 
         [Internal]
+        public object SetFEnv(object f, LuaTable table)
+        {
+            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+        }
+
+        [Internal]
+        public LuaTable SetMetatable(LuaTable table, LuaTable metatable)
+        {
+            if (table.Metatable != null && table.Metatable.GetValue(Constant.METATABLE_METAFIELD) != null)
+                throw new LuaRuntimeException(ExceptionMessage.PROTECTED_METATABLE);
+
+            table.Metatable = metatable;
+            return table;
+        }
+
+        [Internal]
         public object ToNumber(object obj, double @base = 10.0)
         {
             if (@base == 10.0)
@@ -322,7 +338,7 @@ namespace IronLua.Library
             table.SetValue("dofile", (Func<string, object>)DoFile);
             table.SetValue("error", (Action<string, double>)Error);
             table.SetValue("_G", table);
-            table.SetValue("getfenv", (Func<double, object>)GetFEnv);
+            table.SetValue("getfenv", (Func<object, object>)GetFEnv);
             table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
             table.SetValue("ipairs", (Func<LuaTable, Varargs>)IPairs);
             table.SetValue("load", (Func<Delegate, string, Varargs>)Load);
@@ -336,6 +352,8 @@ namespace IronLua.Library
             table.SetValue("rawget", (Func<LuaTable, object, object>)RawGet);
             table.SetValue("rawset", (Func<LuaTable, object, object, object>)RawSet);
             table.SetValue("select", (Func<object, object[], Varargs>)Select);
+            table.SetValue("setfenv", (Func<object, LuaTable, object>)SetFEnv);
+            table.SetValue("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
 
             table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
         }
