@@ -7,11 +7,8 @@ namespace IronLua.Runtime
 {
     class Varargs : IList, IList<object>
     {
+        static readonly Varargs empty = new Varargs();
         readonly object[] data;
-
-        private Varargs()
-        {
-        }
 
         public Varargs(params object[] data)
         {
@@ -24,6 +21,8 @@ namespace IronLua.Runtime
         }
 
         public int Count { get { return data.Length; } }
+
+        public static Varargs Empty { get { return empty; } }
 
         public object First()
         {

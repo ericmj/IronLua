@@ -49,7 +49,7 @@ namespace IronLua.Library
             }
         }
 
-        public static void Error(string message, double level = 1.0)
+        public static void Error(string message, object level)
         {
             // TODO: Use level when call stacks are implemented
             throw new LuaRuntimeException(message);
@@ -209,7 +209,7 @@ namespace IronLua.Library
                                               Type(index));
             }
 
-            var numIndex = (int)num - 1;
+            var numIndex = (int)Math.Round(num) - 1;
             if (numIndex >= args.Length || numIndex < 0)
                 throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 1, "index out of range");
 
@@ -232,14 +232,26 @@ namespace IronLua.Library
             return table;
         }
 
-        public static object ToNumber(object obj, double @base = 10.0)
+        public static object ToNumber(object obj, object @base = null)
         {
-            if (@base == 10.0)
+            double numBase;
+            string strBase;
+
+            if (@base == null)
+                numBase = 10.0;
+            else if ((strBase = @base as string) != null)
+                numBase = InternalToNumber(strBase, 10.0);
+            else if (@base is double)
+                numBase = (double)@base;
+            else
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 2, "number", Type(@base));
+
+            if (numBase == 10.0)
             {
                 if (obj is double)
                     return obj;
             }
-            else if (@base < 2.0 || @base > 36.0)
+            else if (numBase < 2.0 || numBase > 36.0)
             {
                 throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 2, "base out of range");
             }
@@ -248,7 +260,7 @@ namespace IronLua.Library
             if ((stringStr = obj as string) == null)
                 return null;
 
-            var value = InternalToNumber(stringStr, @base);
+            var value = InternalToNumber(stringStr, numBase);
             return Double.IsNaN(value) ? null : (object)value;
         }
 
@@ -278,6 +290,42 @@ namespace IronLua.Library
                 return "table";
 
             return v.GetType().FullName;
+        }
+
+        public static Varargs Unpack(LuaTable list, object i = null, object j = null)
+        {
+            string tempString;
+            double startIndex, length;
+            var listLength = list.Length();
+
+            if (i == null)
+                startIndex = 1.0;
+            else if ((tempString = i as string) != null)
+                startIndex = Math.Round(InternalToNumber(tempString, 10.0));
+            else if (i is double)
+                startIndex = Math.Round((double)i);
+            else
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 2, "number", Type(i));
+
+            if (j == null)
+                length = listLength;
+            else if ((tempString = j as string) != null)
+                length = Math.Round(InternalToNumber(tempString, 10.0));
+            else if (j is double)
+                length = Math.Round((double)j);
+            else
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 3, "number", Type(j));
+
+            if (startIndex < 1)
+                return Varargs.Empty;
+            length = Math.Min(length, listLength - startIndex + 1);
+
+            var array = new object[(int)length];
+            var arrayIndex = 0;
+            for (var k = startIndex; k < startIndex + length; k++)
+                array[arrayIndex++] = list.GetValue(k);
+
+            return new Varargs(array);
         }
 
         internal static double InternalToNumber(string str, double @base)
@@ -343,7 +391,7 @@ namespace IronLua.Library
             table.SetValue("assert", (Func<bool, object, object[], Varargs>)Assert);
             table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetValue("dofile", (Func<string, object>)DoFile);
-            table.SetValue("error", (Action<string, double>)Error);
+            table.SetValue("error", (Action<string, object>)Error);
             table.SetValue("_G", table);
             table.SetValue("getfenv", (Func<object, object>)GetFEnv);
             table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
@@ -361,9 +409,11 @@ namespace IronLua.Library
             table.SetValue("select", (Func<object, object[], Varargs>)Select);
             table.SetValue("setfenv", (Func<object, LuaTable, object>)SetFEnv);
             table.SetValue("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
-            table.SetValue("tonumber", (Func<string, double, object>)ToNumber);
+            table.SetValue("tonumber", (Func<string, object, object>)ToNumber);
             table.SetValue("tostring", (Func<object, object>)ToString);
             table.SetValue("type", (Func<object, string>)Type);
+            table.SetValue("unpack", (Func<LuaTable, object, object, Varargs>)Unpack);
+            table.SetValue("_VERSION", Constant.LUA_VERSION);
         }
     }
 }

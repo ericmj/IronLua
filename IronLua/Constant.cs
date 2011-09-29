@@ -27,6 +27,8 @@ namespace IronLua
                     {ExprType.Power,              "__pow"}
                 };
 
+        public const string LUA_VERSION = "Lua 5.1";
+
         public const string CONCAT_METAMETHOD = "__concat";
         public const string LENGTH_METAMETHOD = "__len";
         public const string UNARYMINUS_METAMETHOD = "__unm";
