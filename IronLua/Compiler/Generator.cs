@@ -213,21 +213,10 @@ namespace IronLua.Compiler
                     elseifExprs);
         }
 
-        Expr ElseifCombiner(Expr expr, Elseif elseif)
-        {
-            return
-                Expr.IfThenElse(Expr.Dynamic(
-                        context.BinderCache.GetConvertBinder(typeof(bool)),
-                        typeof(bool),
-                        elseif.Test.Visit(this)),
-                    Visit(elseif.Body),
-                    expr);
-        }
-
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
-            var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
             var values = WrapWithVarargsFirst(statement.Values);
+            var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
 
             if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
                 return VarargsExpandAssignment(locals, values);
@@ -602,6 +591,7 @@ namespace IronLua.Compiler
             return Expr.Dynamic(context.BinderCache.GetSetMemberBinder(identifiers.Last()),
                                         typeof(object), expr, value);
         }
+
         List<Expr> WrapWithVarargsFirst(List<Expression> values)
         {
             // Try to wrap all values except the last with varargs select
@@ -672,6 +662,17 @@ namespace IronLua.Compiler
                 Expr.Block(
                     new[] { valuesVar },
                     exprs);
+        }
+
+        Expr ElseifCombiner(Expr expr, Elseif elseif)
+        {
+            return
+                Expr.IfThenElse(Expr.Dynamic(
+                        context.BinderCache.GetConvertBinder(typeof(bool)),
+                        typeof(bool),
+                        elseif.Test.Visit(this)),
+                    Visit(elseif.Body),
+                    expr);
         }
 
         LoopExpression ForLoop(Statement.For statement, ParameterExpression stepVar, ParameterExpression loopVariable,
