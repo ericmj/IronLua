@@ -188,26 +188,10 @@ namespace IronLua.Library
 
         public static Varargs Select(object index, params object[] args)
         {
-            double num;
-            string str;
+            if (index.Equals("#"))
+                return new Varargs(args.Length);
 
-            if ((str = index as string) != null)
-            {
-                if (str == "#")
-                    return new Varargs(args.Length);
-                num = InternalToNumber(str, 10.0);
-                if (Double.IsNaN(num))
-                    throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 1, "number", "string");
-            }
-            else if (index is double)
-            {
-                num = (double)index;
-            }
-            else
-            {
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 1, "number",
-                                              Type(index));
-            }
+            var num = ConvertToNumber(index, 1);
 
             var numIndex = (int)Math.Round(num) - 1;
             if (numIndex >= args.Length || numIndex < 0)
@@ -234,17 +218,7 @@ namespace IronLua.Library
 
         public static object ToNumber(object obj, object @base = null)
         {
-            double numBase;
-            string strBase;
-
-            if (@base == null)
-                numBase = 10.0;
-            else if ((strBase = @base as string) != null)
-                numBase = InternalToNumber(strBase, 10.0);
-            else if (@base is double)
-                numBase = (double)@base;
-            else
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 2, "number", Type(@base));
+            var numBase = ConvertToNumber(@base, 2, 10.0);
 
             if (numBase == 10.0)
             {
@@ -294,27 +268,10 @@ namespace IronLua.Library
 
         public static Varargs Unpack(LuaTable list, object i = null, object j = null)
         {
-            string tempString;
-            double startIndex, length;
             var listLength = list.Length();
 
-            if (i == null)
-                startIndex = 1.0;
-            else if ((tempString = i as string) != null)
-                startIndex = Math.Round(InternalToNumber(tempString, 10.0));
-            else if (i is double)
-                startIndex = Math.Round((double)i);
-            else
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 2, "number", Type(i));
-
-            if (j == null)
-                length = listLength;
-            else if ((tempString = j as string) != null)
-                length = Math.Round(InternalToNumber(tempString, 10.0));
-            else if (j is double)
-                length = Math.Round((double)j);
-            else
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, 3, "number", Type(j));
+            var startIndex = ConvertToNumber(i, 2, 1.0);
+            var length = ConvertToNumber(j, 3, listLength);
 
             if (startIndex < 1)
                 return Varargs.Empty;
@@ -376,6 +333,26 @@ namespace IronLua.Library
                 result += num * (intBase * i + 1);
             }
             return result;
+        }
+
+        static double ConvertToNumber(object obj, int argumentIndex, double @default = Double.NaN)
+        {
+            string tempString;
+
+            if (obj == null && !Double.IsNaN(@default))
+                return @default;
+            if (obj is double)
+                return Math.Round((double)obj);
+
+            if ((tempString = obj as string) != null)
+            {
+                var num = Math.Round(InternalToNumber(tempString, 10.0));
+                if (!Double.IsNaN(num))
+                    return num;
+            }
+
+            throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT,
+                                          argumentIndex, "number", Type(obj));
         }
 
         static int AlphaNumericToBase(char c)
