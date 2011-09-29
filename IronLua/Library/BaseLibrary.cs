@@ -328,6 +328,20 @@ namespace IronLua.Library
             return new Varargs(array);
         }
 
+        public Varargs XPCall(Delegate f, Delegate err)
+        {
+            try
+            {
+                var result = Context.GetDynamicCall0()(f);
+                return new Varargs(true, result);
+            }
+            catch (LuaRuntimeException e)
+            {
+                var result = Context.GetDynamicCall1()(err, e.Message);
+                return new Varargs(false, result);
+            }
+        }
+
         internal static double InternalToNumber(string str, double @base)
         {
             double result = 0;
@@ -414,6 +428,7 @@ namespace IronLua.Library
             table.SetValue("type", (Func<object, string>)Type);
             table.SetValue("unpack", (Func<LuaTable, object, object, Varargs>)Unpack);
             table.SetValue("_VERSION", Constant.LUA_VERSION);
+            table.SetValue("xpcall", (Func<Delegate, Delegate, Varargs>)XPCall);
         }
     }
 }
