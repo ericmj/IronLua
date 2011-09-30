@@ -28,12 +28,14 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue || args.Any(a => !a.HasValue))
                 return Defer(target, args);
 
-            if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
-                return MetamethodFallback(target, args);
+            var restrictions = RuntimeHelpers.MergeTypeRestrictions(target);
 
-            var restrictions =
-                RuntimeHelpers.MergeTypeRestrictions(target, args).Merge(
-                RuntimeHelpers.MergeInstanceRestrictions(target));
+            if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
+                return new DynamicMetaObject(MetamethodFallbacks.Call(context, target, args), restrictions);
+
+            restrictions = restrictions.Merge(
+                RuntimeHelpers.MergeTypeRestrictions(args).Merge(
+                    RuntimeHelpers.MergeInstanceRestrictions(target)));
 
             List<Expr> sideEffects;
             Expr failExpr;
@@ -73,19 +75,6 @@ namespace IronLua.Runtime.Binder
             if (methodInfo.ReturnType == typeof(void))
                 return Expr.Block(invokeExpr, Expr.Default(typeof(object)));
             return Expr.Convert(invokeExpr, typeof(object));
-        }
-
-        DynamicMetaObject MetamethodFallback(DynamicMetaObject target, DynamicMetaObject[] args)
-        {
-            var expression = Expr.Invoke(
-                Expr.Constant((Func<Context, object, object[], object>)LuaOps.CallMetamethod),
-                Expr.Constant(context),
-                Expr.Convert(target.Expression, typeof(object)),
-                Expr.NewArrayInit(
-                    typeof(object),
-                    args.Select(arg => Expr.Convert(arg.Expression, typeof(object)))));
-
-            return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
 
         IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, MethodInfo methodInfo, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)

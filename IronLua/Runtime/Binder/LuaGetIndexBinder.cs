@@ -16,11 +16,7 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackGetIndex(DynamicMetaObject target, DynamicMetaObject[] indexes, DynamicMetaObject errorSuggestion)
         {
-            var expression = Expr.Invoke(
-                Expr.Constant((Func<Context, object, object, object>)LuaOps.IndexMetamethod),
-                Expr.Constant(context),
-                Expr.Convert(target.Expression, typeof(object)),
-                Expr.Convert(indexes[0].Expression, typeof(object)));
+            var expression = MetamethodFallbacks.Index(context, target, indexes);
 
             return new DynamicMetaObject(expression, BindingRestrictions.Empty);
         }

@@ -98,6 +98,7 @@
     <Compile Include="Runtime\Context.cs" />
     <Compile Include="Runtime\LuaOps.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
+    <Compile Include="Runtime\MetamethodFallbacks.cs" />
     <Compile Include="Runtime\RuntimeHelpers.cs" />
     <Compile Include="Runtime\Varargs.cs" />
     <Compile Include="Util\CharExtensions.cs" />

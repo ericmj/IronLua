@@ -60,7 +60,7 @@ namespace IronLua.Runtime.Binder
             }
 
             if (expression == null)
-                expression = MetamethodFallback(target, arg);
+                expression = MetamethodFallbacks.BinaryOp(context, Operation, target, arg);
 
             return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), RuntimeHelpers.MergeTypeRestrictions(target, arg));
         }
@@ -146,16 +146,6 @@ namespace IronLua.Runtime.Binder
                 new[] {conversionVar},
                 Expr.Assign(conversionVar, conversionResult),
                 expr);
-        }
-
-        Expr MetamethodFallback(DynamicMetaObject left, DynamicMetaObject right)
-        {
-            return Expr.Invoke(
-                Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.BinaryOpMetamethod),
-                Expr.Constant(context),
-                Expr.Constant(Operation),
-                Expr.Convert(left.Expression, typeof(object)),
-                Expr.Convert(right.Expression, typeof(object)));
         }
 
         enum BinaryOpType

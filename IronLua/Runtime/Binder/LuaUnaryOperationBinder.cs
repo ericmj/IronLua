@@ -1,7 +1,5 @@
 using System;
-using System.Diagnostics;
 using System.Dynamic;
-using System.Linq.Expressions;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
@@ -47,7 +45,7 @@ namespace IronLua.Runtime.Binder
             var expr = LuaConvertBinder.ToNumber(target);
 
             if (expr == null)
-                return NegateMetamethodFallback(target);
+                return MetamethodFallbacks.UnaryMinus(context, target);
 
             if (target.LimitType == typeof(string))
                 return FallbackIfNumberIsNan(expr);
@@ -82,14 +80,6 @@ namespace IronLua.Runtime.Binder
                 new[] { numVar },
                 Expr.Assign(numVar, numExpr),
                 expr);
-        }
-
-        Expression NegateMetamethodFallback(DynamicMetaObject target)
-        {
-            return Expr.Invoke(
-                Expr.Constant((Func<Context, object, object>)LuaOps.UnaryMinusMetamethod),
-                Expr.Constant(context),
-                Expr.Convert(target.Expression, typeof(object)));
         }
     }
 }
