@@ -5,8 +5,7 @@ using IronLua.Runtime;
 namespace IronLua
 {
     // TODO: Automate testing of all fields
-    // TODO: Rename MemberInfos?
-    static class Methods
+    static class MemberInfos
     {
         public static readonly ConstructorInfo NewVarargs =
             typeof(Varargs).GetConstructor(new[] {typeof(object[])});

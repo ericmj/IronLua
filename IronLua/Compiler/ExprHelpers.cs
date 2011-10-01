@@ -22,7 +22,7 @@ namespace IronLua.Compiler
         {
             return Expr.IfThen(
                 Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), number),
-                Expr.Throw(Expr.New(Methods.NewRuntimeException, Expr.Constant(format), Expr.Constant(args))));
+                Expr.Throw(Expr.New(MemberInfos.NewRuntimeException, Expr.Constant(format), Expr.Constant(args))));
         }
 
         public static Expr ConvertToNumberAndCheck(Context context, Expr expression, string format, params object[] args)
@@ -37,7 +37,7 @@ namespace IronLua.Compiler
                     Expr.Invoke(
                         Expr.Constant((Func<double, bool>)Double.IsNaN), numberVar),
                     Expr.Block(
-                        Expr.Throw(Expr.New(Methods.NewRuntimeException, Expr.Constant(format), Expr.Constant(args))),
+                        Expr.Throw(Expr.New(MemberInfos.NewRuntimeException, Expr.Constant(format), Expr.Constant(args))),
                         Expr.Constant(Double.NaN)),
                     numberVar));
         }

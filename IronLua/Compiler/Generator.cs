@@ -283,7 +283,7 @@ namespace IronLua.Compiler
 
             return Expr.Return(
                 returnLabel,
-                Expr.New(Methods.NewVarargs, Expr.NewArrayInit(typeof(object), returnValues)));
+                Expr.New(MemberInfos.NewVarargs, Expr.NewArrayInit(typeof(object), returnValues)));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.BinaryOp expression)
@@ -336,7 +336,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Table expression)
         {
-            var newTableExpr = Expr.New(Methods.NewLuaTable);
+            var newTableExpr = Expr.New(MemberInfos.NewLuaTable);
             var tableVar = Expr.Variable(typeof(LuaTable));
             var tableAssign = Expr.Assign(tableVar, newTableExpr);
 
@@ -358,11 +358,11 @@ namespace IronLua.Compiler
             switch (field.Type)
             {
                 case FieldVisitType.Implicit:
-                    return Expr.Call(table, Methods.LuaTableSetValue,
+                    return Expr.Call(table, MemberInfos.LuaTableSetValue,
                                      Expr.Constant(intIndex++, typeof(object)),
                                      Expr.Convert(field.Value, typeof(object)));
                 case FieldVisitType.Explicit:
-                    return Expr.Call(table, Methods.LuaTableSetValue,
+                    return Expr.Call(table, MemberInfos.LuaTableSetValue,
                                      Expr.Convert(field.Member, typeof(object)),
                                      Expr.Convert(field.Value, typeof(object)));
                 default:
@@ -609,7 +609,7 @@ namespace IronLua.Compiler
             // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
             if (value.IsVarargs())
-                return Expr.Call(valueExpr, Methods.VarargsFirst);
+                return Expr.Call(valueExpr, MemberInfos.VarargsFirst);
 
             if (value.IsFunctionCall())
             {
@@ -621,7 +621,7 @@ namespace IronLua.Compiler
                         Expr.Assign(variable, valueExpr),
                         Expr.IfThenElse(
                             Expr.TypeIs(variable, typeof(Varargs)),
-                            Expr.Call(variable, Methods.VarargsFirst),
+                            Expr.Call(variable, MemberInfos.VarargsFirst),
                             variable));
             }
 

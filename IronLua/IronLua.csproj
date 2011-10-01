@@ -83,7 +83,7 @@
     <Compile Include="Library\StringLibrary.cs" />
     <Compile Include="Library\NumberUtil.cs" />
     <Compile Include="Library\StringFormatter.cs" />
-    <Compile Include="Methods.cs" />
+    <Compile Include="MemberInfos.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Runtime\Binder\BinderCache.cs" />
     <Compile Include="Runtime\Binder\LuaBinaryOperationBinder.cs" />

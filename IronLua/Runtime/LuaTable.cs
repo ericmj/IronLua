@@ -240,7 +240,7 @@ namespace IronLua.Runtime
             {
                 var expression = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
-                    Methods.LuaTableGetValue,
+                    MemberInfos.LuaTableGetValue,
                     Expr.Constant(binder.Name));
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
@@ -250,7 +250,7 @@ namespace IronLua.Runtime
             {
                 var expression = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
-                    Methods.LuaTableSetValue,
+                    MemberInfos.LuaTableSetValue,
                     Expr.Constant(binder.Name),
                     Expr.Convert(value.Expression, typeof(object)));
 
@@ -263,7 +263,7 @@ namespace IronLua.Runtime
 
                 var getValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
-                    Methods.LuaTableGetValue,
+                    MemberInfos.LuaTableGetValue,
                     Expr.Convert(indexes[0].Expression, typeof(object)));
                 var valueAssign = Expr.Assign(valueVar, getValue);
 
@@ -281,12 +281,12 @@ namespace IronLua.Runtime
             {
                 var getValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
-                    Methods.LuaTableGetValue,
+                    MemberInfos.LuaTableGetValue,
                     Expr.Convert(indexes[0].Expression, typeof(object)));
 
                 var setValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
-                    Methods.LuaTableSetValue,
+                    MemberInfos.LuaTableSetValue,
                     Expr.Convert(indexes[0].Expression, typeof(object)),
                     Expr.Convert(value.Expression, typeof(object)));
 

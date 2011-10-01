@@ -157,7 +157,7 @@ namespace IronLua.Runtime.Binder
             else if (lastParam.ParameterType == typeof(Varargs))
             {
                 argExpr = Expr.New(
-                    Methods.NewVarargs,
+                    MemberInfos.NewVarargs,
                     Expr.NewArrayInit(
                         typeof(object),
                         overflowingArgs.Select(arg => Expr.Convert(arg.Expression, typeof(object)))));
@@ -215,7 +215,7 @@ namespace IronLua.Runtime.Binder
                 }
                 else if (param.ParameterType == typeof(string) && arg.Type != typeof(string))
                 {
-                    arg.Expression = Expr.Call(arg.Expression, Methods.ObjectToString, arg.Expression);
+                    arg.Expression = Expr.Call(arg.Expression, MemberInfos.ObjectToString, arg.Expression);
                 }
                 else
                 {
@@ -233,7 +233,7 @@ namespace IronLua.Runtime.Binder
                         // Ugly reflection hack
                         failExpr = Expr.Throw(
                             Expr.New(
-                                Methods.NewRuntimeException,
+                                MemberInfos.NewRuntimeException,
                                 Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT),
                                 Expr.NewArrayInit(
                                     typeof(object),
@@ -255,7 +255,7 @@ namespace IronLua.Runtime.Binder
             {
                 failExpr = Expr.Throw(
                     Expr.New(
-                        Methods.NewRuntimeException,
+                        MemberInfos.NewRuntimeException,
                         Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT_EXPECTED),
                         Expr.Constant(new object[] {arguments.Count + 1, "value"})));
             }
