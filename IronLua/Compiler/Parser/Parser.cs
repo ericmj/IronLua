@@ -384,6 +384,7 @@ namespace IronLua.Compiler.Parser
                     lexer.Consume();
                     return new Expression.Varargs();
                 case Symbol.Function:
+                    lexer.Consume();
                     return new Expression.Function(FunctionBody());
                 case Symbol.Identifier:
                 case Symbol.LeftParen:

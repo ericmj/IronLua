@@ -9,7 +9,7 @@ namespace IronLua.Runtime.Binder
 {
     class LuaBinaryOperationBinder : BinaryOperationBinder
     {
-        static readonly Dictionary<ExprType, BinaryOpType> binaryExprTypes =
+        static internal readonly Dictionary<ExprType, BinaryOpType> BinaryExprTypes =
             new Dictionary<ExprType, BinaryOpType>
                 {
                     {ExprType.Equal,              BinaryOpType.Relational},
@@ -46,7 +46,7 @@ namespace IronLua.Runtime.Binder
                 return FallbackBinaryOperation(targetFirst, argFirst, errorSuggestion);
 
             Expr expression = null;
-            switch (binaryExprTypes[Operation])
+            switch (BinaryExprTypes[Operation])
             {
                 case BinaryOpType.Relational:
                     expression = Relational(target, arg);
@@ -148,7 +148,7 @@ namespace IronLua.Runtime.Binder
                 expr);
         }
 
-        enum BinaryOpType
+        internal enum BinaryOpType
         {
             Relational,
             Logical,

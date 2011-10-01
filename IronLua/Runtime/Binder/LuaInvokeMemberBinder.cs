@@ -29,7 +29,7 @@ namespace IronLua.Runtime.Binder
             var restrictions = target.Restrictions.Merge(BindingRestrictions.Combine(args));
             var expression =
                 Expr.Dynamic(
-                    context.BinderCache.GetInvokeBinder(new CallInfo(args.Length)),
+                    Context.BinderCache.GetInvokeBinder(new CallInfo(args.Length)),
                     typeof(object),
                     combinedArgs);
 

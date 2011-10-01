@@ -62,12 +62,17 @@ namespace IronLua.Library
 
         public object GetMetatable(object obj)
         {
-            var metatable = Context.GetMetatable(obj);
-            if (metatable == null)
+            LuaTable table;
+
+            if ((table = obj as LuaTable) != null)
+                table = table.Metatable;
+            if (table == null)
+                table = Context.GetTypeMetatable(obj);
+            if (table == null)
                 return null;
 
-            var metatable2 = metatable.GetValue(Constant.METATABLE_METAFIELD);
-            return metatable2 ?? metatable;
+            var table2 = table.GetValue(Constant.METATABLE_METAFIELD);
+            return table2 ?? table;
         }
 
         public static Varargs IPairs(LuaTable t)
@@ -241,7 +246,7 @@ namespace IronLua.Library
         public object ToString(object e)
         {
             // TODO: Fix casing of boolean's
-            var metaToString = Context.GetMetamethod(e, Constant.TOSTRING_METAFIELD);
+            var metaToString = LuaOps.GetMetamethod(Context, e, Constant.TOSTRING_METAFIELD);
             if (metaToString == null)
                 return e.ToString();
 

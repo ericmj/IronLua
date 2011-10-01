@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using IronLua.Runtime;
 
 namespace IronLua
 {
     // TODO: Automate testing of all fields
+    // TODO: Rename MemberInfos?
     static class Methods
     {
         public static readonly ConstructorInfo NewVarargs =
@@ -28,7 +26,10 @@ namespace IronLua
         public static readonly MethodInfo ObjectToString =
             typeof(object).GetMethod("ToString");
 
-        public static ConstructorInfo NewRuntimeException =
+        public static readonly ConstructorInfo NewRuntimeException =
             typeof(LuaRuntimeException).GetConstructor(new[] { typeof(string), typeof(object[]) });
+
+        public static readonly FieldInfo LuaTableMetatable =
+            typeof(LuaTable).GetField("Metatable");
     }
 }

@@ -39,61 +39,65 @@ namespace IronLua.Runtime
 
         public static object LengthMetamethod(Context context, object obj)
         {
-            dynamic metamethod = context.GetMetamethod(obj, Constant.LENGTH_METAMETHOD);
+            var metamethod = GetMetamethod(context, obj, Constant.LENGTH_METAMETHOD);
             if (metamethod != null)
-                return metamethod(obj);
+                return Context.GetDynamicCall1()(metamethod, obj);
 
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "get length of", BaseLibrary.Type(obj));
         }
 
         public static object UnaryMinusMetamethod(Context context, object obj)
         {
-            dynamic metamethod = context.GetMetamethod(obj, Constant.UNARYMINUS_METAMETHOD);
+            var metamethod = GetMetamethod(context, obj, Constant.UNARYMINUS_METAMETHOD);
             if (metamethod != null)
-                return metamethod(obj);
+                return Context.GetDynamicCall1()(metamethod, obj);
 
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", BaseLibrary.Type(obj));
         }
 
         public static object IndexMetamethod(Context context, object obj, object key)
         {
-            dynamic metamethod = context.GetMetamethod(obj, Constant.INDEX_METAMETHOD);
+            var metamethod = GetMetamethod(context, obj, Constant.INDEX_METAMETHOD);
 
             if (metamethod != null)
             {
                 if (metamethod is Delegate)
-                    return metamethod(obj, key);
+                    return Context.GetDynamicCall2()(metamethod, obj, key);
                 if (metamethod is LuaTable)
-                    return context.GetDynamicIndex()(obj, key);
+                    return Context.GetDynamicIndex()(obj, key);
             }
 
+            if (obj is LuaTable)
+                return null;
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", BaseLibrary.Type(obj));
         }
 
         public static object NewIndexMetamethod(Context context, object obj, object key, object value)
         {
-            dynamic metamethod = context.GetMetamethod(obj, Constant.NEWINDEX_METAMETHOD);
+            var metamethod = GetMetamethod(context, obj, Constant.NEWINDEX_METAMETHOD);
 
             if (metamethod != null)
             {
                 if (metamethod is Delegate)
-                    return metamethod(obj, key, value);
+                    return Context.GetDynamicCall3()(metamethod, obj, key, value);
                 if (metamethod is LuaTable)
-                    return context.GetDynamicNewIndex()(obj, key, value);
+                    return Context.GetDynamicNewIndex()(obj, key, value);
             }
 
+            if (obj is LuaTable)
+                return null;
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "index", BaseLibrary.Type(obj));
         }
 
         public static object CallMetamethod(Context context, object obj, object[] args)
         {
-            dynamic metamethod = context.GetMetamethod(obj, Constant.CALL_METAMETHOD);
+            var metamethod = GetMetamethod(context, obj, Constant.CALL_METAMETHOD);
             if (metamethod != null)
             {
                 var array = new object[args.Length + 1];
                 array[0] = obj;
                 Array.Copy(args, 0, array, 1, args.Length);
-                return context.GetDynamicCall1()(metamethod, new Varargs(array));
+                return Context.GetDynamicCall1()(metamethod, new Varargs(array));
             }
 
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "call", BaseLibrary.Type(obj));
@@ -101,10 +105,10 @@ namespace IronLua.Runtime
 
         public static object ConcatMetamethod(Context context, object left, object right)
         {
-            dynamic metamethod = context.GetMetamethod(left, Constant.CONCAT_METAMETHOD) ??
-                                 context.GetMetamethod(right, Constant.CONCAT_METAMETHOD);
+            var metamethod = GetMetamethod(context, left, Constant.CONCAT_METAMETHOD) ??
+                                 GetMetamethod(context, right, Constant.CONCAT_METAMETHOD);
             if (metamethod != null)
-                return metamethod(left, right);
+                return Context.GetDynamicCall2()(metamethod, left, right);
 
             var typeName = left is string ? BaseLibrary.Type(left) : BaseLibrary.Type(right);
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "concatenate", typeName);
@@ -137,9 +141,9 @@ namespace IronLua.Runtime
         {
             var methodName = GetMethodName(op);
 
-            dynamic metamethod = context.GetMetamethod(left, methodName) ?? context.GetMetamethod(right, methodName);
+            var metamethod = GetMetamethod(context, left, methodName) ?? GetMetamethod(context, right, methodName);
             if (metamethod != null)
-                return metamethod(left, right);
+                return Context.GetDynamicCall2()(metamethod, left, right);
 
             var typeName = BaseLibrary.Type(BaseLibrary.ToNumber(left) == null ? left : right);
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_ERROR, "perform arithmetic on", typeName);
@@ -153,10 +157,15 @@ namespace IronLua.Runtime
             // There are no metamethods for 'a > b' and 'a >= b' so they are translated to 'b < a' and 'b <= a' respectively
             var invert = op == ExprType.GreaterThan || op == ExprType.GreaterThanOrEqual;
 
-            dynamic metamethod = GetRelationalMetamethod(context, op, left, right);
+            var metamethod = GetRelationalMetamethod(context, op, left, right);
 
             if (metamethod != null)
-                return invert ? metamethod(right, left) : metamethod(left, right);
+            {
+                if (invert)
+                    Context.GetDynamicCall2()(metamethod, right, left);
+                else
+                    Context.GetDynamicCall2()(metamethod, left, right);
+            }
 
             // In the absence of a '<=' metamethod, try '<', 'a <= b' is translated to 'not (b < a)'
             if (op != ExprType.LessThanOrEqual && op != ExprType.GreaterThanOrEqual)
@@ -164,7 +173,12 @@ namespace IronLua.Runtime
 
             metamethod = GetRelationalMetamethod(context, ExprType.LessThan, left, right);
             if (metamethod != null)
-                return invert ? LuaOps.Not(metamethod(right, left)) : LuaOps.Not(metamethod(left, right));
+            {
+                if (invert)
+                    LuaOps.Not(Context.GetDynamicCall2()(metamethod, right, left));
+                else
+                    LuaOps.Not(Context.GetDynamicCall2()(metamethod, left, right));
+            }
 
             var leftTypeName = BaseLibrary.Type(left);
             var rightTypeName = BaseLibrary.Type(right);
@@ -174,11 +188,11 @@ namespace IronLua.Runtime
             throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_WITH_ERROR, "compare", leftTypeName, rightTypeName);
         }
 
-        static dynamic GetRelationalMetamethod(Context context, ExprType op, object left, object right)
+        static object GetRelationalMetamethod(Context context, ExprType op, object left, object right)
         {
             var methodName = GetMethodName(op);
-            dynamic metamethodLeft = context.GetMetamethod(left, methodName);
-            dynamic metamethodRight = context.GetMetamethod(right, methodName);
+            var metamethodLeft = GetMetamethod(context, left, methodName);
+            var metamethodRight = GetMetamethod(context, right, methodName);
             return metamethodLeft != metamethodRight ? null : metamethodLeft;
         }
 
@@ -186,6 +200,18 @@ namespace IronLua.Runtime
         {
             string methodName;
             return Constant.METAMETHODS.TryGetValue(op, out methodName) ? methodName : null;
+        }
+
+        public static object GetMetamethod(Context context, object obj, string methodName)
+        {
+            LuaTable table;
+
+            if ((table = obj as LuaTable) != null)
+                table = table.Metatable;
+            else if (context != null)
+                table = context.GetTypeMetatable(obj);
+
+            return methodName == null || table == null ? null : table.GetValue(methodName);
         }
 
         public static void VarargsAssign(IRuntimeVariables variables, object[] values)

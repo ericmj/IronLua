@@ -5,6 +5,7 @@ using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua.Runtime.Binder
 {
+    // TODO: Make thread-safe
     class BinderCache
     {
         readonly Context context;
