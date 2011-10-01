@@ -6,6 +6,7 @@ using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Runtime;
+using IronLua.Runtime.Binder;
 
 namespace IronLua.Library
 {
@@ -90,7 +91,7 @@ namespace IronLua.Library
 
         public Varargs Load(Delegate func, string chunkname = "=(load)")
         {
-            var invoker = Context.GetDynamicCall0();
+            var invoker = Context.DynamicCache.GetDynamicCall0();
             var sb = new StringBuilder(1024);
 
             while (true)
@@ -155,7 +156,7 @@ namespace IronLua.Library
         {
             try
             {
-                var result = Context.GetDynamicCall1()(f, new Varargs(args));
+                var result = Context.DynamicCache.GetDynamicCall1()(f, new Varargs(args));
                 return new Varargs(true, result);
             }
             catch (LuaRuntimeException e)
@@ -250,7 +251,7 @@ namespace IronLua.Library
             if (metaToString == null)
                 return e.ToString();
 
-            return Context.GetDynamicCall1()(metaToString, e);
+            return Context.DynamicCache.GetDynamicCall1()(metaToString, e);
         }
 
         public static string Type(object v)
@@ -294,12 +295,12 @@ namespace IronLua.Library
         {
             try
             {
-                var result = Context.GetDynamicCall0()(f);
+                var result = Context.DynamicCache.GetDynamicCall0()(f);
                 return new Varargs(true, result);
             }
             catch (LuaRuntimeException e)
             {
-                var result = Context.GetDynamicCall1()(err, e.Message);
+                var result = Context.DynamicCache.GetDynamicCall1()(err, e.Message);
                 return new Varargs(false, result);
             }
         }

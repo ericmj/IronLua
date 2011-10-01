@@ -85,7 +85,7 @@
     <Compile Include="Library\StringFormatter.cs" />
     <Compile Include="MemberInfos.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Runtime\Binder\BinderCache.cs" />
+    <Compile Include="Runtime\DynamicCache.cs" />
     <Compile Include="Runtime\Binder\LuaBinaryOperationBinder.cs" />
     <Compile Include="Runtime\Binder\LuaConvertBinder.cs" />
     <Compile Include="Runtime\Binder\LuaGetIndexBinder.cs" />
