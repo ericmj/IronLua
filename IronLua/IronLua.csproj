@@ -37,6 +37,12 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Dynamic">
+      <HintPath>..\libs\Net40\Microsoft.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting">
+      <HintPath>..\libs\Net40\Microsoft.Scripting.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -47,6 +53,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
+    <Compile Include="Hosting\Lua.cs" />
+    <Compile Include="Hosting\LuaCommandLine.cs" />
+    <Compile Include="Hosting\LuaConsoleHost.cs" />
+    <Compile Include="Hosting\LuaConsoleOptions.cs" />
+    <Compile Include="Hosting\LuaService.cs" />
+    <Compile Include="Runtime\LuaOptions.cs" />
+    <Compile Include="Runtime\LuaContext.cs" />
+    <Compile Include="Hosting\LuaOptionsParser.cs" />
     <Compile Include="LuaRuntimeException.cs" />
     <Compile Include="LuaSyntaxException.cs" />
     <Compile Include="Compiler\Ast\AstExtensions.cs" />
@@ -97,6 +111,7 @@
     <Compile Include="Runtime\Binder\LuaUnaryOperationBinder.cs" />
     <Compile Include="Runtime\Context.cs" />
     <Compile Include="Runtime\LuaOps.cs" />
+    <Compile Include="Runtime\LuaScriptCode.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
     <Compile Include="Runtime\MetamethodFallbacks.cs" />
     <Compile Include="Runtime\RuntimeHelpers.cs" />
@@ -107,7 +122,6 @@
     <Compile Include="Util\ParameterInfoExtensions.cs" />
     <Compile Include="Util\TypeExtensions.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
