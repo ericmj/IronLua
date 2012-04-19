@@ -10,21 +10,19 @@ namespace IronLua.Hosting
         public LuaCommandLine()
         {
         }
-
+        
         protected override string Logo
         {
-            get
-            {
-                return String.Format(
-                    "IronLua {1} on {2}{0}Copyright (C) 1994-2008 Lua.org, PUC-Rio{0}",
-                    Environment.NewLine, 
-                    // /*LuaContext.LuaLanguageVersion*/ new Version(0,0,1), 
-                    LuaContext.GetLuaVersion(),
-                    GetRuntimeInfo());
-            }
+            get { return GetLogoDisplay(); }
+        }
+        
+        public static string GetLogoDisplay()
+        {
+            return String.Format("IronLua {1} on {2}{0}Copyright (C) 1994-2008 Lua.org, PUC-Rio{0}",
+                    Environment.NewLine, LuaContext.GetLuaVersion(), GetRuntimeInfo());
         }
 
-        private string GetRuntimeInfo()
+        private static string GetRuntimeInfo()
         {
             var mono = typeof(object).Assembly.GetType("Mono.Runtime");
             if (mono != null)

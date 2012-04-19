@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
+using IronLua.Hosting;
 
 namespace Sample
 {
@@ -9,6 +8,15 @@ namespace Sample
     {
         static void Main(string[] args)
         {
+            Lua.CreateEngine().Execute("print('hello world')");
+
+            if (Debugger.IsAttached)
+            {
+                // Pause for debugger to see console output
+                Console.WriteLine();
+                Console.Write("Press ENTER to continue..");
+                Console.ReadLine();
+            }
         }
     }
 }
