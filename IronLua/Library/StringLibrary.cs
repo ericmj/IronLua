@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using IronLua.Runtime;
@@ -7,28 +8,46 @@ namespace IronLua.Library
 {
     class StringLibrary : Library
     {
-        public StringLibrary(Context context) : base(context)
+        public StringLibrary(Context context) 
+            : base(context)
         {
         }
 
-        public static double[] Byte(string str, int? i = null, int? j = null)
+        public static string Subst(string s, double i, double j = -1)
         {
-            char[] chars;
-            if (!i.HasValue)
-                chars = str.ToCharArray();
-            else if (!j.HasValue)
-                chars = str.Substring(i.Value).ToCharArray();
-            else
-                chars = str.Substring(i.Value, j.Value).ToCharArray();
+            int m = (int)Math.Round(i, MidpointRounding.ToEven);
+            int n = (int)Math.Round(j, MidpointRounding.ToEven);
 
-            return chars.Select(c => (double)c).ToArray();
+            m = (m < 0) ? s.Length + m : m - 1;
+            n = (n < 0) ? s.Length + n : n - 1;
+
+            if (m > n)
+                return String.Empty;
+
+            int k = Math.Max(0, m);
+            int l = n - k + 1;
+
+            if (k >= s.Length || l <= 0)
+                return String.Empty;
+
+            return s.Substring(k, Math.Min(l, s.Length - k));
+        }
+
+        public static double[] Byte(string s, double i = 1, double j = -1)
+        {
+            return Subst(s, i, j).Select(c => (double) c).ToArray();
         }
 
         public static string Char(params double[] varargs)
         {
+            if (varargs.Length <= 0)
+                return String.Empty;
+
             var sb = new StringBuilder(varargs.Length);
-            foreach (var arg in varargs)
-                sb.Append((char) arg);
+            
+            foreach (double arg in varargs)
+                sb.Append((char)arg);
+            
             return sb.ToString();
         }
 
@@ -41,7 +60,7 @@ namespace IronLua.Library
         {
             if (plain.HasValue && plain.Value && init.HasValue)
             {
-                var index = str.Substring(init.Value).IndexOf(pattern);
+                var index = str.Substring(init.Value).IndexOf(pattern, StringComparison.Ordinal);
                 return index != -1 ? new object[] {index, index+pattern.Length} : null;
             }
             throw new NotImplementedException();
@@ -50,11 +69,33 @@ namespace IronLua.Library
         public static string Format(string format, params object[] varargs)
         {
             return StringFormatter.Format(format, varargs);
-        }
+        }        
 
         public override void Setup(LuaTable table)
         {
-            throw new NotImplementedException();
+            table.SetValue("len", (Func<string, double>) (s => s.Length));
+            table.SetValue("upper", (Func<string, string>) (s => s.ToUpperInvariant()));
+            table.SetValue("lower", (Func<string, string>)(s => s.ToLowerInvariant()));
+            table.SetValue("rep", (Func<string, double, string>) ((s, r) => s.Repeat((int)Math.Round(r, MidpointRounding.ToEven))));
+
+            table.SetValue("sub", (Func<string, double, double, string>)Subst); // TODO: varargs
+            table.SetValue("char", (Func<double[], string>) Char); // TODO: varargs
+            table.SetValue("byte", (Func<string, double, double, double[]>) Byte); // TODO: varargs
+        }
+    }
+
+    static class StringUtils
+    {
+        public static string Repeat(this string s, int r)
+        {
+            if (r < 1)
+                return String.Empty;
+
+            var sb = new StringBuilder(r * s.Length);
+            do 
+                sb.Append(s);
+            while (--r > 0);
+            return sb.ToString();
         }
     }
 }

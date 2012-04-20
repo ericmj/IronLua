@@ -63,9 +63,9 @@ namespace IronLua.Library
 
         public object GetMetatable(object obj)
         {
-            LuaTable table;
+            var table = obj as LuaTable;
 
-            if ((table = obj as LuaTable) != null)
+            if (table != null)
                 table = table.Metatable;
             if (table == null)
                 table = Context.GetTypeMetatable(obj);
