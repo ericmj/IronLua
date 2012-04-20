@@ -1,14 +1,18 @@
 ﻿t = {}
+
+assert(type(t) == "table")
+
 t = { 1 }
 t = { "a" }
 
 t = { 1, 2, 3 }
 --[[--
-assert(t[1] == "1")
-assert(t[2] == "2")
-assert(t[3] == "3")
+assert(t[1] == 1)
+assert(t[2] == 2)
+assert(t[3] == 3)
 assert(#t == 3)
 --]]--
+
 
 t = { "a", "b", "c" }
 --[[--
