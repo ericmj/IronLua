@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using IronLua.Util;
 
 namespace IronLua.Compiler.Parser
@@ -244,10 +245,12 @@ namespace IronLua.Compiler.Parser
         {
             input.StorePosition();
             input.BufferClear();
+            input.Advance(); // first [
 
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
                 throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+            input.Advance(); // second [
 
             // Skip immediately following newline
             if (input.Current == '\r' || input.Current == '\n')
@@ -256,26 +259,35 @@ namespace IronLua.Compiler.Parser
             while (true)
             {
                 while (input.Current != ']')
+                {
+                    if (input.Current == '\r' && input.CanPeek && input.Peek == '\n')
+                        input.Advance(); // convert CRLF to LF
+                    input.BufferAppend(input.Current);
                     input.Advance();
-
-                input.Advance();
+                }
+                
+                input.Advance(); // first ]
                 int numEqualsEnd = CountEquals();
 
                 // Output string if matching ='s found
 
-                if (numEqualsStart == numEqualsEnd && input.Current == ']')
+                if (input.Current == ']' && numEqualsStart == numEqualsEnd)
                 {
-                    // Trim long string delimters
-                    input.BufferRemove(0, numEqualsStart);
-                    input.BufferRemove(numEqualsEnd + 1);
-                    input.Advance();
+                    input.Advance(); // second ]
                     return input.OutputBuffer(Symbol.String);
                 }
+
+                // Add the ] and = characters to buffer
+                input.BufferAppend(']'); // first ]
+                for (int i = 0; i < numEqualsEnd; ++i)
+                {
+                    input.BufferAppend('=');
+                }
                 if (input.Current == ']')
-                    // Parse ']' again because it can be the start of another long string delimeter
-                    input.Back();
-                else
-                    input.BufferAppend(input.Current);
+                {
+                    input.BufferAppend(']'); // second ]
+                    input.Advance();
+                }
             }
         }
 
@@ -295,22 +307,25 @@ namespace IronLua.Compiler.Parser
         /* Long comment, such as --[[bla bla bla]] */
         void LongComment()
         {
-            input.Advance();
+            input.Advance(); // minus
+
+            input.Advance(); // first [
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
                 throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+            input.Advance(); // second [
 
             while (true)
             {
                 while (input.Current != ']')
                     input.Advance();
 
-                input.Advance();
+                input.Advance(); // first ]
                 int numEqualsEnd = CountEquals();
 
-                if (numEqualsStart == numEqualsEnd && input.Current == ']')
+                if (input.Current == ']' && numEqualsStart == numEqualsEnd)
                 {
-                    input.Advance();
+                    input.Advance(); // second ]
                     break;
                 }
                 // Parse ']' again because it can be the start of another long comment delimeter
@@ -443,6 +458,11 @@ namespace IronLua.Compiler.Parser
                             case '\\': input.BufferAppend('\\'); break;
                             case '\r': input.BufferAppend('\r'); NextLine(); break;
                             case '\n': input.BufferAppend('\n'); NextLine(); break;
+                            case 'x':  
+                                //if (false) // (options.LuaVersion < "Lua 5.2") // TODO: compiler options
+                                //    goto default;
+                                BufferHexEscape(); 
+                                break;
                             default:
                                 if (input.Current.IsDecimal())
                                     BufferNumericEscape();
@@ -473,15 +493,44 @@ namespace IronLua.Compiler.Parser
         /* Buffer a numeric escape, such as \012 or \9 */
         void BufferNumericEscape()
         {
-            int value = 0;
+            Debug.Assert(input.Current.IsDecimal());
 
-            for (int i = 0; i < 3; i++)
+            int value = input.Current - '0';
+
+            for (int i = 1; i < 3; ++i)
             {
-                if (!input.Current.IsDecimal())
+                if (!(input.CanPeek && input.Peek.IsDecimal()))
                     break;
 
-                value = value*10 + input.Current - '0';
                 input.Advance();
+                value = value*10 + input.Current - '0';
+            }
+
+            input.BufferAppend((char)value);
+        }
+
+        /* Buffer a hex excape, sutch as \x3F or \xa8 */
+        void BufferHexEscape() // Lua 5.2 feature
+        {
+            Debug.Assert(input.Current == 'x');
+
+            string strValue = "\\x";
+            int value = 0;
+
+            for (int i = 0; i < 2; ++i)
+            {
+                input.Advance();
+                strValue += input.Current;
+
+                char c = input.Current;
+                if ('0' <= c && c <= '9')
+                    value = (value << 4) | (input.Current - '0');
+                else if ('a' <= c && c <= 'f')
+                    value = (value << 4) | (input.Current - 'a' + 10);
+                else if ('A' <= c && c <= 'F')
+                    value = (value << 4) | (input.Current - 'A' + 10);
+                else
+                    throw new LuaSyntaxException(input, string.Format("hexadecimal digit expected near '{0}'", strValue));
             }
 
             input.BufferAppend((char)value);
