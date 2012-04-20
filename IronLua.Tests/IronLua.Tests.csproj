@@ -51,10 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Scripts\LoadTests.lua" />
+    <None Include="Scripts\literals.lua" />
     <None Include="Scripts\MathLibTests.lua" />
     <None Include="Scripts\OslibTests.lua" />
-    <None Include="Scripts\parser.lua" />
     <None Include="Scripts\StrLibTests.lua" />
     <None Include="Scripts\TableTests.lua" />
     <None Include="Scripts\BaseLibTests.lua" />
