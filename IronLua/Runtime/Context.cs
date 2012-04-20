@@ -14,6 +14,8 @@ namespace IronLua.Runtime
 
         internal BaseLibrary BaseLibrary;
         internal StringLibrary StringLibrary;
+        internal MathLibrary MathLibrary;
+        internal OSLibrary OSLibrary;
 
         internal static DynamicCache DynamicCache { get; private set; }
 
@@ -35,12 +37,40 @@ namespace IronLua.Runtime
 
         void SetupLibraries()
         {
-            BaseLibrary = new BaseLibrary(this);
-            StringLibrary = new StringLibrary(this);
-
             Globals = new LuaTable();
+
+            BaseLibrary = new BaseLibrary(this);
             BaseLibrary.Setup(Globals);
-            //StringLibrary.Setup(StringGlobals);
+
+            //TableLibrary = new TableLibrary();
+            var tablelibTable = new LuaTable();
+            //TableLibrary.Setup(tablelibTable);
+            Globals.SetValue("table", tablelibTable);
+
+            MathLibrary = new MathLibrary(this);
+            var mathlibTable = new LuaTable();
+            MathLibrary.Setup(mathlibTable);
+            Globals.SetValue("math", mathlibTable);
+
+            StringLibrary = new StringLibrary(this);
+            var strlibTable = new LuaTable();
+            StringLibrary.Setup(strlibTable);
+            Globals.SetValue("string", strlibTable);
+
+            //IoLibrary = new IoLibrary(this);
+            var iolibTable = new LuaTable();
+            //IoLibrary.Setup(iolibTable);
+            Globals.SetValue("io", iolibTable);
+
+            OSLibrary = new OSLibrary(this);
+            var oslibTable = new LuaTable();
+            OSLibrary.Setup(oslibTable);
+            Globals.SetValue("os", oslibTable);
+
+            //DebugLibrary = new DebugLibrary(this);
+            var debuglibTable = new LuaTable();
+            //DebugLibrary.Setup(debuglibTable);
+            Globals.SetValue("debug", debuglibTable);
         }
 
         internal LuaTable GetTypeMetatable(object obj)
