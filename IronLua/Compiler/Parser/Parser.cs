@@ -153,6 +153,21 @@ namespace IronLua.Compiler.Parser
 
             if (successful)
                 return result;
+
+            // Check if value is well formed!   Stuff like 10e500 return +INF
+            var fields = number.Split('e', 'E');
+            if (fields.Length == 2)
+            {
+                int v1, v2;
+                bool b1 = Int32.TryParse(fields[0], out v1);
+                bool b2 = Int32.TryParse(fields[1], out v2);
+
+                if (b1 && b2)
+                {
+                    return Math.Sign(v1) > 0 ? Double.PositiveInfinity : Double.NegativeInfinity;
+                }
+            }
+
             throw new LuaSyntaxException(input, ExceptionMessage.MALFORMED_NUMBER, number);
         }
 
@@ -409,12 +424,13 @@ namespace IronLua.Compiler.Parser
             BinaryOp binaryOp;
             if (!binaryOps.TryGetValue(lexer.Current.Symbol, out binaryOp))
                 return left;
-            lexer.Consume();
-
+            
             // Recurse while having higher binding
             var priority = binaryOpPriorities[binaryOp];
             if (priority.Item1 < limit)
                 return left;
+
+            lexer.Consume();
             var right = BinaryExpression(SimpleExpression(), priority.Item2);
 
             return new Expression.BinaryOp(binaryOp, left, right);
