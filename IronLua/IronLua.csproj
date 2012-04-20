@@ -60,6 +60,7 @@
     <Compile Include="Hosting\LuaService.cs" />
     <Compile Include="Library\MathLibrary.cs" />
     <Compile Include="Library\OSLibrary.cs" />
+    <Compile Include="Runtime\Binder\LuaBinder.cs" />
     <Compile Include="Runtime\LuaOptions.cs" />
     <Compile Include="Runtime\LuaContext.cs" />
     <Compile Include="Hosting\LuaOptionsParser.cs" />

@@ -22,15 +22,16 @@ namespace IronLua.Runtime
 
         public override object Run(Scope scope)
         {
-            Console.WriteLine("This is where we 'execute' the compiled code");
+            //Console.WriteLine("This is where we 'execute' the compiled code");            
 
             if (_code != null)
             {
-                _code();
+                return _code();
             }
-
-            return 0;
-            //throw new NotImplementedException();
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

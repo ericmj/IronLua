@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using IronLua.Compiler;
 using IronLua.Compiler.Parser;
+using IronLua.Hosting;
+using IronLua.Runtime.Binder;
 using Microsoft.Scripting;
+using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 
@@ -18,6 +22,9 @@ namespace IronLua.Runtime
             : base(manager)
         {
             // TODO: options
+
+            _binder = new LuaBinder(this);
+
         }
 
         public override ScriptCode CompileSourceCode(SourceUnit sourceUnit, CompilerOptions options, ErrorSink errorSink)
@@ -27,9 +34,9 @@ namespace IronLua.Runtime
             ContractUtils.RequiresNotNull(errorSink, "errorSink");
             ContractUtils.Requires(sourceUnit.LanguageContext == this, "Language mismatch.");
 
-            Console.WriteLine("This is where we 'compile' the source code");
+            //Console.WriteLine("This is where we 'compile' the source code");
 
-            var sw = Stopwatch.StartNew();
+            //var sw = Stopwatch.StartNew();
             try
             {
                 var source = sourceUnit.GetCode();
@@ -43,7 +50,7 @@ namespace IronLua.Runtime
             }
             finally
             {
-                Debug.Print("Parse of '{0}' took {1} ms", sourceUnit, sw.ElapsedMilliseconds);                
+                //Debug.Print("Parse of '{0}' took {1} ms", sourceUnit, sw.ElapsedMilliseconds);                
             }
 
             throw new NotImplementedException();
@@ -72,6 +79,27 @@ namespace IronLua.Runtime
 
         #endregion
 
+        #region LuaService
+
+        LuaService _luaService;
+
+        internal LuaService GetLuaService(ScriptEngine engine)
+        {
+            if (_luaService == null)
+            {
+                var service = new LuaService(this, engine);
+                Interlocked.CompareExchange(ref _luaService, service, null);
+            }
+            return _luaService;
+        }
+
+        #endregion
+
+        readonly LuaBinder _binder;
+        internal LuaBinder Binder
+        {
+            get { return _binder; }
+        }
 
     }
 }
