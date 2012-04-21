@@ -1,5 +1,9 @@
 using System;
+using System.IO;
 using System.Text;
+using Microsoft.Scripting;
+using Microsoft.Scripting.Runtime;
+using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Parser
 {
@@ -16,12 +20,22 @@ namespace IronLua.Compiler.Parser
         int storedColumn;
         readonly StringBuilder buffer;
 
-        public Input(string source)
+        readonly TextReader reader;
+
+        public Input(TextReader reader, string fileName = null)
         {
-            this.source = source;
-            File = "<unknown>";
+            ContractUtils.RequiresNotNull(reader, "reader");
+            this.reader = reader;
+            File = fileName ?? "<unknown>";
             index = 0;
             buffer = new StringBuilder(1024);
+
+            source = reader.ReadToEnd();
+        }
+
+        public Input(string source, string fileName = null)
+            : this(new StringReader(source), fileName)
+        {
         }
 
         public char Current
@@ -34,7 +48,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new LuaSyntaxException(this, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw SyntaxException(ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -49,7 +63,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw new LuaSyntaxException(this, ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw SyntaxException(ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -126,6 +140,16 @@ namespace IronLua.Compiler.Parser
         public Token OutputBuffer(Symbol symbol)
         {
             return new Token(symbol, storedLine, storedColumn, buffer.ToString());
+        }
+
+        public LuaSyntaxException SyntaxException(string message, Exception inner = null)
+        {
+            return new LuaSyntaxException(File, Line, Column, message, inner);
+        }
+
+        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        {
+            return SyntaxException(String.Format(format, args));
         }
     }
 }

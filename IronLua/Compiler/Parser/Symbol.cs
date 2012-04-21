@@ -33,6 +33,7 @@ namespace IronLua.Compiler.Parser
         Percent,
         Caret,
         Hash,
+        Tilde,
         EqualEqual,
         TildeEqual,
         LessEqual,
@@ -59,6 +60,15 @@ namespace IronLua.Compiler.Parser
         Identifier,
 
         // Markers
-        Eof
+        Comment,
+        Whitespace,
+        Error,
+        Eol,
+        Eof,
+
+        // Aliases
+        EndOfLine = Eol,
+        EndOfFile = Eof,
+        EndOfStream = Eof,
     }
 }

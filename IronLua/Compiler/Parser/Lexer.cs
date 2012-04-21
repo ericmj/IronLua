@@ -37,6 +37,7 @@ namespace IronLua.Compiler.Parser
         public Token Last { get; private set; }
         public Token Current { get; private set; }
         public Token Next { get; private set; }
+        public Input Input { get { return input; } }
 
         public Lexer(Input input)
         {
@@ -74,7 +75,7 @@ namespace IronLua.Compiler.Parser
             if (Current.Symbol == symbol)
                 Consume();
             else
-                throw new LuaSyntaxException(input, ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
+                throw input.SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
         }
 
         public string ExpectLexeme(Symbol symbol)
@@ -90,6 +91,10 @@ namespace IronLua.Compiler.Parser
             {
                 switch (input.Current)
                 {
+                    // end of stream
+                    case (char)0xFFFF:
+                        return input.Output(Symbol.Eof);
+
                     // Whitespace
                     case ' ': case '\t':
                         input.Advance();
@@ -143,7 +148,7 @@ namespace IronLua.Compiler.Parser
                         if (input.Current.IsPunctuation())
                             return Punctuation();
 
-                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_CHAR, input.Current);
+                        throw input.SyntaxException(ExceptionMessage.UNEXPECTED_CHAR, input.Current);
 
                 }
             }
@@ -249,7 +254,7 @@ namespace IronLua.Compiler.Parser
 
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw input.SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
             input.Advance(); // second [
 
             // Skip immediately following newline
@@ -312,7 +317,7 @@ namespace IronLua.Compiler.Parser
             input.Advance(); // first [
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw new LuaSyntaxException(input, ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw input.SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
             input.Advance(); // second [
 
             while (true)
@@ -391,7 +396,7 @@ namespace IronLua.Compiler.Parser
                 case '.':
                     return input.Current == '.' ? LongPunctuation(c) : input.Output(Symbol.Dot);
                 default:
-                    throw new LuaSyntaxException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, c);
+                    throw input.SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, c);
             }
         }
 
@@ -426,8 +431,8 @@ namespace IronLua.Compiler.Parser
                     }
                     break;
             }
-            
-            throw new LuaSyntaxException(input, ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
+
+            throw input.SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
         }
 
         /* String literal, such as "bla bla" */
@@ -475,7 +480,7 @@ namespace IronLua.Compiler.Parser
                         break;
 
                     case '\r': case '\n':
-                        throw new LuaSyntaxException(input, ExceptionMessage.UNEXPECTED_EOS);
+                        throw input.SyntaxException(ExceptionMessage.UNEXPECTED_EOS);
 
                     default:
                         if (input.Current == end)
@@ -530,7 +535,7 @@ namespace IronLua.Compiler.Parser
                 else if ('A' <= c && c <= 'F')
                     value = (value << 4) | (input.Current - 'A' + 10);
                 else
-                    throw new LuaSyntaxException(input, string.Format("hexadecimal digit expected near '{0}'", strValue));
+                    throw input.SyntaxException("hexadecimal digit expected near '{0}'", strValue);
             }
 
             input.BufferAppend((char)value);
