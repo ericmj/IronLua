@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
+    <Compile Include="Compiler\Tokenizer.cs" />
     <Compile Include="Hosting\Lua.cs" />
     <Compile Include="Hosting\LuaCommandLine.cs" />
     <Compile Include="Hosting\LuaConsoleHost.cs" />

@@ -1,0 +1,823 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using IronLua.Compiler.Parser;
+using IronLua.Util;
+using Microsoft.Scripting;
+using Microsoft.Scripting.Actions;
+using Microsoft.Scripting.Runtime;
+using Microsoft.Scripting.Utils;
+
+namespace IronLua.Compiler
+{
+    [Serializable]
+    public class LuaCompilerOptions : CompilerOptions
+    {
+        public bool SkipFirstLine { get; set; }
+    }    
+
+    public class Tokenizer : TokenizerService
+    {
+        private const int DefaultBufferCapacity = 1024;
+
+        private SourceUnit _sourceUnit;
+        private ErrorSink _errors;
+        private Tokenizer.State _state;
+        private TokenizerBuffer _buffer;
+        private SourceSpan _lastTokenSpan;
+        private string _lastTokenValue;
+
+        private LuaCompilerOptions _options;
+        private bool _multiEolns = true; // TODO: move into options
+
+        public Tokenizer(ErrorSink errorListner, LuaCompilerOptions options)            
+        {
+            ContractUtils.RequiresNotNull(errorListner, "errorSink");
+            ContractUtils.RequiresNotNull(options, "options");
+
+            _errors = errorListner;
+            _options = options;
+        }
+
+        public override void Initialize(object state, TextReader sourceReader, SourceUnit sourceUnit, SourceLocation initialLocation)
+        {
+            ContractUtils.RequiresNotNull(sourceReader, "sourceReader");
+
+            _sourceUnit = sourceUnit;
+            _state = new State(state as State);
+            
+            _lastTokenSpan = new SourceSpan(initialLocation, initialLocation);
+            
+            _buffer = new TokenizerBuffer(sourceReader, initialLocation, DefaultBufferCapacity, true);
+
+            if (_options.SkipFirstLine)
+            {
+                if (_buffer.Peek() == '#' && _buffer.GetChar(+1) == '!')
+                    _buffer.ReadLine(); // skip shibang                
+            }
+
+        }
+
+        private static readonly Dictionary<string, Symbol> _keywords =
+            new Dictionary<string, Symbol>
+            {
+                {"and", Symbol.And},
+                {"break", Symbol.Break},
+                {"do", Symbol.Do},
+                {"else", Symbol.Else},
+                {"elseif", Symbol.Elseif},
+                {"end", Symbol.End},
+                {"false", Symbol.False},
+                {"for", Symbol.For},
+                {"function", Symbol.Function},
+                {"if", Symbol.If},
+                {"in", Symbol.In},
+                {"local", Symbol.Local},
+                {"nil", Symbol.Nil},
+                {"not", Symbol.Not},
+                {"or", Symbol.Or},
+                {"repeat", Symbol.Repeat},
+                {"return", Symbol.Return},
+                {"then", Symbol.Then},
+                {"true", Symbol.True},
+                {"until", Symbol.Until},
+                {"while", Symbol.While}
+            };
+
+        internal Token GetNextToken()
+        {
+            _buffer.DiscardToken();
+
+            int current = Read();
+
+            if (current == TokenizerBuffer.EndOfFile)
+            {
+                return MarkTokenEnd(Symbol.EndOfStream);
+            }
+            else if (current.IsIdentifierStart())
+            {
+                return ScanKeywordOrIdentifier((char)current);
+            }
+            else if (current.IsDecimal())
+            {
+                return ScanNumericLiteral((char)current);
+            }
+            else if (current == '\'' || current == '"')
+            {
+                return ScanStringLiteral((char)current);
+            }
+            else if (current == '[')
+            {
+                int next = Peek();
+                // [ may start a long literal string ([[) or be a token on its own
+                return (next == '[' || next == '=')
+                    ? ScanLongStringLiteral((char)current)
+                    : MarkTokenEnd(Symbol.LeftBrace);
+            }
+            else if (current == '-')
+            {
+                return (Peek() == '-')
+                    ? ScanCommentLiteral((char)current)
+                    : MarkTokenEnd(Symbol.Minus);
+            }
+            else if (current.IsPunctuation())
+            {
+                return ScanPunctuation((char)current);
+            }
+            else if (current.IsWhitespace())
+            {
+                ConsumeMany(x => x.IsWhitespace());
+                return MarkTokenEnd(Symbol.Whitespace);
+            }
+            else if (_buffer.ReadEolnOpt(current) > 0)
+            {                
+                return MarkTokenEnd(Symbol.EndOfLine, isMultiLine: true);
+            }
+            else
+            {
+                _buffer.MarkSingleLineTokenEnd();
+                ReportError(1, "invalid character '{0}'", (char)current);
+                return new Token(Symbol.Error);
+            }
+        }
+
+        Token MarkTokenEnd(Symbol symbol, Func<string> getTokenValue = null, bool isMultiLine = false)
+        {
+            _buffer.MarkTokenEnd(isMultiLine);
+
+            //if (getTokenValue == null)
+            //    getTokenValue = _buffer.GetTokenString;
+
+            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
+
+            return new Token(symbol);
+        }
+
+        #region Punctuation
+
+        Token ScanPunctuation(char c)
+        {
+            switch (c)
+            {
+                case '+':
+                    return MarkTokenEnd(Symbol.Plus);
+                case '-':
+                    return MarkTokenEnd(Symbol.Minus);
+                case '*':
+                    return MarkTokenEnd(Symbol.Star);
+                case '/':
+                    return MarkTokenEnd(Symbol.Slash);
+                case '%':
+                    return MarkTokenEnd(Symbol.Percent);
+                case '^':
+                    return MarkTokenEnd(Symbol.Caret);
+                case '#':
+                    return MarkTokenEnd(Symbol.Hash);
+                case '(':
+                    return MarkTokenEnd(Symbol.LeftParen);
+                case ')':
+                    return MarkTokenEnd(Symbol.RightParen);
+                case '{':
+                    return MarkTokenEnd(Symbol.LeftBrace);
+                case '}':
+                    return MarkTokenEnd(Symbol.RightBrace);
+                case '[':
+                    return MarkTokenEnd(Symbol.LeftBrack);
+                case ']':
+                    return MarkTokenEnd(Symbol.RightBrack);
+                case ';':
+                    return MarkTokenEnd(Symbol.SemiColon);
+                case ':':
+                    return MarkTokenEnd(Symbol.Colon);
+                case ',':
+                    return MarkTokenEnd(Symbol.Comma);
+                case '~':
+                case '<':
+                case '>':
+                case '=':
+                case '.':
+                    return ScanLongPunctuation(c);
+                default:
+                    throw Assert.Unreachable;
+            }
+        }
+
+        Token ScanLongPunctuation(char c)
+        {
+            switch (c)
+            {
+                case '~':
+                    return ConsumeOne('=')
+                        ? MarkTokenEnd(Symbol.TildeEqual)
+                        : MarkTokenEnd(Symbol.Tilde);
+                case '<':
+                    return ConsumeOne('=')
+                        ? MarkTokenEnd(Symbol.LessEqual)
+                        : MarkTokenEnd(Symbol.Less);
+                case '>':
+                    return ConsumeOne('=')
+                        ? MarkTokenEnd(Symbol.GreaterEqual)
+                        : MarkTokenEnd(Symbol.Greater);
+                case '=':
+                    return ConsumeOne('=')
+                        ? MarkTokenEnd(Symbol.EqualEqual)
+                        : MarkTokenEnd(Symbol.Equal);
+                case '.':
+                    return ConsumeOne('.')
+                        ? ConsumeOne('.') 
+                            ? MarkTokenEnd(Symbol.DotDotDot)
+                            : MarkTokenEnd(Symbol.DotDot)
+                        : Peek().IsDecimal()
+                            ? ScanNumericLiteral(c) 
+                            : MarkTokenEnd(Symbol.Dot); 
+                default:
+                    throw Assert.Unreachable;
+            }
+        }
+
+        #endregion
+
+        #region Keywords or Identifiers
+
+        // Used to scan for names and it classifies them as keywords or identifiers
+        Token ScanKeywordOrIdentifier(char c)
+        {
+            Debug.Assert(c.IsIdentifierStart());
+
+            ConsumeMany(x => x.IsIdentifier());
+            
+            _buffer.MarkSingleLineTokenEnd();
+            string value = _buffer.GetTokenString();
+
+            // Keyword or identifier?
+            Symbol symbol;
+            if (!_keywords.TryGetValue(value, out symbol))
+            {
+                symbol = Symbol.Identifier;
+            }
+
+            return new Token(symbol, value);
+        }
+
+        #endregion
+
+        #region String Literal
+
+        // Scans a simple string literal (i.e. one quoted with ' or ")
+        Token ScanStringLiteral(char quote)
+        {
+            Debug.Assert(quote == '\'' || quote == '"');
+
+            var accum = new StringBuilder();
+            bool isMultiLine = false;
+            bool skipWs = false;
+            bool done = false;
+            do
+            {
+                int current = Read();
+
+                switch (current)
+                {
+                    case TokenizerBuffer.EndOfFile:
+                        _buffer.MarkSingleLineTokenEnd();
+                        ReportError(3, "Unterminated quoted string meets end of file");                        
+                        //return new IncompleteStringToken(accum.ToString(), (quoteChar == '\''));
+                        return new Token(Symbol.Error);
+
+                    case '\r':
+                    case '\n':
+                        if (skipWs) continue;                        
+                        _buffer.MarkSingleLineTokenEnd(-1);
+                        ReportError(2, "unfinished string at '{0}'", _buffer.GetTokenString());
+                        return new Token(Symbol.Error);
+
+                    case ' ':
+                    case '\t':
+                    case '\f':
+                    case '\v':
+                        if (skipWs) continue;                        
+                        accum.Append((char)current);
+                        break;
+
+                    case '\\':
+                        skipWs = false;
+                        current = Read();
+                        // Escape sequence
+                        switch (current)
+                        {
+                            case 'a':  current = '\a'; break;
+                            case 'b':  current = '\b'; break;
+                            case 'f':  current = '\f'; break;
+                            case 'n':  current = '\n'; break;
+                            case 'r':  current = '\r'; break;
+                            case 't':  current = '\t'; break;
+                            case 'v':  current = '\v'; break;
+                            
+                            case '\"': current = '\"'; break;
+                            case '\'': current = '\''; break;
+                            case '\\': current = '\\'; break;
+
+                            case '\r':
+                            case '\n': 
+                                isMultiLine = true;
+                                break;                             
+
+                            case '0':
+                            case '1':
+                            case '2':
+                            case '3':
+                            case '4':
+                            case '5':
+                            case '6':
+                            case '7':
+                            case '8':
+                            case '9':
+                                /* a numeric escape sequence, such as \012 or \9 */
+                                int v = current - '0';
+                                for (int i = 1; i < 3; ++i)
+                                {
+                                    if (!Peek().IsDecimal())
+                                        break;
+                                    v = (v * 10) + (Read() - '0');
+                                }
+                                current = v;
+                                break;
+
+                            case 'x': // a hexadecimal escape sequence (Lua 5.2 feature)
+                                //if (!_options.Lua52Feature) goto default;
+                                int offset = _buffer.TokenRelativePosition;
+                                int value = 0;
+                                for (int i = 0; i < 2; ++i)
+                                {
+                                    current = Read();
+                                    if ('0' <= current && current <= '9')
+                                        value = (value << 4) | (current - '0');
+                                    else if ('a' <= current && current <= 'f')
+                                        value = (value << 4) | (current - 'a' + 10);
+                                    else if ('A' <= current && current <= 'F')
+                                        value = (value << 4) | (current - 'A' + 10);
+                                    else
+                                    {
+                                        _buffer.MarkSingleLineTokenEnd();
+                                        ReportError(4, "hexadecimal digit expected near '{0}'", _buffer.GetTokenSubstring(offset));
+                                        return new Token(Symbol.Error);
+                                    }
+                                }
+                                current = value;
+                                break;
+
+                            case 'z':
+                                //if (!_options.Lua52Feature) goto default;                                
+                                skipWs = true; // from hear on, skip all whitespace
+                                continue;                                
+
+                            // Lua manual says only the above chars can be 
+                            // escaped but Luac allows any char to be escaped.
+                        }
+                        accum.Append((char)current);
+                        break;
+
+                    case '\'':
+                    case '"':
+                        // Is it the closing quote?
+                        done = (current == quote);
+                        if (done) break;
+                        goto default;
+                    default:
+                        accum.Append((char)current);
+                        skipWs = false;
+                        break;
+                }           
+            } while (!done);
+            
+            return MarkTokenEnd(Symbol.String, accum.ToString, isMultiLine);
+        }
+
+        Token ScanLongStringLiteral(char c, bool isComment = false)
+        {
+            Debug.Assert(c == '[');
+
+            int numEqualsStart = ConsumeMany('=');
+            
+            if (!ConsumeOne('['))
+            {
+                if (isComment)
+                {
+                    _buffer.ReadLine(); // just continue as a normal short comment
+                    return MarkTokenEnd(Symbol.Comment, () => _buffer.GetTokenSubstring(2));
+                }
+                
+                _buffer.MarkSingleLineTokenEnd();
+                ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
+                return new Token(Symbol.Error);
+            }
+
+            ConsumeOneEol(); // Skip newline immediately following the start
+
+            int first = _buffer.TokenRelativePosition;
+            int last = first;
+            bool done = false;
+            do
+            {
+                switch (Read())
+                {
+                    case TokenizerBuffer.EndOfFile:
+                        _buffer.MarkMultiLineTokenEnd();
+                        ReportError(5, "invalid long {0} delimiter at '{1}'",
+                            isComment ? "comment" : "string", _buffer.GetTokenString());                                        
+                        return new Token(Symbol.Error);                        
+                        
+                    case ']':
+                        last = _buffer.TokenRelativePosition;
+                        done = (ConsumeMany('=') == numEqualsStart) && (Peek() == ']'); // Note: order is important
+                        break;
+                }                
+            } while (!done);
+
+            if (!ConsumeOne(']'))
+            {   
+                _buffer.MarkSingleLineTokenEnd();
+                ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
+                return new Token(Symbol.Error);
+
+                throw Assert.Unreachable; // should really be this!
+            }
+
+            return MarkTokenEnd(isComment ? Symbol.Comment : Symbol.String, 
+                () => _buffer.GetTokenSubstring(first, last - first + 1), 
+                isMultiLine:true);
+        }
+
+        #endregion
+
+        #region Numeric Literal
+
+        Token ScanNumericLiteral(char c)
+        {
+            Debug.Assert(c.IsDecimal() || c == '.');
+
+            bool isHex;
+            int mantissa;
+            int fraction = -1;
+            int exponent = -1;
+            char expChar;
+            int leftovers;
+            Func<int, bool> numberCheck;
+            Func<int, bool> exponentCheck;
+            
+            if (c == '0' && ConsumeOne(x => x == 'x' || x == 'X'))
+            {
+                // Prepare for a hexadecimal number
+                numberCheck = x => x.IsHex();
+                exponentCheck = x => (x == 'p' || x == 'P');
+                isHex = true;
+                mantissa = 0;
+            }
+            else
+            {
+                // Prepare for a decimal number
+                numberCheck = x => x.IsDecimal();
+                exponentCheck = x => (x == 'e' || x == 'E');
+                isHex = false;
+                mantissa = c.IsDecimal() ? 1 : 0;
+            }
+
+            // Go ahead and scan the number
+            mantissa += ConsumeMany(numberCheck);
+            if (c != '.' && ConsumeOne('.'))
+            {
+                fraction = ConsumeMany(numberCheck);
+            }
+            expChar = Char.ToLowerInvariant((char)_buffer.Peek());
+            if (ConsumeOne(exponentCheck))
+            {
+                ConsumeOne(x => x == '-' || x == '+');
+                exponent = ConsumeMany(x => x.IsDecimal());
+            }
+            leftovers = ConsumeMany(x => x.IsIdentifier());
+
+            bool bad = false;
+            bad |= leftovers > 0; // leftover characters
+            bad |= mantissa <= 0 && fraction <= 0; // no mantissa or fraction values
+            bad |= exponent == 0; // missing exponent value
+            bad |= exponent > 0 && ((isHex && expChar != 'p') || (!isHex && expChar != 'e'));
+            if (bad)
+            {                
+                _buffer.MarkSingleLineTokenEnd();
+                ReportError(6, "malformed number near '{0}'", _buffer.GetTokenString());
+                return new Token(Symbol.Error);
+            }
+
+            return MarkTokenEnd(Symbol.Number);
+        }
+
+        #endregion
+
+        #region Comments
+
+        /// <summary>
+        /// Scans a comment, either short form "-- comment" or long form "--[[ comment ]]"
+        /// </summary>
+        Token ScanCommentLiteral(char c)
+        {
+            char c1 = c;                    // first -
+            char c2 = (char)Read(); // second -
+            Debug.Assert(c1 == '-' && c2 == '-');
+
+            if (ConsumeOne('['))
+            {
+                // long comment of the form: [[comment string]] or [=[comment string]=]
+                return ScanLongStringLiteral('[', isComment: true);
+            }
+            else
+            {
+                // Handle a short comment literal
+                _buffer.ReadLine();
+                return MarkTokenEnd(Symbol.Comment, () => _buffer.GetTokenSubstring(2));
+            }
+        }
+
+        #endregion
+
+        #region Peek, Read & Consume functions
+
+        int Peek()
+        {
+            return _buffer.Peek();
+        }
+
+        int Read()
+        {
+            int c = _buffer.Read();            
+            //Console.Write((char)c);
+            return c;
+        }
+        
+        int ConsumeMany(char c)
+        {
+            int count = 0;
+
+            while (_buffer.Read(c))
+            {
+                //Console.Write(c);
+                count++;
+            }
+
+            return count;
+        }
+
+        int ConsumeMany(Func<int, bool> check)
+        {
+            int count = 0;
+
+            while (check(_buffer.Peek()))
+            {
+                Read();
+                count++;
+            }
+
+            return count;
+        }
+
+        bool ConsumeOne(char c)
+        {
+            var b = _buffer.Read(c);
+            //if (b) Console.WriteLine('c');
+            return b;
+        }
+
+        bool ConsumeOne(Func<int, bool> check)
+        {
+            if (check(_buffer.Peek()))
+            {
+                Read();
+                return true;
+            }
+
+            return false;
+        }
+
+        bool ConsumeOneEol()
+        {
+            var peek = _buffer.Peek();
+            if (peek == '\n')
+            {
+                Read();
+                return true;
+            }
+            
+            if (peek == '\r' && _multiEolns)
+            {
+                Read();
+                if (_buffer.Peek() == '\n')
+                    Read();
+                
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
+        #region Error reporting
+
+        string Report(Severity severity, int errorCode, SourceSpan location, string message)
+        {
+            Debug.Assert(severity != Severity.FatalError);
+            ErrorSink.Add(_sourceUnit, message, location, errorCode, severity);
+            return message;
+        }
+
+        internal string ReportError(int errorCode, string format, params object[] args)
+        {
+            return Report(Severity.Error, errorCode, _buffer.TokenSpan, String.Format(format, args));
+        }
+
+        #endregion
+
+        internal IEnumerable<Token> EnumerateTokens()
+        {
+            Token token;
+            do
+            {
+                token = GetNextToken();
+                
+                yield return token;
+
+            } while (token.Symbol != Symbol.Eof);            
+        }
+
+        internal static TokenInfo GetTokenInfo(Symbol token)
+        {
+            var result = new TokenInfo();
+
+            switch (token)            
+            {
+                case Symbol.And:
+                    result.Category = TokenCategory.Keyword;
+                    break;
+
+                case Symbol.Do:
+                case Symbol.End:                
+                    result.Category = TokenCategory.Keyword;
+                    result.Trigger = TokenTriggers.MatchBraces;
+                    break;
+
+                case Symbol.Identifier:
+                    result.Category = TokenCategory.Identifier;
+                    break;
+
+                case Symbol.Number:
+                    result.Category = TokenCategory.NumericLiteral;
+                    break;
+
+                case Symbol.String:
+                    result.Category = TokenCategory.StringLiteral;
+                    break;
+
+                case Symbol.Eof:
+                    result.Category = TokenCategory.EndOfStream;
+                    break;
+
+                default:
+                    throw Assert.Unreachable;
+            }
+            
+            return result;
+        }
+
+        public override TokenInfo ReadToken()
+        {
+            var token = GetNextToken();
+            TokenInfo result = GetTokenInfo(token.Symbol);
+            result.SourceSpan = _lastTokenSpan;
+            return result;
+        }
+
+        public SourceSpan CurrentTokenSpan() // DEBUG
+        {
+            return _buffer.TokenSpan;
+        }
+
+        public string CurrentTokenString() // DEBUG
+        {
+            return _buffer.GetTokenString();
+        }
+
+        public string CurrentTokenValue() // DEBUG
+        {
+            return _lastTokenValue ?? "<empty>";
+        }
+        
+        public override SourceLocation CurrentPosition
+        {
+            get { return _buffer.TokenSpan.End; }
+        }
+
+        public override bool IsRestartable
+        {
+            get { return false; } // TODO: implement this feature
+        }
+
+        public override object CurrentState
+        {
+            get { return _state; }
+        }
+
+        public override ErrorSink ErrorSink
+        {
+            get { return _errors; }
+            set
+            {
+                ContractUtils.RequiresNotNull(value, "value");
+                _errors = value;
+            }
+        }
+
+        #region State
+
+        public sealed class State : IEquatable<State>
+        {
+            public State(State other)
+            {
+            }
+
+            public bool Equals(State other)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        #endregion
+    }
+
+    static class HelperExtensions
+    {
+        public static bool IsIdentifierStart(this int c)
+        {
+            return ('a' <= c && c <= 'z') ||
+                   ('A' <= c && c <= 'Z') ||
+                   ('_' == c);
+        }
+
+        public static bool IsIdentifier(this int c)
+        {
+            return ('a' <= c && c <= 'z') ||
+                   ('A' <= c && c <= 'Z') ||
+                   ('0' <= c && c <= '9') ||
+                   ('_' == c);
+        }
+
+        public static bool IsDecimal(this int c)
+        {
+            return ('0' <= c && c <= '9');
+        }
+
+        public static bool IsHex(this int c)
+        {
+            return ('0' <= c && c <= '9') ||
+                   ('a' <= c && c <= 'f') ||
+                   ('A' <= c && c <= 'F');
+        }
+
+        public static bool IsPunctuation(this int c)
+        {
+            switch (c)
+            {
+                case '+':
+                case '-':
+                case '*':
+                case '/':
+                case '%':
+                case '^':
+                case '#':
+                case '~':
+                case '<':
+                case '>':
+                case '=':
+                case '(':
+                case ')':
+                case '{':
+                case '}':
+                case '[':
+                case ']':
+                case ';':
+                case ':':
+                case ',':
+                case '.':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsWhitespace(this int c)
+        {
+            return (c == ' ' || c == '\t');
+        }
+    }
+
+}
