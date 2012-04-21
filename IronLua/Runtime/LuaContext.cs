@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using IronLua.Compiler;
@@ -36,24 +37,40 @@ namespace IronLua.Runtime
 
             //Console.WriteLine("This is where we 'compile' the source code");
 
-            //var sw = Stopwatch.StartNew();
+            var luaOptions = options as LuaCompilerOptions;
+            if (luaOptions == null)
+                throw new ArgumentException("Compiler context required", "options");
+            
+            SourceCodeReader reader;
             try
             {
-                var source = sourceUnit.GetCode();
+                reader = sourceUnit.GetReader();
+
+                if (luaOptions.SkipFirstLine)
+                    reader.ReadLine();
+            }
+            catch (IOException ex)
+            {
+                errorSink.Add(sourceUnit, ex.Message, SourceSpan.Invalid, 0, Severity.Error);
+                throw;
+            }
+
+            using (reader)
+            {
+                // TODO: make use of luaOptions for compiler options
+                // TODO: all error/warnings should go into errorSink
+
+                var source = reader.ReadToEnd();
                 var input = new Input(source);
                 var parser = new Parser(input);
                 var ast = parser.Parse();
                 var gen = new Generator(_ctx);
                 var expr = gen.Compile(ast);
-                var chunk = expr.Compile();
-                return new LuaScriptCode(sourceUnit, chunk);
-            }
-            finally
-            {
-                //Debug.Print("Parse of '{0}' took {1} ms", sourceUnit, sw.ElapsedMilliseconds);                
-            }
+                var lamda = expr.Compile();
 
-            throw new NotImplementedException();
+                //sourceUnit.CodeProperties = ScriptCodeParseResult.Complete;
+                return new LuaScriptCode(sourceUnit, lamda);
+            }
         }
 
         #region Lua Information
@@ -78,6 +95,30 @@ namespace IronLua.Runtime
         }
 
         #endregion
+
+        Lazy<LuaCompilerOptions> _compilerOptions = 
+            new Lazy<LuaCompilerOptions>(() => new LuaCompilerOptions());
+
+        public override CompilerOptions GetCompilerOptions()
+        {
+            return _compilerOptions.Value;
+        }
+
+        public override TService GetService<TService>(params object[] args)            
+        {
+            if (typeof(TService) == typeof(TokenizerService))
+            {
+                return (TService)(object)new Tokenizer(ErrorSink.Null, (LuaCompilerOptions)GetCompilerOptions());
+            }
+            else if (typeof(TService) == typeof(LuaService))
+            {
+                return (TService)(object)GetLuaService((ScriptEngine)args[0]);
+            }
+            else
+            {
+                return base.GetService<TService>(args);
+            }
+        }
 
         #region LuaService
 
