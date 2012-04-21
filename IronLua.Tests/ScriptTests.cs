@@ -25,6 +25,7 @@ namespace IronLua.Tests
             {
                 return Directory.EnumerateFiles(ScriptPath, "*.lua")
                                 .Select(Path.GetFileName)
+                                .Where(f => !Path.GetFileNameWithoutExtension(f).EndsWith("XXX"))
                                 .ToArray();
             }
         }
