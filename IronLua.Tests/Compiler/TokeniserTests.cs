@@ -97,7 +97,7 @@ namespace IronLua.Tests.Compiler
         };
 
         [Theory]
-        public void ExecuteLuaTestSuite(string testCaseFile)
+        public void RunLexerOnLuaTestSuiteFile(string testCaseFile)
         {
             TextReader reader;
             try
