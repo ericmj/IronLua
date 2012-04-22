@@ -48,7 +48,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw SyntaxException(ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new LuaSyntaxException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -63,7 +63,7 @@ namespace IronLua.Compiler.Parser
                 }
                 catch (IndexOutOfRangeException e)
                 {
-                    throw SyntaxException(ExceptionMessage.UNEXPECTED_EOF, e);
+                    throw new LuaSyntaxException(File, Line, Column, ExceptionMessage.UNEXPECTED_EOF, e);
                 }
             }
         }
@@ -145,11 +145,6 @@ namespace IronLua.Compiler.Parser
         public LuaSyntaxException SyntaxException(string message, Exception inner = null)
         {
             return new LuaSyntaxException(File, Line, Column, message, inner);
-        }
-
-        public LuaSyntaxException SyntaxException(string format, params object[] args)
-        {
-            return SyntaxException(String.Format(format, args));
         }
     }
 }

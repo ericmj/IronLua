@@ -375,8 +375,9 @@ namespace IronLua.Library
 
         Func<object> CompileString(string source)
         {
+            // TODO: replace Lexer with Tokenizer class
             var input = new Input(source);
-            var parser = new Parser(input);
+            var parser = new Parser(new Lexer(input));
             var ast = parser.Parse();
             var gen = new Generator(Context);
             var expr = gen.Compile(ast);

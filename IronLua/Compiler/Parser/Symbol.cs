@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Parser
 {
-    enum Symbol
+    public enum Symbol
     {
         // Keywords
         And,

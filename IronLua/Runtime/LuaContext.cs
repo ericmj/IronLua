@@ -57,12 +57,15 @@ namespace IronLua.Runtime
 
             using (reader)
             {
-                // TODO: make use of luaOptions for compiler options
-                // TODO: all error/warnings should go into errorSink
-
+#if false
                 var source = reader.ReadToEnd();
                 var input = new Input(source);
-                var parser = new Parser(input);
+                var lexer = new Lexer(input);
+#else
+                var lexer = new Tokenizer(errorSink, luaOptions);
+                lexer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);
+#endif
+                var parser = new Parser(lexer);
                 var ast = parser.Parse();
                 var gen = new Generator(_ctx);
                 var expr = gen.Compile(ast);

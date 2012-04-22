@@ -6,7 +6,6 @@ using System.Text;
 using IronLua.Compiler.Parser;
 using IronLua.Util;
 using Microsoft.Scripting;
-using Microsoft.Scripting.Actions;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 
@@ -16,22 +15,31 @@ namespace IronLua.Compiler
     public class LuaCompilerOptions : CompilerOptions
     {
         public bool SkipFirstLine { get; set; }
+        public bool MultiEolns { get; set; }
+        public bool UseLua52Features { get; set; }
+        public int InitialBufferCapacity { get; set; }
+
+        public LuaCompilerOptions()
+        {
+            SkipFirstLine = false;
+            MultiEolns = true;
+            UseLua52Features = true;
+            InitialBufferCapacity = 1024;
+        }        
     }    
 
-    public class Tokenizer : TokenizerService
+    public class Tokenizer : TokenizerService, ILexer
     {
-        private const int DefaultBufferCapacity = 1024;
-
         private SourceUnit _sourceUnit;
         private ErrorSink _errors;
         private Tokenizer.State _state;
         private TokenizerBuffer _buffer;
+
         private SourceSpan _lastTokenSpan;
         private string _lastTokenValue;
 
-        private LuaCompilerOptions _options;
-        private bool _multiEolns = true; // TODO: move into options
-
+        private readonly LuaCompilerOptions _options;
+        
         public Tokenizer(ErrorSink errorListner, LuaCompilerOptions options)            
         {
             ContractUtils.RequiresNotNull(errorListner, "errorSink");
@@ -47,10 +55,8 @@ namespace IronLua.Compiler
 
             _sourceUnit = sourceUnit;
             _state = new State(state as State);
-            
-            _lastTokenSpan = new SourceSpan(initialLocation, initialLocation);
-            
-            _buffer = new TokenizerBuffer(sourceReader, initialLocation, DefaultBufferCapacity, true);
+                        
+            _buffer = new TokenizerBuffer(sourceReader, initialLocation, _options.InitialBufferCapacity, _options.MultiEolns);
 
             if (_options.SkipFirstLine)
             {
@@ -58,35 +64,40 @@ namespace IronLua.Compiler
                     _buffer.ReadLine(); // skip shibang                
             }
 
+            Last = null;
+            Current = GetNextToken();
+            Next = GetNextToken();
         }
 
-        private static readonly Dictionary<string, Symbol> _keywords =
-            new Dictionary<string, Symbol>
-            {
-                {"and", Symbol.And},
-                {"break", Symbol.Break},
-                {"do", Symbol.Do},
-                {"else", Symbol.Else},
-                {"elseif", Symbol.Elseif},
-                {"end", Symbol.End},
-                {"false", Symbol.False},
-                {"for", Symbol.For},
-                {"function", Symbol.Function},
-                {"if", Symbol.If},
-                {"in", Symbol.In},
-                {"local", Symbol.Local},
-                {"nil", Symbol.Nil},
-                {"not", Symbol.Not},
-                {"or", Symbol.Or},
-                {"repeat", Symbol.Repeat},
-                {"return", Symbol.Return},
-                {"then", Symbol.Then},
-                {"true", Symbol.True},
-                {"until", Symbol.Until},
-                {"while", Symbol.While}
-            };
-
         internal Token GetNextToken()
+        {
+            Symbol symbol;
+            do
+            {
+                symbol = GetNextSymbol();
+
+            } while (symbol == Symbol.Whitespace ||
+                     symbol == Symbol.Comment ||
+                     symbol == Symbol.Eol);
+
+            var result = new Token(symbol,
+                _buffer.TokenStart.Line,
+                _buffer.TokenStart.Column,
+                _lastTokenValue
+            );
+
+            return result;
+        }
+
+        Symbol MarkTokenEnd(Symbol symbol, Func<string> getTokenValue = null, bool isMultiLine = false)
+        {
+            _buffer.MarkTokenEnd(isMultiLine);
+            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
+            _lastTokenSpan = _buffer.TokenSpan;
+            return symbol;
+        }
+
+        internal Symbol GetNextSymbol()
         {
             _buffer.DiscardToken();
 
@@ -139,25 +150,13 @@ namespace IronLua.Compiler
             {
                 _buffer.MarkSingleLineTokenEnd();
                 ReportError(1, "invalid character '{0}'", (char)current);
-                return new Token(Symbol.Error);
+                return Symbol.Error;
             }
-        }
-
-        Token MarkTokenEnd(Symbol symbol, Func<string> getTokenValue = null, bool isMultiLine = false)
-        {
-            _buffer.MarkTokenEnd(isMultiLine);
-
-            //if (getTokenValue == null)
-            //    getTokenValue = _buffer.GetTokenString;
-
-            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
-
-            return new Token(symbol);
         }
 
         #region Punctuation
 
-        Token ScanPunctuation(char c)
+        Symbol ScanPunctuation(char c)
         {
             switch (c)
             {
@@ -204,7 +203,7 @@ namespace IronLua.Compiler
             }
         }
 
-        Token ScanLongPunctuation(char c)
+        Symbol ScanLongPunctuation(char c)
         {
             switch (c)
             {
@@ -241,24 +240,51 @@ namespace IronLua.Compiler
 
         #region Keywords or Identifiers
 
+        private static readonly Dictionary<string, Symbol> _keywords =
+            new Dictionary<string, Symbol>
+            {
+                {"and", Symbol.And},
+                {"break", Symbol.Break},
+                {"do", Symbol.Do},
+                {"else", Symbol.Else},
+                {"elseif", Symbol.Elseif},
+                {"end", Symbol.End},
+                {"false", Symbol.False},
+                {"for", Symbol.For},
+                {"function", Symbol.Function},
+                {"if", Symbol.If},
+                {"in", Symbol.In},
+                {"local", Symbol.Local},
+                {"nil", Symbol.Nil},
+                {"not", Symbol.Not},
+                {"or", Symbol.Or},
+                {"repeat", Symbol.Repeat},
+                {"return", Symbol.Return},
+                {"then", Symbol.Then},
+                {"true", Symbol.True},
+                {"until", Symbol.Until},
+                {"while", Symbol.While}
+            };
+
         // Used to scan for names and it classifies them as keywords or identifiers
-        Token ScanKeywordOrIdentifier(char c)
+        Symbol ScanKeywordOrIdentifier(char c)
         {
             Debug.Assert(c.IsIdentifierStart());
 
             ConsumeMany(x => x.IsIdentifier());
             
             _buffer.MarkSingleLineTokenEnd();
-            string value = _buffer.GetTokenString();
+            _lastTokenValue = _buffer.GetTokenString();
+            _lastTokenSpan = _buffer.TokenSpan;            
 
             // Keyword or identifier?
             Symbol symbol;
-            if (!_keywords.TryGetValue(value, out symbol))
+            if (!_keywords.TryGetValue(_lastTokenValue, out symbol))
             {
                 symbol = Symbol.Identifier;
             }
 
-            return new Token(symbol, value);
+            return symbol;
         }
 
         #endregion
@@ -266,7 +292,7 @@ namespace IronLua.Compiler
         #region String Literal
 
         // Scans a simple string literal (i.e. one quoted with ' or ")
-        Token ScanStringLiteral(char quote)
+        Symbol ScanStringLiteral(char quote)
         {
             Debug.Assert(quote == '\'' || quote == '"');
 
@@ -284,14 +310,14 @@ namespace IronLua.Compiler
                         _buffer.MarkSingleLineTokenEnd();
                         ReportError(3, "Unterminated quoted string meets end of file");                        
                         //return new IncompleteStringToken(accum.ToString(), (quoteChar == '\''));
-                        return new Token(Symbol.Error);
+                        return Symbol.Error;
 
                     case '\r':
                     case '\n':
                         if (skipWs) continue;                        
                         _buffer.MarkSingleLineTokenEnd(-1);
                         ReportError(2, "unfinished string at '{0}'", _buffer.GetTokenString());
-                        return new Token(Symbol.Error);
+                        return Symbol.Error;
 
                     case ' ':
                     case '\t':
@@ -346,7 +372,7 @@ namespace IronLua.Compiler
                                 break;
 
                             case 'x': // a hexadecimal escape sequence (Lua 5.2 feature)
-                                //if (!_options.Lua52Feature) goto default;
+                                if (!_options.UseLua52Features) goto default;
                                 int offset = _buffer.TokenRelativePosition;
                                 int value = 0;
                                 for (int i = 0; i < 2; ++i)
@@ -362,16 +388,19 @@ namespace IronLua.Compiler
                                     {
                                         _buffer.MarkSingleLineTokenEnd();
                                         ReportError(4, "hexadecimal digit expected near '{0}'", _buffer.GetTokenSubstring(offset));
-                                        return new Token(Symbol.Error);
+                                        return Symbol.Error;
                                     }
                                 }
                                 current = value;
                                 break;
 
                             case 'z':
-                                //if (!_options.Lua52Feature) goto default;                                
-                                skipWs = true; // from hear on, skip all whitespace
+                                if (!_options.UseLua52Features) goto default;
+                                skipWs = true; // from hear on, skip all whitespace (Lua 5.2 feature)
                                 continue;                                
+
+                            default:
+                                break;
 
                             // Lua manual says only the above chars can be 
                             // escaped but Luac allows any char to be escaped.
@@ -395,11 +424,12 @@ namespace IronLua.Compiler
             return MarkTokenEnd(Symbol.String, accum.ToString, isMultiLine);
         }
 
-        Token ScanLongStringLiteral(char c, bool isComment = false)
+        Symbol ScanLongStringLiteral(char c, bool isComment = false)
         {
             Debug.Assert(c == '[');
 
             int numEqualsStart = ConsumeMany('=');
+            int numEqualsEnd = -1;
             
             if (!ConsumeOne('['))
             {
@@ -411,42 +441,62 @@ namespace IronLua.Compiler
                 
                 _buffer.MarkSingleLineTokenEnd();
                 ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
-                return new Token(Symbol.Error);
+                return Symbol.Error;
             }
 
             ConsumeOneEol(); // Skip newline immediately following the start
 
-            int first = _buffer.TokenRelativePosition;
-            int last = first;
+            var accum = new StringBuilder();
             bool done = false;
             do
             {
-                switch (Read())
+                int current = Read();
+                
+                switch (current)
                 {
                     case TokenizerBuffer.EndOfFile:
                         _buffer.MarkMultiLineTokenEnd();
                         ReportError(5, "invalid long {0} delimiter at '{1}'",
                             isComment ? "comment" : "string", _buffer.GetTokenString());                                        
-                        return new Token(Symbol.Error);                        
+                        return Symbol.Error;
+
+                    case '\r': // need to replace \r\n sequence into \n ones
+                        if (Peek() == '\n')
+                            continue;
+                        break;
+
+                    case '=':
+                        if (numEqualsEnd >= 0)
+                        {
+                            numEqualsEnd++;
+                            done = (numEqualsEnd == numEqualsStart) && (Peek() == ']');
+                        }
+                        break;
                         
                     case ']':
-                        last = _buffer.TokenRelativePosition;
-                        done = (ConsumeMany('=') == numEqualsStart) && (Peek() == ']'); // Note: order is important
+                        numEqualsEnd = 0;
+                        done = (numEqualsEnd == numEqualsStart) && (Peek() == ']');
                         break;
-                }                
+
+                    default:
+                        numEqualsEnd = -1;
+                        break;
+                }
+                
+                accum.Append((char) current);
             } while (!done);
 
             if (!ConsumeOne(']'))
             {   
                 _buffer.MarkSingleLineTokenEnd();
                 ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
-                return new Token(Symbol.Error);
+                return Symbol.Error;
 
                 throw Assert.Unreachable; // should really be this!
             }
 
             return MarkTokenEnd(isComment ? Symbol.Comment : Symbol.String, 
-                () => _buffer.GetTokenSubstring(first, last - first + 1), 
+                () => accum.ToString(0, accum.Length - 1 - numEqualsEnd),
                 isMultiLine:true);
         }
 
@@ -454,7 +504,7 @@ namespace IronLua.Compiler
 
         #region Numeric Literal
 
-        Token ScanNumericLiteral(char c)
+        Symbol ScanNumericLiteral(char c)
         {
             Debug.Assert(c.IsDecimal() || c == '.');
 
@@ -507,10 +557,10 @@ namespace IronLua.Compiler
             {                
                 _buffer.MarkSingleLineTokenEnd();
                 ReportError(6, "malformed number near '{0}'", _buffer.GetTokenString());
-                return new Token(Symbol.Error);
+                return Symbol.Error;
             }
 
-            return MarkTokenEnd(Symbol.Number);
+            return MarkTokenEnd(Symbol.Number, () => _buffer.GetTokenString());
         }
 
         #endregion
@@ -520,7 +570,7 @@ namespace IronLua.Compiler
         /// <summary>
         /// Scans a comment, either short form "-- comment" or long form "--[[ comment ]]"
         /// </summary>
-        Token ScanCommentLiteral(char c)
+        Symbol ScanCommentLiteral(char c)
         {
             char c1 = c;                    // first -
             char c2 = (char)Read(); // second -
@@ -550,9 +600,7 @@ namespace IronLua.Compiler
 
         int Read()
         {
-            int c = _buffer.Read();            
-            //Console.Write((char)c);
-            return c;
+            return _buffer.Read();                        
         }
         
         int ConsumeMany(char c)
@@ -560,8 +608,7 @@ namespace IronLua.Compiler
             int count = 0;
 
             while (_buffer.Read(c))
-            {
-                //Console.Write(c);
+            {                
                 count++;
             }
 
@@ -583,9 +630,7 @@ namespace IronLua.Compiler
 
         bool ConsumeOne(char c)
         {
-            var b = _buffer.Read(c);
-            //if (b) Console.WriteLine('c');
-            return b;
+            return _buffer.Read(c);
         }
 
         bool ConsumeOne(Func<int, bool> check)
@@ -608,7 +653,7 @@ namespace IronLua.Compiler
                 return true;
             }
             
-            if (peek == '\r' && _multiEolns)
+            if (peek == '\r' && _options.MultiEolns)
             {
                 Read();
                 if (_buffer.Peek() == '\n')
@@ -653,6 +698,8 @@ namespace IronLua.Compiler
         internal static TokenInfo GetTokenInfo(Symbol token)
         {
             var result = new TokenInfo();
+
+            // TODO: not finished
 
             switch (token)            
             {
@@ -749,6 +796,70 @@ namespace IronLua.Compiler
             {
                 throw new NotImplementedException();
             }
+        }
+
+        #endregion
+
+        #region Implementation of ILexer
+
+        public Token Last    { get; private set; }       
+        public Token Current { get; private set; }
+        public Token Next    { get; private set; }
+
+        public Symbol CurrentSymbol
+        {
+            get { return Current.Symbol; }
+        }
+
+        public Symbol NextSymbol
+        {
+            get { return Next.Symbol; }
+        }
+
+        public void Consume()
+        {
+            Last = Current;
+            Current = Next;
+            Next = GetNextToken();
+        }
+
+        public string ConsumeLexeme()
+        {
+            var lexeme = Current.Lexeme;
+            Consume();
+            return lexeme;
+        }
+
+        public bool TryConsume(Symbol symbol)
+        {
+            if (CurrentSymbol == symbol)
+            {
+                Consume();
+                return true;
+            }
+            return false;
+        }
+
+        public void Expect(Symbol symbol)
+        {
+            if (!TryConsume(symbol))
+            {
+                throw SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, CurrentSymbol, symbol);
+            }
+        }
+
+        public string ExpectLexeme(Symbol symbol)
+        {
+            var lexeme = Current.Lexeme;
+            Expect(symbol);
+            return lexeme;
+        }
+
+        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        {
+            var cpos = CurrentPosition;
+            var file = _sourceUnit.HasPath ? _sourceUnit.Path : "<unknown>";
+            return new LuaSyntaxException(file, cpos.Line, cpos.Column, String.Format(format, args));            
         }
 
         #endregion

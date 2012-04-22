@@ -1,6 +1,6 @@
 namespace IronLua.Compiler.Parser
 {
-    internal class Token
+    public class Token
     {
         public Symbol Symbol { get; private set; }
         public int Line { get; private set; }

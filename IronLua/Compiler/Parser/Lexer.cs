@@ -4,7 +4,26 @@ using IronLua.Util;
 
 namespace IronLua.Compiler.Parser
 {
-    class Lexer
+    internal interface ILexer
+    {
+        Token Last { get; }
+        Token Current { get; }
+        //Token Next { get; }
+        
+        Symbol CurrentSymbol { get; }
+        Symbol NextSymbol { get; }
+
+        void Consume();
+        string ConsumeLexeme();
+        bool TryConsume(Symbol symbol);
+
+        void Expect(Symbol symbol);
+        string ExpectLexeme(Symbol symbol);
+
+        LuaSyntaxException SyntaxException(string format, params object[] args);
+    }
+
+    class Lexer : ILexer
     {
         static readonly Dictionary<string, Symbol> keywords =
             new Dictionary<string, Symbol>
@@ -37,13 +56,24 @@ namespace IronLua.Compiler.Parser
         public Token Last { get; private set; }
         public Token Current { get; private set; }
         public Token Next { get; private set; }
-        public Input Input { get { return input; } }
-
+        
         public Lexer(Input input)
         {
             this.input = input;
             Current = NextToken();
             Next = NextToken();
+        }
+
+        #region ILexer members
+
+        public Symbol CurrentSymbol
+        {
+            get { return Current.Symbol; }
+        }
+
+        public Symbol NextSymbol
+        {
+            get { return Next.Symbol; }
         }
 
         public void Consume()
@@ -62,7 +92,7 @@ namespace IronLua.Compiler.Parser
 
         public bool TryConsume(Symbol symbol)
         {
-            if (Current.Symbol == symbol)
+            if (CurrentSymbol == symbol)
             {
                 Consume();
                 return true;
@@ -72,10 +102,8 @@ namespace IronLua.Compiler.Parser
 
         public void Expect(Symbol symbol)
         {
-            if (Current.Symbol == symbol)
-                Consume();
-            else
-                throw input.SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
+            if (!TryConsume(symbol))
+                throw SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, CurrentSymbol, symbol);
         }
 
         public string ExpectLexeme(Symbol symbol)
@@ -84,6 +112,13 @@ namespace IronLua.Compiler.Parser
             Expect(symbol);
             return lexeme;
         }
+
+        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        {
+            return input.SyntaxException(System.String.Format(format, args));
+        }
+
+        #endregion
 
         private Token NextToken()
         {
@@ -148,7 +183,7 @@ namespace IronLua.Compiler.Parser
                         if (input.Current.IsPunctuation())
                             return Punctuation();
 
-                        throw input.SyntaxException(ExceptionMessage.UNEXPECTED_CHAR, input.Current);
+                        throw SyntaxException(ExceptionMessage.UNEXPECTED_CHAR, input.Current);
 
                 }
             }
@@ -254,7 +289,7 @@ namespace IronLua.Compiler.Parser
 
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw input.SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
             input.Advance(); // second [
 
             // Skip immediately following newline
@@ -317,7 +352,7 @@ namespace IronLua.Compiler.Parser
             input.Advance(); // first [
             int numEqualsStart = CountEquals();
             if (input.Current != '[')
-                throw input.SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
+                throw SyntaxException(ExceptionMessage.INVALID_LONG_STRING_DELIMTER, input.Current);
             input.Advance(); // second [
 
             while (true)
@@ -396,7 +431,7 @@ namespace IronLua.Compiler.Parser
                 case '.':
                     return input.Current == '.' ? LongPunctuation(c) : input.Output(Symbol.Dot);
                 default:
-                    throw input.SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, c);
+                    throw SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, c);
             }
         }
 
@@ -432,7 +467,7 @@ namespace IronLua.Compiler.Parser
                     break;
             }
 
-            throw input.SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
+            throw SyntaxException(ExceptionMessage.UNKNOWN_PUNCTUATION, "" + c1 + c2);
         }
 
         /* String literal, such as "bla bla" */
@@ -480,7 +515,7 @@ namespace IronLua.Compiler.Parser
                         break;
 
                     case '\r': case '\n':
-                        throw input.SyntaxException(ExceptionMessage.UNEXPECTED_EOS);
+                        throw SyntaxException(ExceptionMessage.UNEXPECTED_EOS);
 
                     default:
                         if (input.Current == end)
@@ -535,7 +570,7 @@ namespace IronLua.Compiler.Parser
                 else if ('A' <= c && c <= 'F')
                     value = (value << 4) | (input.Current - 'A' + 10);
                 else
-                    throw input.SyntaxException("hexadecimal digit expected near '{0}'", strValue);
+                    throw SyntaxException("hexadecimal digit expected near '{0}'", strValue);
             }
 
             input.BufferAppend((char)value);
