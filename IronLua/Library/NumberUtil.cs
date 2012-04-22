@@ -5,11 +5,9 @@ namespace IronLua.Library
 {
     static class NumberUtil
     {
-        const NumberStyles HEX_NUMBER_STYLE = NumberStyles.AllowHexSpecifier;
         const NumberStyles DECIMAL_NUMBER_STYLE = NumberStyles.AllowDecimalPoint |
                                                   NumberStyles.AllowExponent |
                                                   NumberStyles.AllowTrailingSign;
-
 
         /* Parses a decimal number */
         public static bool TryParseDecimalNumber(string number, out double result)
@@ -20,30 +18,51 @@ namespace IronLua.Library
         /* Parses a hex number */
         public static bool TryParseHexNumber(string number, bool exponentAllowed, out double result)
         {
-            bool successful;
+            string hexIntPart = null;
+            string hexFracPart = null;
+            string exponentPart = null;
 
-            var exponentIndex = number.IndexOfAny(new[] {'p', 'P'});
-            if (exponentIndex == -1)
+            var fields = number.Split('p', 'P'); // split between mantissa and exponent
+            if (fields.Length >= 1)
             {
-                ulong integer;
-                successful = UInt64.TryParse(number, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out integer);
-                result = integer;
-                return successful;
+                var parts = fields[0].Split('.'); // split on integer and fraction parts
+                if (parts.Length >= 1)
+                    hexIntPart = parts[0];
+                if (parts.Length == 2)
+                    hexFracPart = parts[1];
+            }
+            if (fields.Length == 2)
+            {
+                exponentPart = fields[1];
+                
+                if (!exponentAllowed)
+                {
+                    result = 0;
+                    return false;
+                }
             }
 
-            if (!exponentAllowed)
-            {
-                result = 0;
-                return false;
-            }
+            ulong hexIntNumber = 0;
+            ulong hexFracNumber = 0;
+            long exponentNumber = 0;
 
-            var hexPart = number.Substring(0, exponentIndex);
-            var exponentPart = number.Substring(exponentIndex + 1);
+            bool successful = true;
 
-            ulong hexNumber, exponentNumber = 0;
-            successful = UInt64.TryParse(hexPart, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out hexNumber) &&
-                         UInt64.TryParse(exponentPart, HEX_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out exponentNumber);
-            result = hexNumber * Math.Pow(exponentNumber, 2.0);
+            if (!String.IsNullOrEmpty(hexIntPart))
+                successful &= UInt64.TryParse(hexIntPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out hexIntNumber);
+
+            if (!String.IsNullOrEmpty(hexFracPart))
+                successful &= UInt64.TryParse(hexFracPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out hexFracNumber);
+
+            if (!String.IsNullOrEmpty(exponentPart))
+                successful &= Int64.TryParse(exponentPart, NumberStyles.AllowLeadingSign, Constant.INVARIANT_CULTURE, out exponentNumber);
+
+            // TODO: what is the formula. Looks like doing shift left/right based on exponent
+            // TODO: assert(0x4P-2 == 1) -- shift right 2
+
+            // TODO: fraction part has not been implmented!
+
+            result = hexIntNumber * Math.Pow(2.0, exponentNumber); 
             return successful;
         }
     }
