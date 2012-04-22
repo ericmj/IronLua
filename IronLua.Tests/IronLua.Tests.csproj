@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicTests.cs" />
+    <Compile Include="Compiler\ParserTests.cs" />
     <Compile Include="Compiler\TokeniserTests.cs" />
     <Compile Include="Compiler\LexerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
