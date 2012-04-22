@@ -16,6 +16,7 @@ namespace IronLua.Compiler.Parser
         public int Line { get; private set; }
         public int Column { get; private set; }
 
+        int storedIndex;
         int storedLine;
         int storedColumn;
         readonly StringBuilder buffer;
@@ -97,6 +98,7 @@ namespace IronLua.Compiler.Parser
 
         public void StorePosition()
         {
+            storedIndex = index;
             storedLine = Line;
             storedColumn = Column;
         }
@@ -134,12 +136,15 @@ namespace IronLua.Compiler.Parser
 
         public Token Output(Symbol symbol)
         {
-            return new Token(symbol, Line, Column);
+            var loc = new SourceLocation(index, Line, Column);            
+            return new Token(symbol, new SourceSpan(loc, loc));
         }
 
         public Token OutputBuffer(Symbol symbol)
         {
-            return new Token(symbol, storedLine, storedColumn, buffer.ToString());
+            var loc1 = new SourceLocation(storedIndex, storedLine, storedColumn);
+            var loc2 = new SourceLocation(index, Line, Column);
+            return new Token(symbol, new SourceSpan(loc1, loc2), buffer.ToString());
         }
 
         public LuaSyntaxException SyntaxException(string message, Exception inner = null)
