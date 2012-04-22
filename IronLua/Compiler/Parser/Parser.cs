@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using IronLua.Compiler.Ast;
 using IronLua.Library;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Parser
@@ -58,19 +60,115 @@ namespace IronLua.Compiler.Parser
                     {BinaryOp.Power,        new Tuple<int, int>(9, 8)}  // Left associative
                 };
 
-        readonly ILexer lexer;
+        private readonly ILexer lexer;
+        private ErrorSink _errors;
 
-        public Parser(ILexer lexer)
+        public Parser(ILexer lexer, ErrorSink errorSink)
         {
             ContractUtils.RequiresNotNull(lexer, "lexer");
+            ContractUtils.RequiresNotNull(errorSink, "errorSink");
 
             this.lexer = lexer;
+
+            _errors = errorSink;
+
+            // Debug: used to display the sequence of tokens that were read
+            //TokenSink = (t, s) => Debug.Print("{0,-12} {1}", t.Symbol, t.Lexeme ?? "");
+
+            // initialise the token management variables
+            Last = null;
+            Current = GetNextToken();
+            Next = GetNextToken();
         }
+
+        #region Token management
+
+        public Action<Token, SourceSpan> TokenSink { get; set; }
+
+        internal Token GetNextToken()
+        {
+            Token token = lexer.GetNextToken();
+
+            var tokenSink = TokenSink;
+            if (tokenSink != null)
+                tokenSink(token, SourceSpan.None); // lexer.TokenSpan); //, lexer.TokenLexeme);
+
+            return token;
+        }
+
+        Token Last { get; set; }
+        Token Current { get; set; }
+        Token Next { get; set; }
+
+        Symbol CurrentSymbol { get { return Current.Symbol; } }
+        Symbol NextSymbol    { get { return Next.Symbol; } }
+
+        void Consume()
+        {
+            Last = Current;
+            Current = Next;
+            Next = GetNextToken();
+        }
+
+        string ConsumeLexeme()
+        {
+            var lexeme = Current.Lexeme;
+            Consume();
+            return lexeme;
+        }
+
+        bool TryConsume(Symbol symbol)
+        {
+            if (Current.Symbol == symbol)
+            {
+                Consume();
+                return true;
+            }
+            return false;
+        }
+
+        void Expect(Symbol symbol)
+        {
+            if (!TryConsume(symbol))
+            {
+                throw ReportSyntaxError(ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
+            }
+        }
+
+        string ExpectLexeme(Symbol symbol)
+        {
+            var lexeme = Current.Lexeme;
+            Expect(symbol);
+            return lexeme;
+        }
+
+        #endregion
+
+        #region Error reporting
+
+        public ErrorSink ErrorSink
+        {
+            get { return _errors; }
+            set
+            {
+                ContractUtils.RequiresNotNull(value, "value");
+                _errors = value;
+            }
+        }
+
+        Exception ReportSyntaxError(string format, params object[] args)
+        {
+            string msg = String.Format(format, args);
+            _errors.Add(lexer.SourceUnit, msg, Current.Span, -1, Severity.Error);
+            return lexer.SyntaxException(format, args);
+        }
+
+        #endregion
 
         public Block Parse()
         {
             var block = Block();
-            lexer.Expect(Symbol.Eof);
+            Expect(Symbol.Eof);
             return block;
         }
 
@@ -78,10 +176,10 @@ namespace IronLua.Compiler.Parser
          * identifier {',' identifier} */
         List<string> IdentifierList()
         {
-            var identifiers = new List<string> {lexer.ExpectLexeme(Symbol.Identifier)};
+            var identifiers = new List<string> {ExpectLexeme(Symbol.Identifier)};
 
-            while (lexer.TryConsume(Symbol.Comma))
-                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+            while (TryConsume(Symbol.Comma))
+                identifiers.Add(ExpectLexeme(Symbol.Identifier));
 
             return identifiers;
         }
@@ -92,7 +190,7 @@ namespace IronLua.Compiler.Parser
         {
             var expressions = new List<Expression> { Expression() };
 
-            while (lexer.TryConsume(Symbol.Comma))
+            while (TryConsume(Symbol.Comma))
                 expressions.Add(Expression());
 
             return expressions;
@@ -104,7 +202,7 @@ namespace IronLua.Compiler.Parser
         {
             var variables = new List<Variable> {oldVariable ?? Variable()};
 
-            while (lexer.TryConsume(Symbol.Comma))
+            while (TryConsume(Symbol.Comma))
                 variables.Add(Variable());
 
             return variables;
@@ -115,40 +213,40 @@ namespace IronLua.Compiler.Parser
          * fieldsep := ',' | ';' */
         Expression.Table Table()
         {
-            lexer.Expect(Symbol.LeftBrace);
+            Expect(Symbol.LeftBrace);
             var fields = new List<Field>();
 
             var loop = true;
             while (loop)
             {
-                if (lexer.CurrentSymbol == Symbol.RightBrace)
+                if (CurrentSymbol == Symbol.RightBrace)
                     break;
                 fields.Add(Field());
 
-                switch (lexer.CurrentSymbol)
+                switch (CurrentSymbol)
                 {
                     case Symbol.Comma:
                     case Symbol.SemiColon:
-                        lexer.Consume();
+                        Consume();
                         break;
                     case Symbol.RightBrace:
                         loop = false;
                         break;
                     default:
-                        throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                        throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
                 }
             }
 
-            lexer.Expect(Symbol.RightBrace);
+            Expect(Symbol.RightBrace);
             return new Expression.Table(fields);
         }
 
         /* Parses Number */
         double NumberLiteral()
         {
-            var number = lexer.ExpectLexeme(Symbol.Number);
+            var number = ExpectLexeme(Symbol.Number);
             double result;
-            bool successful = number.StartsWith("0x") ?
+            bool successful = number.StartsWith("0x") || number.StartsWith("0X") ?
                 NumberUtil.TryParseHexNumber(number.Substring(2), true, out result) :
                 NumberUtil.TryParseDecimalNumber(number, out result);
 
@@ -169,7 +267,7 @@ namespace IronLua.Compiler.Parser
                 }
             }
 
-            throw lexer.SyntaxException(ExceptionMessage.MALFORMED_NUMBER, number);
+            throw ReportSyntaxError(ExceptionMessage.MALFORMED_NUMBER, number);
         }
 
 
@@ -181,7 +279,7 @@ namespace IronLua.Compiler.Parser
         {
             var variable = PrefixExpression().LiftVariable();
             if (variable == null)
-                throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
             return variable;
         }
 
@@ -191,26 +289,26 @@ namespace IronLua.Compiler.Parser
          * expression */
         Field Field()
         {
-            switch (lexer.CurrentSymbol)
+            switch (CurrentSymbol)
             {
                 case Symbol.LeftBrack:
-                    lexer.Consume();
+                    Consume();
                     var member = Expression();
-                    lexer.Expect(Symbol.RightBrack);
-                    lexer.Expect(Symbol.Equal);
+                    Expect(Symbol.RightBrack);
+                    Expect(Symbol.Equal);
                     var value = Expression();
                     return new Field.MemberExpr(member, value);
 
                 default:
                     var expression = Expression();
-                    if (lexer.CurrentSymbol != Symbol.Equal)
+                    if (CurrentSymbol != Symbol.Equal)
                         return new Field.Normal(expression);
 
-                    lexer.Consume();
+                    Consume();
                     var memberId = expression.LiftIdentifier();
                     if (memberId != null)
                         return new Field.MemberId(memberId, Expression());
-                    throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
             }
         }
 
@@ -218,9 +316,9 @@ namespace IronLua.Compiler.Parser
          * 'elseif' expression 'then' block */
         Elseif Elseif()
         {
-            lexer.Expect(Symbol.Elseif);
+            Expect(Symbol.Elseif);
             var test = Expression();
-            lexer.Expect(Symbol.Then);
+            Expect(Symbol.Then);
             var body = Block();
             return new Elseif(test, body);
         }
@@ -229,29 +327,29 @@ namespace IronLua.Compiler.Parser
          * '(' expressionList ')' | table | String */
         Arguments Arguments()
         {
-            switch (lexer.CurrentSymbol)
+            switch (CurrentSymbol)
             {
                 case Symbol.LeftParen:
-                    if (lexer.Current.Line != lexer.Last.Line)
-                        throw lexer.SyntaxException(ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
-                    lexer.Consume();
+                    if (Current.Line != Last.Line)
+                        throw ReportSyntaxError(ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
+                    Consume();
 
                     var arguments = new List<Expression>();
-                    if (lexer.CurrentSymbol != Symbol.RightParen)
+                    if (CurrentSymbol != Symbol.RightParen)
                         arguments = ExpressionList();
 
-                    lexer.Expect(Symbol.RightParen);
+                    Expect(Symbol.RightParen);
                     return new Arguments.Normal(arguments);
 
                 case Symbol.LeftBrace:
                     return new Arguments.Table(Table());
 
                 case Symbol.String:
-                    var str = new Expression.String(lexer.ExpectLexeme(Symbol.String));
+                    var str = new Expression.String(ExpectLexeme(Symbol.String));
                     return new Arguments.String(str);
 
                 default:
-                    throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
             }
         }
 
@@ -259,34 +357,34 @@ namespace IronLua.Compiler.Parser
          * '(' [identifierList [',' '...'] | '...'] ')' block 'end' */
         FunctionBody FunctionBody()
         {
-            lexer.Expect(Symbol.LeftParen);
+            Expect(Symbol.LeftParen);
 
             var parameters = new List<string>();
             var varargs = false;
             
-            if (lexer.CurrentSymbol != Symbol.RightParen)
+            if (CurrentSymbol != Symbol.RightParen)
             {
-                if (lexer.TryConsume(Symbol.DotDotDot))
+                if (TryConsume(Symbol.DotDotDot))
                 {
                     varargs = true;
                 }
                 else
                 {
-                    parameters.Add(lexer.ExpectLexeme(Symbol.Identifier));
+                    parameters.Add(ExpectLexeme(Symbol.Identifier));
 
-                    while (!varargs && lexer.TryConsume(Symbol.Comma))
+                    while (!varargs && TryConsume(Symbol.Comma))
                     {
-                        if (lexer.CurrentSymbol == Symbol.Identifier)
-                            parameters.Add(lexer.ConsumeLexeme());
-                        else if (lexer.TryConsume(Symbol.DotDotDot))
+                        if (CurrentSymbol == Symbol.Identifier)
+                            parameters.Add(ConsumeLexeme());
+                        else if (TryConsume(Symbol.DotDotDot))
                             varargs = true;
                     }
                 }
             }
 
-            lexer.Expect(Symbol.RightParen);
+            Expect(Symbol.RightParen);
             var body = Block();
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
             return new FunctionBody(parameters, varargs, body);
         }
 
@@ -294,12 +392,12 @@ namespace IronLua.Compiler.Parser
          * Identifier {'.' Identifier} [':' Identifer] */
         FunctionName FunctionName()
         {
-            var identifiers = new List<string> { lexer.ExpectLexeme(Symbol.Identifier) };
+            var identifiers = new List<string> {ExpectLexeme(Symbol.Identifier)};
 
-            while (lexer.TryConsume(Symbol.Comma))
-                identifiers.Add(lexer.ExpectLexeme(Symbol.Identifier));
+            while (TryConsume(Symbol.Comma))
+                identifiers.Add(ExpectLexeme(Symbol.Identifier));
 
-            var table = lexer.TryConsume(Symbol.Colon) ? lexer.ExpectLexeme(Symbol.Identifier) : null;
+            var table = TryConsume(Symbol.Colon) ? ExpectLexeme(Symbol.Identifier) : null;
 
             return new FunctionName(identifiers, table);
         }
@@ -310,40 +408,40 @@ namespace IronLua.Compiler.Parser
         {
             // Parse the terminal/first symbol of the prefixExpression
             PrefixExpression left;
-            switch (lexer.CurrentSymbol)
+            switch (CurrentSymbol)
             {
                 case Symbol.Identifier:
-                    left = new PrefixExpression.Variable(new Variable.Identifier(lexer.ConsumeLexeme()));
+                    left = new PrefixExpression.Variable(new Variable.Identifier(ConsumeLexeme()));
                     break;
                 case Symbol.LeftParen:
-                    lexer.Consume();
+                    Consume();
                     left = new PrefixExpression.Expression(Expression());
-                    lexer.ExpectLexeme(Symbol.RightParen);
+                    ExpectLexeme(Symbol.RightParen);
                     break;
                 default:
-                    throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
             }
 
             while (true)
             {
                 string identifier;
-                switch (lexer.CurrentSymbol)
+                switch (CurrentSymbol)
                 {
                     case Symbol.LeftBrack:
-                        lexer.Consume();
+                        Consume();
                         left = new PrefixExpression.Variable(new Variable.MemberExpr(left, Expression()));
-                        lexer.Expect(Symbol.RightBrack);
+                        Expect(Symbol.RightBrack);
                         break;
 
                     case Symbol.Dot:
-                        lexer.Consume();
-                        identifier = lexer.ExpectLexeme(Symbol.Identifier);
+                        Consume();
+                        identifier = ExpectLexeme(Symbol.Identifier);
                         left = new PrefixExpression.Variable(new Variable.MemberId(left, identifier));
                         break;
 
                     case Symbol.Colon:
-                        lexer.Consume();
-                        identifier = lexer.ExpectLexeme(Symbol.Identifier);
+                        Consume();
+                        identifier = ExpectLexeme(Symbol.Identifier);
                         var arguments = Arguments();
                         left = new PrefixExpression.FunctionCall(new FunctionCall.Table(left, identifier, arguments));
                         break;
@@ -371,7 +469,7 @@ namespace IronLua.Compiler.Parser
             while (true)
             {
                 left = BinaryExpression(left, 0);
-                if (!binaryOps.ContainsKey(lexer.CurrentSymbol))
+                if (!binaryOps.ContainsKey(CurrentSymbol))
                     break;
             }
 
@@ -381,26 +479,26 @@ namespace IronLua.Compiler.Parser
         /* Helper for parsing expressions */
         Expression SimpleExpression()
         {
-            switch (lexer.CurrentSymbol)
+            switch (CurrentSymbol)
             {
                 case Symbol.Nil:
-                    lexer.Consume();
+                    Consume();
                     return new Expression.Nil();
                 case Symbol.True:
-                    lexer.Consume();
+                    Consume();
                     return new Expression.Boolean(true);
                 case Symbol.False:
-                    lexer.Consume();
+                    Consume();
                     return new Expression.Boolean(false);
                 case Symbol.Number:
                     return new Expression.Number(NumberLiteral());
                 case Symbol.String:
-                    return new Expression.String(lexer.ConsumeLexeme());
+                    return new Expression.String(ConsumeLexeme());
                 case Symbol.DotDotDot:
-                    lexer.Consume();
+                    Consume();
                     return new Expression.Varargs();
                 case Symbol.Function:
-                    lexer.Consume();
+                    Consume();
                     return new Expression.Function(FunctionBody());
                 case Symbol.Identifier:
                 case Symbol.LeftParen:
@@ -410,10 +508,10 @@ namespace IronLua.Compiler.Parser
                 
                 default:
                     UnaryOp unaryOp;
-                    if (!unaryOps.TryGetValue(lexer.CurrentSymbol, out unaryOp))
-                        throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                    if (!unaryOps.TryGetValue(CurrentSymbol, out unaryOp))
+                        throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
 
-                    lexer.Consume();
+                    Consume();
                     var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
                     return new Expression.UnaryOp(unaryOp, expression);
             }
@@ -423,7 +521,7 @@ namespace IronLua.Compiler.Parser
         Expression BinaryExpression(Expression left, int limit)
         {
             BinaryOp binaryOp;
-            if (!binaryOps.TryGetValue(lexer.CurrentSymbol, out binaryOp))
+            if (!binaryOps.TryGetValue(CurrentSymbol, out binaryOp))
                 return left;
             
             // Recurse while having higher binding
@@ -431,7 +529,7 @@ namespace IronLua.Compiler.Parser
             if (priority.Item1 < limit)
                 return left;
 
-            lexer.Consume();
+            Consume();
             var right = BinaryExpression(SimpleExpression(), priority.Item2);
 
             return new Expression.BinaryOp(binaryOp, left, right);
@@ -448,7 +546,7 @@ namespace IronLua.Compiler.Parser
 
             while (continueBlock)
             {
-                switch (lexer.CurrentSymbol)
+                switch (CurrentSymbol)
                 {
                     case Symbol.Do:
                         statements.Add(Do());
@@ -475,11 +573,22 @@ namespace IronLua.Compiler.Parser
                     case Symbol.LeftParen:
                         statements.Add(AssignOrFunctionCall());
                         break;
+                    case Symbol.Goto: // Lua 5.2 feature (TODO: not implemented)
+                        Expect(Symbol.Goto);                        
+                        var label1 = ExpectLexeme(Symbol.Identifier);
+                        break;
+                    case Symbol.ColonColon: // Lua 5.2 feature (TODO: not implemented)
+                        Expect(Symbol.ColonColon);
+                        var label2 = ExpectLexeme(Symbol.Identifier);
+                        Expect(Symbol.ColonColon);
+                        break; // TODO: not finished 
+
                     case Symbol.Return:
                         lastStatement = Return();
                         continueBlock = false;
                         break;
                     case Symbol.Break:
+                        Expect(Symbol.Break);
                         lastStatement = new LastStatement.Break();
                         continueBlock = false;
                         break;
@@ -488,7 +597,7 @@ namespace IronLua.Compiler.Parser
                         break;
                 }
 
-                lexer.TryConsume(Symbol.SemiColon);
+                TryConsume(Symbol.SemiColon);
             }
 
             return new Block(statements, lastStatement);
@@ -498,8 +607,8 @@ namespace IronLua.Compiler.Parser
          * 'return' [expressionList] */
         LastStatement Return()
         {
-            lexer.Expect(Symbol.Return);
-            if (lexer.CurrentSymbol == Symbol.End)
+            Expect(Symbol.Return);
+            if (CurrentSymbol == Symbol.End)
                 return new LastStatement.Return(new List<Expression>());
             return new LastStatement.Return(ExpressionList());
         }
@@ -510,7 +619,7 @@ namespace IronLua.Compiler.Parser
         {
             var prefixExpr = PrefixExpression();
 
-            switch (lexer.CurrentSymbol)
+            switch (CurrentSymbol)
             {
                 case Symbol.Comma:
                 case Symbol.Equal:
@@ -527,7 +636,7 @@ namespace IronLua.Compiler.Parser
         {
             var functionCall = prefixExpr.LiftFunctionCall();
             if (functionCall == null)
-                throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
 
             return new Statement.FunctionCall(functionCall);
         }
@@ -538,10 +647,10 @@ namespace IronLua.Compiler.Parser
         {
             var variable = prefixExpr.LiftVariable();
             if (variable == null)
-                throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+                throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
 
-            var variables = lexer.CurrentSymbol == Symbol.Comma ? VariableList(variable) : new List<Variable> {variable};
-            lexer.Expect(Symbol.Equal);
+            var variables = CurrentSymbol == Symbol.Comma ? VariableList(variable) : new List<Variable> {variable};
+            Expect(Symbol.Equal);
             var expressions = ExpressionList();
 
             return new Statement.Assign(variables, expressions);
@@ -551,14 +660,14 @@ namespace IronLua.Compiler.Parser
          * 'local' (localFunction | localAssign) */
         Statement Local()
         {
-            lexer.Expect(Symbol.Local);
+            Expect(Symbol.Local);
 
-            if (lexer.CurrentSymbol == Symbol.Function)
+            if (CurrentSymbol == Symbol.Function)
                 return LocalFunction();
-            if (lexer.CurrentSymbol == Symbol.Identifier)
+            if (CurrentSymbol == Symbol.Identifier)
                 return LocalAssign();
 
-            throw lexer.SyntaxException(ExceptionMessage.UNEXPECTED_SYMBOL, lexer.CurrentSymbol);
+            throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
         }
 
         /* Parses localAssign
@@ -566,7 +675,7 @@ namespace IronLua.Compiler.Parser
         Statement LocalAssign()
         {
             var identifiers = IdentifierList();
-            var values = lexer.TryConsume(Symbol.Equal) ? ExpressionList() : null;
+            var values = TryConsume(Symbol.Equal) ? ExpressionList() : null;
             return new Statement.LocalAssign(identifiers, values);
         }
 
@@ -574,8 +683,8 @@ namespace IronLua.Compiler.Parser
          * 'function' Identifier functionBody */
         Statement LocalFunction()
         {
-            lexer.Expect(Symbol.Function);
-            var identifier = lexer.ExpectLexeme(Symbol.Identifier);
+            Expect(Symbol.Function);
+            var identifier = ExpectLexeme(Symbol.Identifier);
             return new Statement.LocalFunction(identifier, FunctionBody());
         }
 
@@ -583,7 +692,7 @@ namespace IronLua.Compiler.Parser
          * 'function' functionName functionBody */
         Statement Function()
         {
-            lexer.Expect(Symbol.Function);
+            Expect(Symbol.Function);
             return new Statement.Function(FunctionName(), FunctionBody());
         }
 
@@ -591,8 +700,8 @@ namespace IronLua.Compiler.Parser
          * 'for' (forIn | forNormal) */
         Statement For()
         {
-            lexer.Expect(Symbol.For);
-            if (lexer.NextSymbol == Symbol.Comma || lexer.NextSymbol == Symbol.In)
+            Expect(Symbol.For);
+            if (NextSymbol == Symbol.Comma || NextSymbol == Symbol.In)
                 return ForIn();
             return ForNormal();
         }
@@ -601,16 +710,16 @@ namespace IronLua.Compiler.Parser
          * Identifier '=' expression ',' expression [',' expression] 'do' block 'end' */
         Statement ForNormal()
         {
-            var identifier = lexer.ExpectLexeme(Symbol.Identifier);
-            lexer.Expect(Symbol.Equal);
+            var identifier = ExpectLexeme(Symbol.Identifier);
+            Expect(Symbol.Equal);
             var var = Expression();
-            lexer.Expect(Symbol.Comma);
+            Expect(Symbol.Comma);
             var limit = Expression();
-            var step = lexer.TryConsume(Symbol.Comma) ? Expression() : null;
+            var step = TryConsume(Symbol.Comma) ? Expression() : null;
 
-            lexer.Expect(Symbol.Do);
+            Expect(Symbol.Do);
             var body = Block();
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
 
             return new Statement.For(identifier, var, limit, step, body);
         }
@@ -620,12 +729,12 @@ namespace IronLua.Compiler.Parser
         Statement ForIn()
         {
             var identifiers = IdentifierList();
-            lexer.Expect(Symbol.In);
+            Expect(Symbol.In);
             var values = ExpressionList();
 
-            lexer.Expect(Symbol.Do);
+            Expect(Symbol.Do);
             var body = Block();
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
 
             return new Statement.ForIn(identifiers, values, body);
         }
@@ -634,18 +743,18 @@ namespace IronLua.Compiler.Parser
          * 'if' expression 'then' block {elseif} ['else' block] 'end' */
         Statement If()
         {
-            lexer.Expect(Symbol.If);
+            Expect(Symbol.If);
             var test = Expression();
-            lexer.Expect(Symbol.Then);
+            Expect(Symbol.Then);
             var body = Block();
 
             var elseifs = new List<Elseif>();
-            while (lexer.CurrentSymbol == Symbol.Elseif)
+            while (CurrentSymbol == Symbol.Elseif)
                 elseifs.Add(Elseif());
 
-            var elseBody = lexer.TryConsume(Symbol.Else) ? Block() : null;
+            var elseBody = TryConsume(Symbol.Else) ? Block() : null;
 
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
 
             return new Statement.If(test, body, elseifs, elseBody);
         }
@@ -654,9 +763,9 @@ namespace IronLua.Compiler.Parser
          * 'repeat' block 'until' expression */
         Statement Repeat()
         {
-            lexer.Expect(Symbol.Repeat);
+            Expect(Symbol.Repeat);
             var body = Block();
-            lexer.Expect(Symbol.Until);
+            Expect(Symbol.Until);
             var test = Expression();
             return new Statement.Repeat(body, test);
         }
@@ -665,11 +774,11 @@ namespace IronLua.Compiler.Parser
          * 'while' expression 'do' block 'end' */
         Statement While()
         {
-            lexer.Expect(Symbol.While);
+            Expect(Symbol.While);
             var test = Expression();
-            lexer.Expect(Symbol.Do);
+            Expect(Symbol.Do);
             var body = Block();
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
             return new Statement.While(test, body);
         }
 
@@ -677,9 +786,9 @@ namespace IronLua.Compiler.Parser
          * 'do' block 'end' */
         Statement Do()
         {
-            lexer.Expect(Symbol.Do);
+            Expect(Symbol.Do);
             var body = Block();
-            lexer.Expect(Symbol.End);
+            Expect(Symbol.End);
             return new Statement.Do(body);
         }
     }

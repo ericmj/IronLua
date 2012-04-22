@@ -1,26 +1,17 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using IronLua.Util;
+using Microsoft.Scripting;
 
 namespace IronLua.Compiler.Parser
 {
     internal interface ILexer
     {
-        Token Last { get; }
-        Token Current { get; }
-        //Token Next { get; }
-        
-        Symbol CurrentSymbol { get; }
-        Symbol NextSymbol { get; }
-
-        void Consume();
-        string ConsumeLexeme();
-        bool TryConsume(Symbol symbol);
-
-        void Expect(Symbol symbol);
-        string ExpectLexeme(Symbol symbol);
+        Token GetNextToken();
 
         LuaSyntaxException SyntaxException(string format, params object[] args);
+
+        SourceUnit SourceUnit { get; }
     }
 
     class Lexer : ILexer
@@ -53,72 +44,32 @@ namespace IronLua.Compiler.Parser
 
         readonly Input input;
 
-        public Token Last { get; private set; }
-        public Token Current { get; private set; }
-        public Token Next { get; private set; }
-        
         public Lexer(Input input)
         {
             this.input = input;
-            Current = NextToken();
-            Next = NextToken();
         }
 
         #region ILexer members
-
-        public Symbol CurrentSymbol
-        {
-            get { return Current.Symbol; }
-        }
-
-        public Symbol NextSymbol
-        {
-            get { return Next.Symbol; }
-        }
-
-        public void Consume()
-        {
-            Last = Current;
-            Current = Next;
-            Next = NextToken();
-        }
-
-        public string ConsumeLexeme()
-        {
-            var lexeme = Current.Lexeme;
-            Consume();
-            return lexeme;
-        }
-
-        public bool TryConsume(Symbol symbol)
-        {
-            if (CurrentSymbol == symbol)
-            {
-                Consume();
-                return true;
-            }
-            return false;
-        }
-
-        public void Expect(Symbol symbol)
-        {
-            if (!TryConsume(symbol))
-                throw SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, CurrentSymbol, symbol);
-        }
-
-        public string ExpectLexeme(Symbol symbol)
-        {
-            var lexeme = Current.Lexeme;
-            Expect(symbol);
-            return lexeme;
-        }
 
         public LuaSyntaxException SyntaxException(string format, params object[] args)
         {
             return input.SyntaxException(System.String.Format(format, args));
         }
 
+        public SourceUnit SourceUnit
+        {
+            get { return null; } // TODO: this is where our code comes from.
+        }
+
+        public Token GetNextToken()
+        {
+            Token token = NextToken();
+
+            return token;
+        }
+
         #endregion
+
 
         private Token NextToken()
         {

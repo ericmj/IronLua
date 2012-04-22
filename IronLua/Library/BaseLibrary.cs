@@ -7,6 +7,7 @@ using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Runtime;
 using IronLua.Runtime.Binder;
+using Microsoft.Scripting;
 
 namespace IronLua.Library
 {
@@ -377,7 +378,7 @@ namespace IronLua.Library
         {
             // TODO: replace Lexer with Tokenizer class
             var input = new Input(source);
-            var parser = new Parser(new Lexer(input));
+            var parser = new Parser(new Lexer(input), ErrorSink.Default);
             var ast = parser.Parse();
             var gen = new Generator(Context);
             var expr = gen.Compile(ast);

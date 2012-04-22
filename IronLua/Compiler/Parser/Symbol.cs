@@ -12,6 +12,7 @@ namespace IronLua.Compiler.Parser
         False,
         For,
         Function,
+        Goto,    // Lua 5.2 feature
         If,
         In,
         Local,
@@ -49,6 +50,7 @@ namespace IronLua.Compiler.Parser
         RightBrack,
         SemiColon,
         Colon,
+        ColonColon,
         Comma,
         Dot,
         DotDot,

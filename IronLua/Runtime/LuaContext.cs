@@ -65,7 +65,7 @@ namespace IronLua.Runtime
                 var lexer = new Tokenizer(errorSink, luaOptions);
                 lexer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);
 #endif
-                var parser = new Parser(lexer);
+                var parser = new Parser(lexer, errorSink);
                 var ast = parser.Parse();
                 var gen = new Generator(_ctx);
                 var expr = gen.Compile(ast);

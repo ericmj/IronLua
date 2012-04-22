@@ -30,6 +30,33 @@ namespace IronLua.Compiler
 
     public class Tokenizer : TokenizerService, ILexer
     {
+        private static readonly Dictionary<string, Symbol> Keywords =
+            new Dictionary<string, Symbol>
+            {
+                {"and", Symbol.And},
+                {"break", Symbol.Break},
+                {"do", Symbol.Do},
+                {"else", Symbol.Else},
+                {"elseif", Symbol.Elseif},
+                {"end", Symbol.End},
+                {"false", Symbol.False},
+                {"for", Symbol.For},
+                {"function", Symbol.Function},
+                {"goto", Symbol.Goto},
+                {"if", Symbol.If},
+                {"in", Symbol.In},
+                {"local", Symbol.Local},
+                {"nil", Symbol.Nil},
+                {"not", Symbol.Not},
+                {"or", Symbol.Or},
+                {"repeat", Symbol.Repeat},
+                {"return", Symbol.Return},
+                {"then", Symbol.Then},
+                {"true", Symbol.True},
+                {"until", Symbol.Until},
+                {"while", Symbol.While}
+            };
+
         private SourceUnit _sourceUnit;
         private ErrorSink _errors;
         private Tokenizer.State _state;
@@ -60,16 +87,12 @@ namespace IronLua.Compiler
 
             if (_options.SkipFirstLine)
             {
-                if (_buffer.Peek() == '#' && _buffer.GetChar(+1) == '!')
+                if (_buffer.Peek() == '#' )//&& _buffer.GetChar(+1) == '!')
                     _buffer.ReadLine(); // skip shibang                
             }
-
-            Last = null;
-            Current = GetNextToken();
-            Next = GetNextToken();
         }
 
-        internal Token GetNextToken()
+        public Token GetNextToken()
         {
             Symbol symbol;
             do
@@ -80,21 +103,43 @@ namespace IronLua.Compiler
                      symbol == Symbol.Comment ||
                      symbol == Symbol.Eol);
 
-            var result = new Token(symbol,
-                _buffer.TokenStart.Line,
-                _buffer.TokenStart.Column,
-                _lastTokenValue
-            );
+            return new Token(symbol, _lastTokenSpan, _lastTokenValue);
+        }
 
-            return result;
+        public SourceSpan GetTokenSpan()
+        {
+            return _lastTokenSpan;
+        }
+
+        public string GetTokenValue()
+        {
+            return _lastTokenValue;
         }
 
         Symbol MarkTokenEnd(Symbol symbol, Func<string> getTokenValue = null, bool isMultiLine = false)
         {
             _buffer.MarkTokenEnd(isMultiLine);
-            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
             _lastTokenSpan = _buffer.TokenSpan;
+            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
             return symbol;
+        }
+
+        Symbol MarkKeywordTokenEnd(Symbol symbol, Func<string> getTokenValue)
+        {
+            ContractUtils.RequiresNotNull(getTokenValue, "getTokenValue");
+
+            _buffer.MarkSingleLineTokenEnd();
+            _lastTokenSpan = _buffer.TokenSpan;
+            _lastTokenValue = getTokenValue();
+
+            // Keyword or identifier?
+            Symbol result;
+            if (!Keywords.TryGetValue(_lastTokenValue, out result))
+                result = symbol;
+            else
+                _lastTokenValue = null; // Keywords don't have a value
+
+            return result;
         }
 
         internal Symbol GetNextSymbol()
@@ -109,7 +154,9 @@ namespace IronLua.Compiler
             }
             else if (current.IsIdentifierStart())
             {
-                return ScanKeywordOrIdentifier((char)current);
+                ConsumeMany(x => x.IsIdentifier());
+                return MarkKeywordTokenEnd(Symbol.Identifier, 
+                    () => _buffer.GetTokenString());
             }
             else if (current.IsDecimal())
             {
@@ -125,7 +172,7 @@ namespace IronLua.Compiler
                 // [ may start a long literal string ([[) or be a token on its own
                 return (next == '[' || next == '=')
                     ? ScanLongStringLiteral((char)current)
-                    : MarkTokenEnd(Symbol.LeftBrace);
+                    : MarkTokenEnd(Symbol.LeftBrack);
             }
             else if (current == '-')
             {
@@ -188,14 +235,13 @@ namespace IronLua.Compiler
                     return MarkTokenEnd(Symbol.RightBrack);
                 case ';':
                     return MarkTokenEnd(Symbol.SemiColon);
-                case ':':
-                    return MarkTokenEnd(Symbol.Colon);
                 case ',':
                     return MarkTokenEnd(Symbol.Comma);
                 case '~':
                 case '<':
                 case '>':
                 case '=':
+                case ':':
                 case '.':
                     return ScanLongPunctuation(c);
                 default:
@@ -223,6 +269,10 @@ namespace IronLua.Compiler
                     return ConsumeOne('=')
                         ? MarkTokenEnd(Symbol.EqualEqual)
                         : MarkTokenEnd(Symbol.Equal);
+                case ':':
+                    return _options.UseLua52Features && ConsumeOne(':')
+                        ? MarkTokenEnd(Symbol.ColonColon)
+                        : MarkTokenEnd(Symbol.Colon);
                 case '.':
                     return ConsumeOne('.')
                         ? ConsumeOne('.') 
@@ -234,57 +284,6 @@ namespace IronLua.Compiler
                 default:
                     throw Assert.Unreachable;
             }
-        }
-
-        #endregion
-
-        #region Keywords or Identifiers
-
-        private static readonly Dictionary<string, Symbol> _keywords =
-            new Dictionary<string, Symbol>
-            {
-                {"and", Symbol.And},
-                {"break", Symbol.Break},
-                {"do", Symbol.Do},
-                {"else", Symbol.Else},
-                {"elseif", Symbol.Elseif},
-                {"end", Symbol.End},
-                {"false", Symbol.False},
-                {"for", Symbol.For},
-                {"function", Symbol.Function},
-                {"if", Symbol.If},
-                {"in", Symbol.In},
-                {"local", Symbol.Local},
-                {"nil", Symbol.Nil},
-                {"not", Symbol.Not},
-                {"or", Symbol.Or},
-                {"repeat", Symbol.Repeat},
-                {"return", Symbol.Return},
-                {"then", Symbol.Then},
-                {"true", Symbol.True},
-                {"until", Symbol.Until},
-                {"while", Symbol.While}
-            };
-
-        // Used to scan for names and it classifies them as keywords or identifiers
-        Symbol ScanKeywordOrIdentifier(char c)
-        {
-            Debug.Assert(c.IsIdentifierStart());
-
-            ConsumeMany(x => x.IsIdentifier());
-            
-            _buffer.MarkSingleLineTokenEnd();
-            _lastTokenValue = _buffer.GetTokenString();
-            _lastTokenSpan = _buffer.TokenSpan;            
-
-            // Keyword or identifier?
-            Symbol symbol;
-            if (!_keywords.TryGetValue(_lastTokenValue, out symbol))
-            {
-                symbol = Symbol.Identifier;
-            }
-
-            return symbol;
         }
 
         #endregion
@@ -314,7 +313,7 @@ namespace IronLua.Compiler
 
                     case '\r':
                     case '\n':
-                        if (skipWs) continue;                        
+                        if (skipWs) continue;
                         _buffer.MarkSingleLineTokenEnd(-1);
                         ReportError(2, "unfinished string at '{0}'", _buffer.GetTokenString());
                         return Symbol.Error;
@@ -323,7 +322,7 @@ namespace IronLua.Compiler
                     case '\t':
                     case '\f':
                     case '\v':
-                        if (skipWs) continue;                        
+                        if (skipWs) continue;
                         accum.Append((char)current);
                         break;
 
@@ -348,7 +347,7 @@ namespace IronLua.Compiler
                             case '\r':
                             case '\n': 
                                 isMultiLine = true;
-                                break;                             
+                                break;
 
                             case '0':
                             case '1':
@@ -784,6 +783,11 @@ namespace IronLua.Compiler
             }
         }
 
+        public SourceUnit SourceUnit
+        {
+            get { return _sourceUnit; }
+        }
+
         #region State
 
         public sealed class State : IEquatable<State>
@@ -801,59 +805,6 @@ namespace IronLua.Compiler
         #endregion
 
         #region Implementation of ILexer
-
-        public Token Last    { get; private set; }       
-        public Token Current { get; private set; }
-        public Token Next    { get; private set; }
-
-        public Symbol CurrentSymbol
-        {
-            get { return Current.Symbol; }
-        }
-
-        public Symbol NextSymbol
-        {
-            get { return Next.Symbol; }
-        }
-
-        public void Consume()
-        {
-            Last = Current;
-            Current = Next;
-            Next = GetNextToken();
-        }
-
-        public string ConsumeLexeme()
-        {
-            var lexeme = Current.Lexeme;
-            Consume();
-            return lexeme;
-        }
-
-        public bool TryConsume(Symbol symbol)
-        {
-            if (CurrentSymbol == symbol)
-            {
-                Consume();
-                return true;
-            }
-            return false;
-        }
-
-        public void Expect(Symbol symbol)
-        {
-            if (!TryConsume(symbol))
-            {
-                throw SyntaxException(ExceptionMessage.EXPECTED_SYMBOL, CurrentSymbol, symbol);
-            }
-        }
-
-        public string ExpectLexeme(Symbol symbol)
-        {
-            var lexeme = Current.Lexeme;
-            Expect(symbol);
-            return lexeme;
-        }
 
         public LuaSyntaxException SyntaxException(string format, params object[] args)
         {
