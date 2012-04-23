@@ -41,28 +41,27 @@ namespace IronLua.Library
                     return false;
                 }
             }
-
-            ulong hexIntNumber = 0;
-            ulong hexFracNumber = 0;
-            long exponentNumber = 0;
+            
+            ulong integer = 0;
+            double fraction = 0;
+            long exponent = 0;
 
             bool successful = true;
 
-            if (!String.IsNullOrEmpty(hexIntPart))
-                successful &= UInt64.TryParse(hexIntPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out hexIntNumber);
+            if (!String.IsNullOrEmpty(hexIntPart)) 
+                successful &= UInt64.TryParse(hexIntPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out integer);
 
             if (!String.IsNullOrEmpty(hexFracPart))
-                successful &= UInt64.TryParse(hexFracPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out hexFracNumber);
+            {
+                ulong value;
+                successful &= UInt64.TryParse(hexFracPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out value);
+                fraction = value / (double)(16 ^ hexFracPart.Length);
+            }
 
             if (!String.IsNullOrEmpty(exponentPart))
-                successful &= Int64.TryParse(exponentPart, NumberStyles.AllowLeadingSign, Constant.INVARIANT_CULTURE, out exponentNumber);
+                successful &= Int64.TryParse(exponentPart, NumberStyles.AllowLeadingSign, Constant.INVARIANT_CULTURE, out exponent);
 
-            // TODO: what is the formula. Looks like doing shift left/right based on exponent
-            // TODO: assert(0x4P-2 == 1) -- shift right 2
-
-            // TODO: fraction part has not been implmented!
-
-            result = hexIntNumber * Math.Pow(2.0, exponentNumber); 
+            result = (integer + fraction) * Math.Pow(2.0, exponent); 
             return successful;
         }
     }
