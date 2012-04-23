@@ -21,7 +21,7 @@ namespace IronLua.Compiler
 
         public LuaCompilerOptions()
         {
-            SkipFirstLine = false;
+            SkipFirstLine = true;
             MultiEolns = true;
             UseLua52Features = true;
             InitialBufferCapacity = 1024;

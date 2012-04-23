@@ -62,8 +62,9 @@ namespace IronLua.Compiler.Parser
 
         private readonly ILexer lexer;
         private ErrorSink _errors;
+        private LuaCompilerOptions _options;
 
-        public Parser(ILexer lexer, ErrorSink errorSink)
+        public Parser(ILexer lexer, ErrorSink errorSink, LuaCompilerOptions options = null)
         {
             ContractUtils.RequiresNotNull(lexer, "lexer");
             ContractUtils.RequiresNotNull(errorSink, "errorSink");
@@ -71,9 +72,10 @@ namespace IronLua.Compiler.Parser
             this.lexer = lexer;
 
             _errors = errorSink;
+            _options = options ?? new LuaCompilerOptions();
 
             // Debug: used to display the sequence of tokens that were read
-            //TokenSink = (t, s) => Debug.Print("{0,-12} {1}", t.Symbol, t.Lexeme ?? "");
+            //TokenSink = (t, s) => Debug.Print("{0,-12} {1,-10} {2,-10} {3}", t.Symbol, t.Span.Start, t.Span.End, t.Lexeme ?? "");
 
             // initialise the token management variables
             Last = null;
@@ -394,7 +396,7 @@ namespace IronLua.Compiler.Parser
         {
             var identifiers = new List<string> {ExpectLexeme(Symbol.Identifier)};
 
-            while (TryConsume(Symbol.Comma))
+            while (TryConsume(Symbol.Dot))
                 identifiers.Add(ExpectLexeme(Symbol.Identifier));
 
             var table = TryConsume(Symbol.Colon) ? ExpectLexeme(Symbol.Identifier) : null;
@@ -508,12 +510,14 @@ namespace IronLua.Compiler.Parser
                 
                 default:
                     UnaryOp unaryOp;
-                    if (!unaryOps.TryGetValue(CurrentSymbol, out unaryOp))
-                        throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
+                    if (unaryOps.TryGetValue(CurrentSymbol, out unaryOp))
+                    {
+                        Consume();
+                        var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
+                        return new Expression.UnaryOp(unaryOp, expression);
+                    }
 
-                    Consume();
-                    var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
-                    return new Expression.UnaryOp(unaryOp, expression);
+                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
             }
         }
 
@@ -581,7 +585,14 @@ namespace IronLua.Compiler.Parser
                         Expect(Symbol.ColonColon);
                         var label2 = ExpectLexeme(Symbol.Identifier);
                         Expect(Symbol.ColonColon);
-                        break; // TODO: not finished 
+                        break; // TODO: not finished
+                    
+                    case Symbol.SemiColon: // Lua 5.2 feature - empty statements
+                        if (!_options.UseLua52Features) 
+                            goto default;
+                        Expect(Symbol.SemiColon);
+                        // adds nothing to statements list                        
+                        break;
 
                     case Symbol.Return:
                         lastStatement = Return();
@@ -608,8 +619,21 @@ namespace IronLua.Compiler.Parser
         LastStatement Return()
         {
             Expect(Symbol.Return);
-            if (CurrentSymbol == Symbol.End)
+            // We assume that return always ends with a End symbol, but
+            // that is not true. Unhandled cases:
+            // A) do return end
+            // B) if cond then return else return elseif return end
+            // C) repeat return until cond    
+            // D  do return ; end
+            // TODO: need to keep track of the terminal symbols and not check everything
+            if (CurrentSymbol == Symbol.End ||    // only for do statements (or function bodies)
+                CurrentSymbol == Symbol.Else ||   // only for if statements
+                CurrentSymbol == Symbol.Elseif || // only for if statements
+                CurrentSymbol == Symbol.Until ||  // only for repeat statements
+                CurrentSymbol == Symbol.SemiColon)
+            {
                 return new LastStatement.Return(new List<Expression>());
+            }
             return new LastStatement.Return(ExpressionList());
         }
 
