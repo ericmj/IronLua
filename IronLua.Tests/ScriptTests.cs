@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using IronLua.Hosting;
+using IronLua.Tests.Compiler;
+using Microsoft.Scripting;
+using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
 namespace IronLua.Tests
@@ -40,48 +43,26 @@ namespace IronLua.Tests
     [TestFixture]    
     public class ScriptTestCases
     {
-        //string TestCasePath = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests";
-        string TestCasePath = @"F:\workspace\DLR\IronLua-github\lua-5.1-tests";
+        // See ParserTest class for documentation
 
-        [Datapoints]
-        public string[] TestCaseFiles = new[]
-        {
-            //"all.lua", 
-            //"api.lua",
-            //"attrib.lua",
-            //"big.lua",
-            //"bitwise.lua",
-            //"calls.lua",
-            //"checktable.lua",
-            //"closure.lua",
-            //"code.lua",
-            //"constructs.lua",
-            //"coroutine.lua",
-            //"db.lua",
-            //"errors.lua",
-            //"events.lua",
-            //"files.lua",
-            //"gc.lua",
-            //"goto.lua",
-            //"literals.lua",
-            //"locals.lua",
-            //"main.lua",
-            "math.lua",
-            //"nextvar.lua",
-            //"pm.lua",
-            //"sort.lua",
-            //"strings.lua",
-            //"vararg.lua",
-            //"verybig.lua"
-        };
-
-        //[Ignore]
-        [Theory]
         public void ExecuteLuaTestSuite(string testCaseFile)
         {
-            var engine = Lua.CreateEngine();
-            Console.WriteLine("Executing {0}", testCaseFile);
-            engine.ExecuteFile(Path.Combine(TestCasePath, testCaseFile));            
+            ParserTests.AssertSyntaxError(() =>
+            {
+                Lua.CreateEngine().ExecuteFile(testCaseFile);
+            });
+        }
+
+        [Test, TestCaseSource(typeof(ParserTests.LuaTestSuiteSource), "Lua52TestCases")]
+        public void ExcuteTestOnLua52TestSuite(string luaFile)
+        {
+            ExecuteLuaTestSuite(luaFile);
+        }
+
+        //[Test, TestCaseSource(typeof(ParserTests.LuaTestSuiteSource), "Lua51TestCases")]
+        public void ExcuteTestOnLua51TestSuite(string luaFile)
+        {
+            ExecuteLuaTestSuite(luaFile);
         }
     }
 }

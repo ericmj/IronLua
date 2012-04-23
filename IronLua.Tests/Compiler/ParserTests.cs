@@ -6,21 +6,43 @@ using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Hosting;
-using IronLua.Runtime;
 using Microsoft.Scripting;
 using NUnit.Framework;
 
 namespace IronLua.Tests.Compiler
 {
+    //
+    // These tests uses the "official" Lua Test Suite available at: 
+    //   http://www.lua.org/tests/5.2
+    // compressed in these files:
+    //   http://www.lua.org/tests/5.2/lua-5.2.0-tests.tar.gz
+    //   http://www.inf.puc-rio.br/~roberto/lua/lua5.1-tests.tar.gz
+    //
+    // These tests were written for the Lua environment, but we use
+    // them here to test the Lexer/Parser/Generator. Since we don't 
+    // execute them here, the test files are only an indication that
+    // the compiler can work on the files without throwing syntax
+    // errors. They don't test the error cases and error messages.
+    //
+    // Usage: 
+    // - Download the files described above
+    // - Unpack them to a folder.
+    // - Update the two paths in the LuaTestSuiteSource class (see below)
+    // - Compile and execute the test in NUnit or RSharper.
+    // 
     [TestFixture]
     public class ParserTests
     {
-
-        TextReader SafeOpenReader(string f)
+        public static TextReader OpenReaderOrIgnoreTest(Func<TextReader> getReader)
         {            
             try
             {
-                return File.OpenText(f);
+                return getReader();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                Assert.Ignore("Directory not found");
+                return null;
             }
             catch (FileNotFoundException)
             {
@@ -29,7 +51,7 @@ namespace IronLua.Tests.Compiler
             }
         }
 
-        public string Repeat(char s, int n)
+        public static string Repeat(char c, int n)
         {
             if (n <= 0)
                 return String.Empty;
@@ -37,12 +59,12 @@ namespace IronLua.Tests.Compiler
             var sb = new StringBuilder(n);
             for (int i = 0; i < n; ++i)
             {
-                sb.Append(s);
+                sb.Append(c);
             }
             return sb.ToString();
         }
 
-        public string Repeat(string s, int n)
+        public static string Repeat(string s, int n)
         {
             if (n <= 0)
                 return String.Empty;
@@ -55,63 +77,66 @@ namespace IronLua.Tests.Compiler
             return sb.ToString();
         }
 
-        [Test, TestCaseSource(typeof(LuaTestSuiteSource), "LuaTestCases")]
-        public void ParserErrorReportTests(string luaFile)
+        public static void AssertSyntaxError(Action action)
         {
-            //var reader = SafeOpenReader(luaFile);
-            var options = new LuaCompilerOptions() {SkipFirstLine = true};
+            try
+            {
+                action();
+            }
+            catch (SyntaxErrorException ex)
+            {
+                // Display a pretty picture of the syntax error exception 
+                Console.WriteLine("Source File     : {0}", new Uri(ex.SourcePath));
+                Console.WriteLine("Source Location : {0}", ex.RawSpan);
+                Console.WriteLine("Source CodeLine : {0}", ex.GetCodeLine());
+                Console.WriteLine("Error {1,-9} : {0}^", ParserTests.Repeat('=', ex.Column - 1), ex.ErrorCode);
+
+                throw; // so test can fail
+            }
+        }
+
+        public void ParserErrorReportTests(string luaFile, bool useLua52)
+        {
+            var options = new LuaCompilerOptions()
+            {
+                SkipFirstLine = true,
+                UseLua52Features = useLua52,
+            };
 
             var engine = Lua.CreateEngine();            
             var context = Lua.GetLuaContext(engine);
             var sourceUnit = context.CreateFileUnit(luaFile);
 
-            TextReader reader;
-            try
-            {
-                reader = sourceUnit.GetReader();
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Assert.Ignore("Directory not found");
-                return;
-            }
-            catch (FileNotFoundException)
-            {
-                Assert.Ignore("File not found");
-                return;
-            }
-
+            //var reader = OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
+            var reader = OpenReaderOrIgnoreTest(sourceUnit.GetReader);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
             tokenizer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);
-            var parser = new Parser(tokenizer, tokenizer.ErrorSink);
+            var parser = new Parser(tokenizer, tokenizer.ErrorSink, options);
 
-            try
+            AssertSyntaxError(() =>
             {
                 var ast = parser.Parse();
-                Assert.That(ast, Is.Not.Null);            
-            } 
-            catch (SyntaxErrorException ex)
-            {
-                Console.WriteLine("Source File     : {0}", new Uri(ex.SourcePath));
-                Console.WriteLine("Source Location : {0}", ex.RawSpan);
-                Console.WriteLine("Source CodeLine : {0}", ex.GetCodeLine());
-                Console.WriteLine("Error {1,-9} : {0}^", Repeat('=', ex.Column - 1), ex.ErrorCode);                                       
-                
-                throw;
-            }
+                Assert.That(ast, Is.Not.Null);
+            });
         }
 
-        [Test]
-        public void MyTest()
+        [Test, TestCaseSource(typeof(LuaTestSuiteSource), "Lua52TestCases")]
+        public void ParserTestOnLua52TestSuite(string luaFile)
         {
-            ParserErrorReportTests(@"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests\all.lua");
+            ParserErrorReportTests(luaFile, useLua52:true);
+        }
+
+        [Test, TestCaseSource(typeof(LuaTestSuiteSource), "Lua51TestCases")]
+        public void ParserTestOnLua51TestSuite(string luaFile)
+        {
+            ParserErrorReportTests(luaFile, useLua52:false);
         }
 
         public static class LuaTestSuiteSource
         {
-            const string LuaTestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests";
-            //const string LuaTestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.1-tests";
+            const string Lua52TestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests";
+            const string Lua51TestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.1-tests";
 
             public static string[] LuaTestSuiteFiles = new[]
             {
@@ -119,19 +144,16 @@ namespace IronLua.Tests.Compiler
                 "api.lua",
                 "attrib.lua",
                 "big.lua",
-                "bitwise.lua",
                 "calls.lua",
                 "checktable.lua",
                 "closure.lua",
                 "code.lua",
                 "constructs.lua",
-                "coroutine.lua",
                 "db.lua",
                 "errors.lua",
                 "events.lua",
                 "files.lua",
                 "gc.lua",
-                "goto.lua",
                 "literals.lua",
                 "locals.lua",
                 "main.lua",
@@ -141,13 +163,27 @@ namespace IronLua.Tests.Compiler
                 "sort.lua",
                 "strings.lua",
                 "vararg.lua",
-                "verybig.lua"
+                "verybig.lua",
+                // Lua 5.2 specific files
+                "bitwise.lua", 
+                "coroutine.lua",
+                "goto.lua",
             };
 
-            public static IEnumerable<TestCaseData> LuaTestCases()
+            public static IEnumerable<TestCaseData> LuaTestCases(string path)
             {
-                return LuaTestSuiteFiles
-                    .Select(f => new TestCaseData(Path.Combine(LuaTestSuitePath, f)).SetName(f));
+                return LuaTestSuiteFiles 
+                    .Select(f => new TestCaseData(Path.Combine(path, f)).SetName(f));
+            }
+
+            public static IEnumerable<TestCaseData> Lua52TestCases()
+            {
+                return LuaTestCases(Lua52TestSuitePath);
+            }
+
+            public static IEnumerable<TestCaseData> Lua51TestCases()
+            {
+                return LuaTestCases(Lua51TestSuitePath).Take(24);
             }
         }
     }

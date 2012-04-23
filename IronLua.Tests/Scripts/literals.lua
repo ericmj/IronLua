@@ -57,4 +57,8 @@ assert("abc\z
 --assert(not load"a = '\\345'")
 --assert(not load"a = [=x]")
 
+assert(0X4P-2 == 1)
+assert(0x2p-2 == 0.5)
+assert(0x.8 == 0.5)
+
 print('OK')

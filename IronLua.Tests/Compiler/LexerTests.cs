@@ -14,6 +14,8 @@ using NUnit.Framework;
 
 namespace IronLua.Tests
 {
+    // Note: See ParserTests class for some documentation
+
     [TestFixture]
     public class LexerTests
     {

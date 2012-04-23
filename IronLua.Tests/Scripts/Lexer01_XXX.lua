@@ -1,5 +1,7 @@
 print(1.2e-3)
 --:: 0.0012
+print(0x2e-2)
+--:: 0.5
 print(1._2e3)
 --XX malformed number near '1._2e3'
 print(1.2e_3)
