@@ -25,7 +25,11 @@ namespace IronLua.Runtime
             // TODO: options
 
             _binder = new LuaBinder(this);
+        }
 
+        internal Context Ctx
+        {
+            get { return _ctx; }
         }
 
         public override ScriptCode CompileSourceCode(SourceUnit sourceUnit, CompilerOptions options, ErrorSink errorSink)
