@@ -19,7 +19,7 @@ namespace IronLua.Tests.Compiler
         {
             //var reader = new StringReader("print(1.25)");
             var luaFile = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests\literals.lua";
-            var reader = File.OpenText(luaFile);
+            var reader = SafeOpenText(luaFile);
             Console.WriteLine("Reading data from {0}", luaFile);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
@@ -99,16 +99,8 @@ namespace IronLua.Tests.Compiler
         [Theory]
         public void RunLexerOnLuaTestSuiteFile(string testCaseFile)
         {
-            TextReader reader;
-            try
-            {
-                reader = File.OpenText(Path.Combine(TestCasePath, testCaseFile));
-            } 
-            catch (FileNotFoundException)
-            {
-                Assert.Ignore( "File not found" );
-                return;
-            }
+            TextReader reader = SafeOpenText(Path.Combine(TestCasePath, testCaseFile));
+
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
 
             Token token;
@@ -126,6 +118,24 @@ namespace IronLua.Tests.Compiler
             sw.Stop();
             Console.WriteLine("Tokenizer run: {0} ms, {1} tokens", sw.ElapsedMilliseconds, counter);
 
+        }
+
+        private StreamReader SafeOpenText(string f)
+        {
+            try
+            {
+                return File.OpenText(f);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                Assert.Ignore("Directory not found");
+                return null;
+            }
+            catch (FileNotFoundException)
+            {
+                Assert.Ignore("File not found");
+                return null;
+            }            
         }
     }
 }

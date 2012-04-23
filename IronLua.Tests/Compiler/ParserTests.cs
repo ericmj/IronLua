@@ -64,7 +64,23 @@ namespace IronLua.Tests.Compiler
             var engine = Lua.CreateEngine();            
             var context = Lua.GetLuaContext(engine);
             var sourceUnit = context.CreateFileUnit(luaFile);
-            var reader = sourceUnit.GetReader();
+
+            TextReader reader;
+            try
+            {
+                reader = sourceUnit.GetReader();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                Assert.Ignore("Directory not found");
+                return;
+            }
+            catch (FileNotFoundException)
+            {
+                Assert.Ignore("File not found");
+                return;
+            }
+
 
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
             tokenizer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);
