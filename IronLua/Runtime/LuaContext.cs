@@ -50,7 +50,9 @@ namespace IronLua.Runtime
             {
                 reader = sourceUnit.GetReader();
 
-                if (luaOptions.SkipFirstLine)
+                if (luaOptions.SkipFirstLine && 
+                    sourceUnit.Kind == SourceCodeKind.File && 
+                    reader.Peek() == '#')
                     reader.ReadLine();
             }
             catch (IOException ex)
