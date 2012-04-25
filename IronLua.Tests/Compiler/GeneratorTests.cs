@@ -12,7 +12,6 @@ namespace IronLua.Tests.Compiler
     [TestFixture]
     public class GeneratorTests
     {
-
         public void GeneratorTest(SourceUnit sourceUnit, bool useLua52)
         {            
             var options = new LuaCompilerOptions()
@@ -21,9 +20,9 @@ namespace IronLua.Tests.Compiler
                 UseLua52Features = useLua52,
             };
 
-            var reader = ParserTests.OpenReaderOrIgnoreTest(sourceUnit.GetReader);
+            var reader = TestUtils.OpenReaderOrIgnoreTest(sourceUnit.GetReader);
 
-            ParserTests.AssertSyntaxError(() =>
+            TestUtils.AssertSyntaxError(() =>
             {
                 var tokenizer = new Tokenizer(ErrorSink.Default, options);
                 tokenizer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);

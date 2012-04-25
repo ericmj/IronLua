@@ -1,10 +1,7 @@
-using System;
 using System.IO;
 using System.Linq;
 using IronLua.Hosting;
 using IronLua.Tests.Compiler;
-using Microsoft.Scripting;
-using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
 namespace IronLua.Tests
@@ -12,15 +9,14 @@ namespace IronLua.Tests
     [TestFixture]
     public class ScriptTests
     {
+        string ScriptPath = TestUtils.GetTestPath(@"IronLua.Tests\Scripts");
+
         [Test]
         [ExpectedException(typeof(LuaRuntimeException), ExpectedMessage = "Assertion failed")]
         public void ExecuteAssertFalse()
         {
             Lua.CreateEngine().Execute("assert(false)");
         }
-
-        const string ScriptPath = @"F:\workspace\DLR\IronLua-github\IronLua.Tests\Scripts";
-
         [Datapoints]
         public string[] ScriptFiles
         {
@@ -47,7 +43,7 @@ namespace IronLua.Tests
 
         public void ExecuteLuaTestSuite(string testCaseFile)
         {
-            ParserTests.AssertSyntaxError(() =>
+            TestUtils.AssertSyntaxError(() =>
             {
                 Lua.CreateEngine().ExecuteFile(testCaseFile);
             });

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Hosting;
@@ -33,68 +32,6 @@ namespace IronLua.Tests.Compiler
     [TestFixture]
     public class ParserTests
     {
-        public static TextReader OpenReaderOrIgnoreTest(Func<TextReader> getReader)
-        {            
-            try
-            {
-                return getReader();
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Assert.Ignore("Directory not found");
-                return null;
-            }
-            catch (FileNotFoundException)
-            {
-                Assert.Ignore("File not found");
-                return null;
-            }
-        }
-
-        public static string Repeat(char c, int n)
-        {
-            if (n <= 0)
-                return String.Empty;
-
-            var sb = new StringBuilder(n);
-            for (int i = 0; i < n; ++i)
-            {
-                sb.Append(c);
-            }
-            return sb.ToString();
-        }
-
-        public static string Repeat(string s, int n)
-        {
-            if (n <= 0)
-                return String.Empty;
-
-            var sb = new StringBuilder(n*s.Length);
-            for (int i = 0; i < n; ++i)
-            {
-                sb.Append(s);
-            }
-            return sb.ToString();
-        }
-
-        public static void AssertSyntaxError(Action action)
-        {
-            try
-            {
-                action();
-            }
-            catch (SyntaxErrorException ex)
-            {
-                // Display a pretty picture of the syntax error exception 
-                Console.WriteLine("Source File     : {0}", new Uri(ex.SourcePath));
-                Console.WriteLine("Source Location : {0}", ex.RawSpan);
-                Console.WriteLine("Source CodeLine : {0}", ex.GetCodeLine());
-                Console.WriteLine("Error {1,-9} : {0}^", ParserTests.Repeat('=', ex.Column - 1), ex.ErrorCode);
-
-                throw; // so test can fail
-            }
-        }
-
         public void ParserErrorReportTests(string luaFile, bool useLua52)
         {
             var options = new LuaCompilerOptions()
@@ -107,14 +44,14 @@ namespace IronLua.Tests.Compiler
             var context = Lua.GetLuaContext(engine);
             var sourceUnit = context.CreateFileUnit(luaFile);
 
-            //var reader = OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
-            var reader = OpenReaderOrIgnoreTest(sourceUnit.GetReader);
+            //var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
+            var reader = TestUtils.OpenReaderOrIgnoreTest(sourceUnit.GetReader);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
             tokenizer.Initialize(null, reader, sourceUnit, SourceLocation.MinValue);
             var parser = new Parser(tokenizer, tokenizer.ErrorSink, options);
 
-            AssertSyntaxError(() =>
+            TestUtils.AssertSyntaxError(() =>
             {
                 var ast = parser.Parse();
                 Assert.That(ast, Is.Not.Null);
@@ -135,8 +72,8 @@ namespace IronLua.Tests.Compiler
 
         public static class LuaTestSuiteSource
         {
-            const string Lua52TestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests";
-            const string Lua51TestSuitePath = @"F:\workspace\DLR\IronLua-github\lua-5.1-tests";
+            public static readonly string Lua52TestSuitePath = TestUtils.GetTestPath(@"lua-5.2.0-tests");
+            public static readonly string Lua51TestSuitePath = TestUtils.GetTestPath(@"lua-5.1-tests");
 
             public static string[] LuaTestSuiteFiles = new[]
             {

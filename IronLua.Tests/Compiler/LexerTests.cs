@@ -31,9 +31,9 @@ namespace IronLua.Tests
             Assert.That(engine, Is.Not.Null);
         }
 
-        //string lua50 = @"F:\workspace\DLR\IronLua-github\libs\lua5.0.exe";
-        //string lua51 = @"F:\workspace\DLR\IronLua-github\libs\lua5.1.exe";
-        string lua52 = @"F:\workspace\DLR\IronLua-github\libs\lua5.2.exe";
+        string lua50 = TestUtils.GetTestPath("lua5.0.exe");
+        string lua51 = TestUtils.GetTestPath("lua5.1.exe");
+        string lua52 = TestUtils.GetTestPath("lua5.2.exe");
 
         public string ExecuteLuaSnippet(string exeFile, string snippet, bool giveStdErr = false)
         {
@@ -154,7 +154,7 @@ namespace IronLua.Tests
 
             public static IEnumerable<TestCaseData> LexerFailureCases()
             {
-                var f = @"F:\workspace\DLR\IronLua-github\IronLua.Tests\Scripts\Lexer01_XXX.lua";
+                var f = TestUtils.GetTestPath(@"IronLua.Tests\Scripts\Lexer01_XXX.lua");
 
                 using (var r = File.OpenText(f))
                 {

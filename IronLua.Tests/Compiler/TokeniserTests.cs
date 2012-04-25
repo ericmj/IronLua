@@ -19,9 +19,8 @@ namespace IronLua.Tests.Compiler
         [Test, Explicit]
         public void FirstTest()
         {
-            //var reader = new StringReader("print(1.25)");
-            var luaFile = @"F:\workspace\DLR\IronLua-github\lua-5.2.0-tests\literals.lua";
-            var reader = ParserTests.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
+            var luaFile = TestUtils.GetTestPath(@"lua-5.2.0-tests\literals.lua");
+            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));            
             Console.WriteLine("Reading data from {0}", luaFile);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
@@ -71,7 +70,7 @@ namespace IronLua.Tests.Compiler
                 UseLua52Features = useLua52,
             };
 
-            var reader = ParserTests.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
+            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
             
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
 
