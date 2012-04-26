@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using Microsoft.Scripting;
+using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
 namespace IronLua.Tests
@@ -94,6 +95,54 @@ namespace IronLua.Tests
 
                 throw; // so test can fail
             }
+        }
+
+        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, out string outStr, out string errStr)
+        {
+            return ExecuteTestCode(engine, code, engine.CreateScope(), out outStr, out errStr);
+        }
+
+        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, ScriptScope scope, out string outStr, out string errStr)
+        {
+            var io = engine.Runtime.IO;
+
+            // Override the output stream to capture the test output
+            Stream outputStream = new MemoryStream();
+            io.SetOutput(outputStream, Encoding.ASCII);
+
+            // Override the error output stream to capture the errors
+            Stream errorStream = new MemoryStream();
+            io.SetErrorOutput(errorStream, Encoding.ASCII);
+            
+            try
+            {
+                return engine.Execute(code, scope);
+            }
+            finally
+            {
+                // Ensure the two writers' buffer has been flushed to the MemoryStream
+                io.OutputWriter.Flush();
+                io.ErrorWriter.Flush();
+
+                // Restore the console streams, disconnects the streams from ScriptIO
+                io.RedirectToConsole();
+
+                // Reset the output stream and extract the text
+                outputStream.Seek(0, SeekOrigin.Begin);
+                outStr = new StreamReader(outputStream, Encoding.ASCII).ReadToEnd();
+
+                // Reset the error stream and extract the text
+                errorStream.Seek(0, SeekOrigin.Begin);
+                errStr = new StreamReader(errorStream, Encoding.ASCII).ReadToEnd();
+            }
+        }
+    }
+
+    static class StringBuilderHelpers
+    {
+        public static StringBuilder AppendFormatLine(this StringBuilder sb, string format, params object[] args)
+        {
+            return sb.AppendFormat(format, args).AppendLine();
         }
     }
 }

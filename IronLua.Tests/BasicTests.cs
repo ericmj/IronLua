@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.Text;
 using IronLua.Hosting;
 using IronLua.Runtime;
 using NUnit.Framework;
@@ -30,7 +32,7 @@ namespace IronLua.Tests
         [Test]
         public void ExecuteResultNil()
         {
-            Assert.IsNull(Lua.CreateEngine().Execute("return nil"));            
+            Assert.IsNull(Lua.CreateEngine().Execute("return nil"));
         }
 
         [Test]
@@ -72,8 +74,8 @@ namespace IronLua.Tests
 
             Assert.That(t, Is.TypeOf<LuaTable>());
             Assert.That(t.A, Is.EqualTo("alpha"));
-            Assert.That(t.B, Is.EqualTo("beta"));      
-      
+            Assert.That(t.B, Is.EqualTo("beta"));
+
             // broken
             //Assert.That(t[1], Is.EqualTo(5));
             //Assert.That(t[2], Is.EqualTo(10));
