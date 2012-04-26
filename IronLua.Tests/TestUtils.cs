@@ -86,7 +86,7 @@ namespace IronLua.Tests
             }
             catch (SyntaxErrorException ex)
             {
-                // Display a pretty picture of the syntax error exception 
+                // Display a pretty picture of the syntax error exception
                 Console.WriteLine("Source File     : {0}", new Uri(ex.SourcePath));
                 Console.WriteLine("Source Location : {0}", ex.RawSpan);
                 Console.WriteLine("Source CodeLine : {0}", ex.GetCodeLine());

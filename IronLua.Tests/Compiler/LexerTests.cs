@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -39,9 +39,9 @@ namespace IronLua.Tests
         {
             var s = new ProcessStartInfo
             {
-                UseShellExecute = false, 
-                RedirectStandardInput = false, 
-                RedirectStandardOutput = true, 
+                UseShellExecute = false,
+                RedirectStandardInput = false,
+                RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
                 FileName = exeFile,
@@ -52,12 +52,12 @@ namespace IronLua.Tests
 
             Thread.Sleep(25);
 
-            var buffer = new char[64];            
+            var buffer = new char[64];
             var stdout = new StringBuilder(1024);
             var stderr = new StringBuilder(1024);
             while (true)
             {
-                int nb_bytes_read;                
+                int nb_bytes_read;
 
                 do
                 {
@@ -72,7 +72,7 @@ namespace IronLua.Tests
                 } while (nb_bytes_read > 0);
 
                 if (p.HasExited)
-                {                    
+                {
                     break;
                 }
 
@@ -136,7 +136,7 @@ namespace IronLua.Tests
             try
             {
                 var unused = tokenizer.EnumerateTokens().Last();
-                if (mustfail) 
+                if (mustfail)
                     Assert.Fail("Expected a SyntaxErrorException");
             }
             catch (SyntaxErrorException ex)
@@ -144,7 +144,7 @@ namespace IronLua.Tests
                 Assert.That(ex.Message, Is.EqualTo(expect));
             }
         }
-        
+
         public static class TestDataSource
         {
             public static IEnumerable<TestCaseData> LexerTestCases()

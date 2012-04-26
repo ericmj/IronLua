@@ -1,4 +1,4 @@
-﻿using IronLua.Compiler;
+using IronLua.Compiler;
 using IronLua.Compiler.Parser;
 using IronLua.Hosting;
 using IronLua.Runtime;
@@ -13,7 +13,7 @@ namespace IronLua.Tests.Compiler
     public class GeneratorTests
     {
         public void GeneratorTest(SourceUnit sourceUnit, bool useLua52)
-        {            
+        {
             var options = new LuaCompilerOptions()
             {
                 SkipFirstLine = true,

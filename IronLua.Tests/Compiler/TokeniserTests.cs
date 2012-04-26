@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -20,7 +20,7 @@ namespace IronLua.Tests.Compiler
         public void FirstTest()
         {
             var luaFile = TestUtils.GetTestPath(@"lua-5.2.0-tests\literals.lua");
-            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));            
+            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
             Console.WriteLine("Reading data from {0}", luaFile);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
@@ -46,7 +46,7 @@ namespace IronLua.Tests.Compiler
                         fout.Write(tokenizer.CurrentTokenString());
                         //fout.Write(tokenizer.CurrentTokenValue());
                     }
-                    
+
                     if (token.Symbol == Symbol.String
                         && tokenizer.CurrentTokenString().Contains("\\z"))
                     {
@@ -55,7 +55,7 @@ namespace IronLua.Tests.Compiler
                         fout.WriteLine();
                         fout.Write("LINE2: {0}", tokenizer.CurrentTokenValue());
                     }
-                    
+
                     fout.WriteLine();
                 }
             }
@@ -71,7 +71,7 @@ namespace IronLua.Tests.Compiler
             };
 
             var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
-            
+
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
 
             Token token;
@@ -79,7 +79,7 @@ namespace IronLua.Tests.Compiler
 
             var sw = new Stopwatch();
             sw.Start();
-            
+
             tokenizer.Initialize(null, reader, null, SourceLocation.MinValue);
             while ((token = tokenizer.GetNextToken()).Symbol != Symbol.Eof)
             {
@@ -87,7 +87,7 @@ namespace IronLua.Tests.Compiler
             }
 
             sw.Stop();
-            Console.WriteLine("Tokenizer run: {0} ms, {1} tokens", sw.ElapsedMilliseconds, counter);           
+            Console.WriteLine("Tokenizer run: {0} ms, {1} tokens", sw.ElapsedMilliseconds, counter);
         }
 
         [Test, TestCaseSource(typeof(ParserTests.LuaTestSuiteSource), "Lua52TestCases")]
