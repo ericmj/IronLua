@@ -115,7 +115,7 @@ namespace IronLua.Compiler.Parsing
         {
             _buffer.MarkTokenEnd(isMultiLine);
             _lastTokenSpan = _buffer.TokenSpan;
-            _lastTokenValue = (getTokenValue == null) ? null : getTokenValue();
+            _lastTokenValue = (getTokenValue != null) ? getTokenValue() : null;
             return symbol;
         }
 
@@ -215,10 +215,10 @@ namespace IronLua.Compiler.Parsing
                 case '^':
                     return MarkTokenEnd(Symbol.Caret);
                 case '#':
-                    if (Peek() == '!' && _buffer.Position == 1)
+                    if (_buffer.Position == 1 && _sourceUnit.Kind == SourceCodeKind.File)
                     {
-                        _buffer.ReadLine();
-                        return MarkTokenEnd(Symbol.Shebang, () => _buffer.GetTokenString());
+                        _buffer.ReadLine(); // Special comment at the start of a file
+                        return MarkTokenEnd(Symbol.Comment, () => _buffer.GetTokenString());
                     }
                     return MarkTokenEnd(Symbol.Hash);
                 case '(':

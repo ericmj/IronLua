@@ -198,16 +198,16 @@ namespace IronLua.Compiler.Parsing
 
         Exception ReportSyntaxErrorNear(string format, params object[] args)
         {
-            string msg = String.Format(format, args);
-            msg += String.Format(" near '{0}'", Current.Lexeme);
-            return ReportError(msg);
+            var t = Current;
+            var s = String.Format(format, args);
+            s += String.Format(" near '{0}'", t.Lexeme ?? t.Symbol.ToTokenString());
+            return ReportError(s);
         }
 
         #endregion
 
         public Block Parse()
         {
-            TryConsume(Symbol.Shebang);
             var block = Block();
             Expect(Symbol.Eof);
             return block;
@@ -339,17 +339,6 @@ namespace IronLua.Compiler.Parsing
                 default:
                     return new Field.Normal(Expression());
             }
-        }
-
-        /* Parses elseif
-         * 'elseif' expression 'then' block */
-        Elseif Elseif()
-        {
-            Expect(Symbol.Elseif);
-            var test = Expression();
-            Expect(Symbol.Then);
-            var body = Block(Symbol.Else, Symbol.Elseif);
-            return new Elseif(test, body);
         }
 
         /* Parses arguments
@@ -797,19 +786,30 @@ namespace IronLua.Compiler.Parsing
             Expect(Symbol.If);
             var test = Expression();
             Expect(Symbol.Then);
-            var body = Block(Symbol.Else, Symbol.Elseif);
+            var body = Block(Symbol.End, Symbol.Else, Symbol.Elseif);
 
             var elseifs = new List<Elseif>();
             while (Current.Symbol == Symbol.Elseif)
                 elseifs.Add(Elseif());
 
             var elseBody = TryConsume(Symbol.Else)
-                ? Block(Symbol.Else, Symbol.Elseif)
+                ? Block(Symbol.End)
                 : null;
 
             Expect(Symbol.End);
 
             return new Statement.If(test, body, elseifs, elseBody);
+        }
+
+        /* Parses elseif
+         * 'elseif' expression 'then' block */
+        Elseif Elseif()
+        {
+            Expect(Symbol.Elseif);
+            var test = Expression();
+            Expect(Symbol.Then);
+            var body = Block(Symbol.End, Symbol.Else, Symbol.Elseif);
+            return new Elseif(test, body);
         }
 
         /* Parses repeat
