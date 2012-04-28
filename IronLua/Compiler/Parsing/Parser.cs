@@ -37,7 +37,7 @@ namespace IronLua.Compiler.Parsing
                     {Symbol.Star,         BinaryOp.Multiply},
                     {Symbol.Slash,        BinaryOp.Divide},
                     {Symbol.Percent,      BinaryOp.Mod},
-                    {Symbol.Caret,       BinaryOp.Power}
+                    {Symbol.Caret,        BinaryOp.Power}
                 };
 
         static readonly Dictionary<BinaryOp, Tuple<int, int>> binaryOpPriorities =
@@ -169,6 +169,7 @@ namespace IronLua.Compiler.Parsing
 
         public Block Parse()
         {
+            TryConsume(Symbol.Shebang);
             var block = Block();
             Expect(Symbol.Eof);
             return block;
