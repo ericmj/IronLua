@@ -34,12 +34,6 @@
         T Visit(FunctionCall.Table functionCall);
     }
 
-    interface ILastStatementVisitor<out T>
-    {
-        T Visit(LastStatement.Break lastStatement);
-        T Visit(LastStatement.Return lastStatement);
-    }
-
     interface IPrefixExpressionVisitor<out T>
     {
         T Visit(PrefixExpression.Expression prefixExpr);
@@ -60,6 +54,10 @@
         T Visit(Statement.LocalFunction statement);
         T Visit(Statement.Repeat statement);
         T Visit(Statement.While statement);
+        T Visit(Statement.Goto statement);
+
+        T Visit(LastStatement.Break lastStatement);
+        T Visit(LastStatement.Return lastStatement);
     }
 
     interface IVariableVisitor<out T>

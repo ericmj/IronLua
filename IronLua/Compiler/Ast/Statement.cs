@@ -202,6 +202,22 @@ namespace IronLua.Compiler.Ast
             }
         }
 
+        public class LabelDecl : Statement
+        {
+            public string Name { get; private set; }
+
+            public LabelDecl(string name)
+            {
+                Name = name;
+            }
+
+            public override T Visit<T>(IStatementVisitor<T> visitor)
+            {
+                //return visitor.Visit(this);
+                throw new NotImplementedException();
+            }
+        }
+
         public class Goto : Statement
         {
             public string Label { get; private set; }
@@ -213,8 +229,7 @@ namespace IronLua.Compiler.Ast
 
             public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                //return visitor.Visit(this);
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
     }

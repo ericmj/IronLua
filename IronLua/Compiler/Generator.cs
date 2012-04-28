@@ -14,7 +14,7 @@ using Expression = IronLua.Compiler.Ast.Expression;
 
 namespace IronLua.Compiler
 {
-    class Generator : IStatementVisitor<Expr>, ILastStatementVisitor<Expr>, IExpressionVisitor<Expr>,
+    class Generator : IStatementVisitor<Expr>, IExpressionVisitor<Expr>,
                       IVariableVisitor<VariableVisit>, IPrefixExpressionVisitor<Expr>, IFunctionCallVisitor<Expr>,
                       IArgumentsVisitor<Expr[]>, IFieldVisitor<FieldVisit>
     {
@@ -66,8 +66,6 @@ namespace IronLua.Compiler
             scope = Scope.CreateChild(parentScope);
 
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
-            if (block.LastStatement != null)
-                statementExprs.Add(block.LastStatement.Visit(this));
             var locals = scope.AllLocals();
 
             // Don't output blocks if we don't declare any locals and it's a single statement
@@ -235,7 +233,7 @@ namespace IronLua.Compiler
             statement.Body.Statements.Add(
                 new Statement.If(
                     statement.Test,
-                    new Block(new List<Statement>(), new LastStatement.Break()),
+                    new Block(new List<Statement>() { new LastStatement.Break() }),
                     new List<Elseif>(),
                     null));
 
@@ -261,19 +259,29 @@ namespace IronLua.Compiler
                 scope.BreakLabel());
         }
 
-        Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Break lastStatement)
+        Expr IStatementVisitor<Expr>.Visit(Statement.Goto statement)
+        {
+            if (statement.Label == "break")
+            {
+                return Expr.Break(scope.BreakLabel());
+            }
+
+            throw new NotImplementedException();
+        }
+
+        Expr IStatementVisitor<Expr>.Visit(LastStatement.Break statement)
         {
             return Expr.Break(scope.BreakLabel());
         }
 
-        Expr ILastStatementVisitor<Expr>.Visit(LastStatement.Return lastStatement)
+        Expr IStatementVisitor<Expr>.Visit(LastStatement.Return statement)
         {
             var returnLabel = scope.GetReturnLabel();
 
             if (returnLabel == null)
                 return Expr.Empty();
 
-            var returnValues = lastStatement.Values
+            var returnValues = statement.Values
                 .Select(expr => Expr.Convert(expr.Visit(this), typeof(object))).ToArray();
 
             if (returnValues.Length == 0)

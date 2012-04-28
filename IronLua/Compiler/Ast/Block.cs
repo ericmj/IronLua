@@ -5,12 +5,10 @@ namespace IronLua.Compiler.Ast
     class Block : Node
     {
         public List<Statement> Statements { get; set; }
-        public LastStatement LastStatement { get; set; }
 
-        public Block(List<Statement> statements, LastStatement lastStatement)
+        public Block(List<Statement> statements)
         {
             Statements = statements;
-            LastStatement = lastStatement;
         }
     }
 }

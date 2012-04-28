@@ -2,10 +2,8 @@ using System.Collections.Generic;
 
 namespace IronLua.Compiler.Ast
 {
-    abstract class LastStatement : Node
+    abstract class LastStatement : Statement
     {
-        public abstract T Visit<T>(ILastStatementVisitor<T> visitor);
-
         public class Return : LastStatement
         {
             public List<Expression> Values { get; set; }
@@ -15,7 +13,7 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
-            public override T Visit<T>(ILastStatementVisitor<T> visitor)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
                 return visitor.Visit(this);
             }
@@ -23,8 +21,7 @@ namespace IronLua.Compiler.Ast
 
         public class Break : LastStatement
         {
-
-            public override T Visit<T>(ILastStatementVisitor<T> visitor)
+            public override T Visit<T>(IStatementVisitor<T> visitor)
             {
                 return visitor.Visit(this);
             }
