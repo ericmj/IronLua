@@ -5,7 +5,7 @@ using Microsoft.Scripting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 
-namespace IronLua.Compiler.Parser
+namespace IronLua.Compiler.Parsing
 {
     class Input
     {

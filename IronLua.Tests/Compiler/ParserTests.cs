@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using IronLua.Compiler;
-using IronLua.Compiler.Parser;
+using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using Microsoft.Scripting;
 using NUnit.Framework;

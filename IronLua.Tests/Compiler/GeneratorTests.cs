@@ -1,5 +1,5 @@
 using IronLua.Compiler;
-using IronLua.Compiler.Parser;
+using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using IronLua.Runtime;
 using Microsoft.Scripting;

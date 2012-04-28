@@ -5,7 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using IronLua.Compiler;
-using IronLua.Compiler.Parser;
+using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using IronLua.Runtime.Binder;
 using Microsoft.Scripting;

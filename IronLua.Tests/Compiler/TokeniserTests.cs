@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using IronLua.Compiler;
-using IronLua.Compiler.Parser;
+using IronLua.Compiler.Parsing;
 using Microsoft.Scripting;
 using NUnit.Framework;
 

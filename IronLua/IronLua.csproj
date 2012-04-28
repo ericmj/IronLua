@@ -53,7 +53,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
-    <Compile Include="Compiler\Tokenizer.cs" />
+    <Compile Include="Compiler\Parsing\ILexer.cs" />
+    <Compile Include="Compiler\Parsing\Input.cs" />
+    <Compile Include="Compiler\Parsing\Lexer.cs" />
+    <Compile Include="Compiler\Parsing\Parser.cs" />
+    <Compile Include="Compiler\Parsing\Symbol.cs" />
+    <Compile Include="Compiler\Parsing\Token.cs" />
+    <Compile Include="Compiler\Parsing\Tokenizer.cs" />
     <Compile Include="Hosting\Lua.cs" />
     <Compile Include="Hosting\LuaCommandLine.cs" />
     <Compile Include="Hosting\LuaConsoleHost.cs" />
@@ -86,11 +92,6 @@
     <Compile Include="Compiler\Ast\Variable.cs" />
     <Compile Include="Compiler\FieldVisit.cs" />
     <Compile Include="Compiler\Generator.cs" />
-    <Compile Include="Compiler\Parser\Input.cs" />
-    <Compile Include="Compiler\Parser\Lexer.cs" />
-    <Compile Include="Compiler\Parser\Parser.cs" />
-    <Compile Include="Compiler\Parser\Symbol.cs" />
-    <Compile Include="Compiler\Parser\Token.cs" />
     <Compile Include="Compiler\Scope.cs" />
     <Compile Include="Compiler\VariableVisit.cs" />
     <Compile Include="Constant.cs" />

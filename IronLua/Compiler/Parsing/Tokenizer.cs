@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using IronLua.Compiler.Parser;
 using IronLua.Util;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 
-namespace IronLua.Compiler
+namespace IronLua.Compiler.Parsing
 {
     [Serializable]
     public class LuaCompilerOptions : CompilerOptions

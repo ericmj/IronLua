@@ -3,17 +3,8 @@ using System.Diagnostics;
 using IronLua.Util;
 using Microsoft.Scripting;
 
-namespace IronLua.Compiler.Parser
+namespace IronLua.Compiler.Parsing
 {
-    internal interface ILexer
-    {
-        Token GetNextToken();
-
-        LuaSyntaxException SyntaxException(string format, params object[] args);
-
-        SourceUnit SourceUnit { get; }
-    }
-
     class Lexer : ILexer
     {
         static readonly Dictionary<string, Symbol> keywords =

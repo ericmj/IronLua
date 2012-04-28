@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Scripting;
 
-namespace IronLua.Compiler.Parser
+namespace IronLua.Compiler.Parsing
 {
     public class Token
     {

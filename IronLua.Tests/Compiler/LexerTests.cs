@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using IronLua.Compiler;
+using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;

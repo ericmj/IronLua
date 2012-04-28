@@ -6,7 +6,7 @@ using IronLua.Library;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Utils;
 
-namespace IronLua.Compiler.Parser
+namespace IronLua.Compiler.Parsing
 {
     class Parser
     {
