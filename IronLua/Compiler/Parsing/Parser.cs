@@ -564,7 +564,7 @@ namespace IronLua.Compiler.Parsing
 
         /* Parses block
          * {do | while | repeat | if | for | function | local | assignOrFunctionCall}
-         * [return | break] */
+         * [return | break | goto | labelDecl] */
         Block Block(params Symbol[] termSymbols)
         {
             var statements = new List<Statement>();
@@ -600,16 +600,13 @@ namespace IronLua.Compiler.Parsing
                     case Symbol.LeftParen:
                         statements.Add(AssignOrFunctionCall());
                         break;
-                    case Symbol.Goto: // Lua 5.2 feature (TODO: not implemented)
-                        Expect(Symbol.Goto);                        
-                        var label1 = ExpectLexeme(Symbol.Identifier);
+                    case Symbol.Goto: // Lua 5.2 feature
+                        statements.Add(Goto());
                         break;
-                    case Symbol.ColonColon: // Lua 5.2 feature (TODO: not implemented)
-                        Expect(Symbol.ColonColon);
-                        var label2 = ExpectLexeme(Symbol.Identifier);
-                        Expect(Symbol.ColonColon);
-                        break; // TODO: not finished
-                    
+                    case Symbol.ColonColon: // Lua 5.2 feature 
+                        statements.Add(LabelDecl());
+                        break;
+
                     case Symbol.SemiColon: // Lua 5.2 feature - empty statements
                         if (!_options.UseLua52Features) 
                             goto default;
@@ -844,6 +841,26 @@ namespace IronLua.Compiler.Parsing
             var body = Block();
             Expect(Symbol.End);
             return new Statement.Do(body);
+        }
+
+        /* Parses goto
+         * 'goto' identifier */
+        Statement Goto()
+        {
+            Expect(Symbol.Goto);
+            var label = ExpectLexeme(Symbol.Identifier);
+            return new Statement.Goto(label);
+        }
+
+        /* Parses label declaration
+         * '::' identifier '::' */
+        Statement LabelDecl()
+        {
+            Expect(Symbol.ColonColon);
+            var label = ExpectLexeme(Symbol.Identifier);
+            Expect(Symbol.ColonColon);
+            //return new Statement.LabelDecl(label);
+            throw new NotImplementedException();
         }
     }
 }

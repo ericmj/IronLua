@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace IronLua.Compiler.Ast
@@ -198,6 +199,22 @@ namespace IronLua.Compiler.Ast
             public override T Visit<T>(IStatementVisitor<T> visitor)
             {
                 return visitor.Visit(this);
+            }
+        }
+
+        public class Goto : Statement
+        {
+            public string Label { get; private set; }
+
+            public Goto(string label)
+            {
+                Label = label;
+            }
+
+            public override T Visit<T>(IStatementVisitor<T> visitor)
+            {
+                //return visitor.Visit(this);
+                throw new NotImplementedException();
             }
         }
     }
