@@ -790,11 +790,16 @@ namespace IronLua.Compiler.Parsing
 
         #region Implementation of ILexer
 
-        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        public LuaSyntaxException SyntaxException(string message)
         {
             var cpos = CurrentPosition;
             var file = _sourceUnit.HasPath ? _sourceUnit.Path : "<unknown>";
-            return new LuaSyntaxException(file, cpos.Line, cpos.Column, String.Format(format, args));
+            return new LuaSyntaxException(file, cpos.Line, cpos.Column, message);
+        }
+
+        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        {
+            return SyntaxException(String.Format(format, args));
         }
 
         #endregion

@@ -42,9 +42,14 @@ namespace IronLua.Compiler.Parsing
 
         #region ILexer members
 
-        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        public LuaSyntaxException SyntaxException(string message)
         {
-            return input.SyntaxException(System.String.Format(format, args));
+            return input.SyntaxException(message);
+        }
+        
+        public LuaSyntaxException SyntaxException(string format, params object[] args)
+        {            
+            return SyntaxException(System.String.Format(format, args));
         }
 
         public SourceUnit SourceUnit

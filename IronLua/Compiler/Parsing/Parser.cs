@@ -140,9 +140,8 @@ namespace IronLua.Compiler.Parsing
         {
             if (!TryConsume(symbol))
             {
-                throw ReportSyntaxError("'{0}' expected near '{1}'",
-                    symbol.ToTokenString(),
-                    Current.Lexeme);
+                throw ReportSyntaxErrorNear("'{0}' expected", 
+                    symbol.ToTokenString());
             }
         }
 
@@ -152,17 +151,15 @@ namespace IronLua.Compiler.Parsing
             {
                 if (Current.Line == leftStart.Line)
                 {
-                    throw ReportSyntaxError("'{0}' expected near '{1}'",
-                        right.ToTokenString(),
-                        Current.Lexeme);
+                    throw ReportSyntaxErrorNear("'{0}' expected", 
+                        right.ToTokenString());
                 }
                 else
                 {
-                    throw ReportSyntaxError("'{0}' expected (to close '{1}' at line {2}) near '{3}'",
-                        right.ToTokenString(),
-                        left.ToTokenString(),
-                        leftStart.Line,
-                        Current.Lexeme);
+                    throw ReportSyntaxErrorNear("'{0}' expected (to close '{1}' at line {2})",
+                        right.ToTokenString(), 
+                        left.ToTokenString(), 
+                        leftStart.Line);
                 }
             }
         }
@@ -188,11 +185,22 @@ namespace IronLua.Compiler.Parsing
             }
         }
 
+        Exception ReportError(string message)
+        {
+            _errors.Add(lexer.SourceUnit, message, Current.Span, -1, Severity.Error);
+            return lexer.SyntaxException(message);
+        }
+
         Exception ReportSyntaxError(string format, params object[] args)
         {
+            return ReportError(String.Format(format, args));
+        }
+
+        Exception ReportSyntaxErrorNear(string format, params object[] args)
+        {
             string msg = String.Format(format, args);
-            _errors.Add(lexer.SourceUnit, msg, Current.Span, -1, Severity.Error);
-            return lexer.SyntaxException(format, args);
+            msg += String.Format(" near '{0}'", Current.Lexeme);
+            return ReportError(msg);
         }
 
         #endregion
@@ -369,7 +377,7 @@ namespace IronLua.Compiler.Parsing
                     return new Arguments.String(str);
 
                 default:
-                    throw ReportSyntaxError("function arguments expected near '{0}'", Current.Lexeme);
+                    throw ReportSyntaxErrorNear("function arguments expected");
             }
         }
 
@@ -534,7 +542,7 @@ namespace IronLua.Compiler.Parsing
                         var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
                         return new Expression.UnaryOp(unaryOp, expression);
                     }
-                    throw ReportSyntaxError("unexpected symbol near '{0}'", Current.Lexeme);
+                    throw ReportSyntaxErrorNear("unexpected symbol");
             }
         }
 

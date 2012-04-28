@@ -6,7 +6,7 @@ namespace IronLua.Compiler.Parsing
     {
         Token GetNextToken();
 
-        LuaSyntaxException SyntaxException(string format, params object[] args);
+        LuaSyntaxException SyntaxException(string message);
 
         SourceUnit SourceUnit { get; }
     }
