@@ -12,6 +12,8 @@ namespace IronLua.Runtime
         public LuaTable Globals { get; private set; }
         public Dictionary<Type, LuaTable> Metatables { get; private set; }
 
+        public static LuaContext LuaContext { get; private set; }
+
         internal BaseLibrary BaseLibrary;
         internal StringLibrary StringLibrary;
         internal MathLibrary MathLibrary;
@@ -19,8 +21,10 @@ namespace IronLua.Runtime
 
         internal static DynamicCache DynamicCache { get; private set; }
 
-        public Context()
+        public Context(LuaContext luaContext)
         {
+            LuaContext = luaContext;
+
             DynamicCache = new DynamicCache(this);
 
             SetupLibraries();

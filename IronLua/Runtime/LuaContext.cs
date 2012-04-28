@@ -17,7 +17,7 @@ namespace IronLua.Runtime
 {
     public sealed class LuaContext : LanguageContext
     {
-        readonly Context _ctx = new Context();
+        readonly Context _ctx;
 
         public LuaContext(ScriptDomainManager manager, IDictionary<string, object> options = null)
             : base(manager)
@@ -25,6 +25,7 @@ namespace IronLua.Runtime
             // TODO: options
 
             _binder = new LuaBinder(this);
+            _ctx = new Context(this);
         }
 
         internal Context Ctx
@@ -151,5 +152,21 @@ namespace IronLua.Runtime
             get { return _binder; }
         }
 
+        public override string FormatObject(DynamicOperations operations, object obj)
+        {
+            if (obj == null) 
+                return "nil";
+
+            if (obj is bool)
+                return (bool) obj ? "true" : "false";
+
+            if (obj is LuaTable)
+                return "table: 00000000";
+
+            if (obj is Delegate)
+                return "function: 00000000";
+            
+            return obj.ToString();
+        }
     }
 }

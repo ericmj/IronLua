@@ -168,13 +168,17 @@ namespace IronLua.Library
 
         public static void Print(params object[] args)
         {
+            LuaContext context = Context.LuaContext;
+            var domain = context.DomainManager;
+            var writer = domain.SharedIO.OutputWriter;
+
             for (var i = 0; i < args.Length; i++)
             {
-                if (i > 0)
-                    Console.Out.Write("\t");
-                Console.Out.Write(args[i]);
+                if (i > 0) 
+                    writer.Write("\t");
+                writer.Write(args[i]);
             }
-            Console.Out.WriteLine();
+            writer.WriteLine();
         }
 
         public static bool RawEqual(object v1, object v2)
