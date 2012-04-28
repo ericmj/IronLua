@@ -75,7 +75,7 @@ namespace IronLua.Compiler.Parsing
             _options = options ?? new LuaCompilerOptions();
 
             // Debug: used to display the sequence of tokens that were read
-            //TokenSink = (t, s) => Debug.Print("{0,-12} {1,-10} {2,-10} {3}", t.Symbol, t.Span.Start, t.Span.End, t.Lexeme ?? "");
+            //TokenSink = (t, s) => Debug.Print("{0,-12} {1,-10} {2,-10} {3}", t.Symbol, s.Start, s.End, t.Lexeme);
 
             // initialise the token management variables
             Current = GetNextToken();
@@ -92,7 +92,7 @@ namespace IronLua.Compiler.Parsing
 
             var tokenSink = TokenSink;
             if (tokenSink != null)
-                tokenSink(token, SourceSpan.None); // lexer.TokenSpan); //, lexer.TokenLexeme);
+                tokenSink(token, token.Span);
 
             return token;
         }
@@ -171,6 +171,20 @@ namespace IronLua.Compiler.Parsing
             return lexeme;
         }
 
+        public bool IsTerminalSymbol(Symbol[] terms)
+        {
+            var symbol = Current.Symbol;
+
+            if (terms == null || terms.Length <= 0)
+                terms = new[] { Symbol.End };
+
+            bool isTermnal = symbol == Symbol.SemiColon;
+            for (int i = 0; !isTermnal && i < terms.Length; ++i)
+                isTermnal = symbol == terms[i];
+
+            return isTermnal;
+        }
+
         #endregion
 
         #region Error reporting
@@ -217,7 +231,10 @@ namespace IronLua.Compiler.Parsing
          * identifier {',' identifier} */
         List<string> IdentifierList()
         {
-            var identifiers = new List<string> {ExpectLexeme(Symbol.Identifier)};
+            var identifiers = new List<string>()
+            {
+                ExpectLexeme(Symbol.Identifier)
+            };
 
             while (TryConsume(Symbol.Comma))
                 identifiers.Add(ExpectLexeme(Symbol.Identifier));
@@ -238,10 +255,13 @@ namespace IronLua.Compiler.Parsing
         }
 
         /* Parses variableList
-         * (oldVariable | variable) {',' variable } */
-        List<Variable> VariableList(Variable oldVariable = null)
+         * (firstVariable | variable) {',' variable } */
+        List<Variable> VariableList(Variable firstVariable = null)
         {
-            var variables = new List<Variable> {oldVariable ?? Variable()};
+            var variables = new List<Variable>()
+            {
+                firstVariable ?? Variable()
+            };
 
             while (TryConsume(Symbol.Comma))
                 variables.Add(Variable());
@@ -297,7 +317,7 @@ namespace IronLua.Compiler.Parsing
                 }
             }
 
-            throw ReportSyntaxError(ExceptionMessage.MALFORMED_NUMBER, number);
+            throw ReportSyntaxErrorNear("malformed number '{0}'", number);
         }
 
 
@@ -436,7 +456,7 @@ namespace IronLua.Compiler.Parsing
                     ExpectLexeme(Symbol.RightParen);
                     break;
                 default:
-                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, Current.Symbol);
+                    throw ReportSyntaxErrorNear("unexpected symbol");
             }
 
             while (true)
@@ -556,7 +576,7 @@ namespace IronLua.Compiler.Parsing
         /* Parses block
          * {do | while | repeat | if | for | function | local | assignOrFunctionCall}
          * [return | break | goto | labelDecl] */
-        Block Block(params Symbol[] termSymbols)
+        Block Block(params Symbol[] terms)
         {
             var statements = new List<Statement>();
             LastStatement lastStatement = null;
@@ -585,7 +605,7 @@ namespace IronLua.Compiler.Parsing
                         statements.Add(Function());
                         break;
                     case Symbol.Local:
-                        statements.Add(Local());
+                        statements.Add(Local(terms));
                         break;
                     case Symbol.Identifier:
                     case Symbol.LeftParen:
@@ -597,16 +617,13 @@ namespace IronLua.Compiler.Parsing
                     case Symbol.ColonColon: // Lua 5.2 feature
                         statements.Add(LabelDecl());
                         break;
-
-                    case Symbol.SemiColon: // Lua 5.2 feature - empty statements
+                    case Symbol.SemiColon: // Lua 5.2 feature
                         if (!_options.UseLua52Features)
                             goto default;
                         Expect(Symbol.SemiColon);
-                        // adds nothing to statements list
                         break;
-
                     case Symbol.Return:
-                        lastStatement = Return(termSymbols);
+                        lastStatement = Return(terms);
                         continueBlock = false;
                         break;
                     case Symbol.Break:
@@ -627,12 +644,9 @@ namespace IronLua.Compiler.Parsing
 
         /* Parses return
          * 'return' [expressionList] */
-        LastStatement Return(params Symbol[] termSymbol)
+        LastStatement Return(Symbol[] terms)
         {
             Expect(Symbol.Return);
-
-            if (termSymbol == null || termSymbol.Length <= 0)
-                termSymbol = new[] { Symbol.End };
 
             // Must handle different termination cases:
             //  A) do return end
@@ -641,14 +655,9 @@ namespace IronLua.Compiler.Parsing
             //  D) repeat return until cond
             // Note: Semicolon symbol is always used as a terminal.
 
-            bool isTermnal = Current.Symbol == Symbol.SemiColon;
+            bool isTerminal = IsTerminalSymbol(terms);
 
-            for (int i = 0; !isTermnal && i < termSymbol.Length; ++i)
-            {
-                isTermnal = Current.Symbol == termSymbol[i];
-            }
-
-            return new LastStatement.Return(isTermnal
+            return new LastStatement.Return(isTerminal
                 ? new List<Expression>()
                 : ExpressionList());
         }
@@ -698,24 +707,35 @@ namespace IronLua.Compiler.Parsing
 
         /* Parses local
          * 'local' (localFunction | localAssign) */
-        Statement Local()
+        Statement Local(Symbol[] terms)
         {
             Expect(Symbol.Local);
 
-            if (Current.Symbol == Symbol.Function)
-                return LocalFunction();
-            if (Current.Symbol == Symbol.Identifier)
-                return LocalAssign();
-
-            throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, Current.Symbol);
+            switch (Current.Symbol)
+            {
+                case Symbol.Function:
+                    return LocalFunction();
+                case Symbol.Identifier:
+                    return LocalAssign(terms);
+                default:
+                    throw ReportSyntaxErrorNear("{0} expected", 
+                        Symbol.Identifier.ToTokenString());
+            }
         }
 
         /* Parses localAssign
          * identifierList ['=' expressionList] */
-        Statement LocalAssign()
+        Statement LocalAssign(Symbol[] terms)
         {
             var identifiers = IdentifierList();
+
             var values = TryConsume(Symbol.Equal) ? ExpressionList() : null;
+
+            if (!IsTerminalSymbol(terms))
+            {
+                throw ReportSyntaxErrorNear("unexpected symbol");
+            }
+
             return new Statement.LocalAssign(identifiers, values);
         }
 
