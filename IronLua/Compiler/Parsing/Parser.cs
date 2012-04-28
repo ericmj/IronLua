@@ -247,10 +247,10 @@ namespace IronLua.Compiler.Parsing
             return variables;
         }
 
-        /* Parses table
+        /* Parses table construction
          * '{' [field {sep field} [sep]] '}'
          * sep := ',' | ';' */
-        Expression.Table Table()
+        Expression.Table TableConstruction()
         {
             var leftStart = Current.Span.Start;
             Expect(Symbol.LeftBrace);
@@ -368,7 +368,7 @@ namespace IronLua.Compiler.Parsing
                     return new Arguments.Normal(arguments);
 
                 case Symbol.LeftBrace:
-                    return new Arguments.Table(Table());
+                    return new Arguments.Table(TableConstruction());
 
                 case Symbol.String:
                     var str = new Expression.String(ExpectLexeme(Symbol.String));
@@ -530,7 +530,7 @@ namespace IronLua.Compiler.Parsing
                 case Symbol.LeftParen:
                     return new Expression.Prefix(PrefixExpression());
                 case Symbol.LeftBrace:
-                    return Table();
+                    return TableConstruction();
                 
                 default:
                     UnaryOp unaryOp;
