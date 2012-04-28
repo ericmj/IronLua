@@ -129,6 +129,19 @@ namespace IronLua.Compiler.Parsing
             return false;
         }
 
+        bool TryConsume(params Symbol[] symbols)
+        {
+            for (int i = 0; i < symbols.Length; ++i)
+            {
+                if (Current.Symbol == symbols[i])
+                {
+                    Consume();
+                    return true;
+                }
+            }
+            return false;
+        }
+
         void Expect(Symbol symbol)
         {
             if (!TryConsume(symbol))
@@ -322,7 +335,7 @@ namespace IronLua.Compiler.Parsing
             Expect(Symbol.Elseif);
             var test = Expression();
             Expect(Symbol.Then);
-            var body = Block();
+            var body = Block(Symbol.Else, Symbol.Elseif);
             return new Elseif(test, body);
         }
 
@@ -543,7 +556,7 @@ namespace IronLua.Compiler.Parsing
         /* Parses block
          * {do | while | repeat | if | for | function | local | assignOrFunctionCall}
          * [return | break] */
-        Block Block()
+        Block Block(params Symbol[] termSymbols)
         {
             var statements = new List<Statement>();
             LastStatement lastStatement = null;
@@ -596,7 +609,7 @@ namespace IronLua.Compiler.Parsing
                         break;
 
                     case Symbol.Return:
-                        lastStatement = Return();
+                        lastStatement = Return(termSymbols);
                         continueBlock = false;
                         break;
                     case Symbol.Break:
@@ -617,25 +630,30 @@ namespace IronLua.Compiler.Parsing
 
         /* Parses return
          * 'return' [expressionList] */
-        LastStatement Return()
+        LastStatement Return(params Symbol[] termSymbol)
         {
             Expect(Symbol.Return);
-            // We assume that return always ends with a End symbol, but
-            // that is not true. Unhandled cases:
-            // A) do return end
-            // B) if cond then return else return elseif return end
-            // C) repeat return until cond    
-            // D  do return ; end
-            // TODO: need to keep track of the terminal symbols and not check everything
-            if (CurrentSymbol == Symbol.End ||    // only for do statements (or function bodies)
-                CurrentSymbol == Symbol.Else ||   // only for if statements
-                CurrentSymbol == Symbol.Elseif || // only for if statements
-                CurrentSymbol == Symbol.Until ||  // only for repeat statements
-                CurrentSymbol == Symbol.SemiColon)
+
+            if (termSymbol == null || termSymbol.Length <= 0)
+                termSymbol = new[] { Symbol.End };
+
+            // Must handle different termination cases:
+            //  A) do return end
+            //  B) function f() return end
+            //  C) if cond then return elseif return else return end
+            //  D) repeat return until cond
+            // Note: Semicolon symbol is always used as a terminal.
+
+            bool isTermnal = CurrentSymbol == Symbol.SemiColon;
+
+            for (int i = 0; !isTermnal && i < termSymbol.Length; ++i)
             {
-                return new LastStatement.Return(new List<Expression>());
+                isTermnal = CurrentSymbol == termSymbol[i];
             }
-            return new LastStatement.Return(ExpressionList());
+
+            return new LastStatement.Return(isTermnal
+                ? new List<Expression>()
+                : ExpressionList());
         }
 
         /* Parses assignOrFunctionCall
@@ -771,13 +789,15 @@ namespace IronLua.Compiler.Parsing
             Expect(Symbol.If);
             var test = Expression();
             Expect(Symbol.Then);
-            var body = Block();
+            var body = Block(Symbol.Else, Symbol.Elseif);
 
             var elseifs = new List<Elseif>();
             while (CurrentSymbol == Symbol.Elseif)
                 elseifs.Add(Elseif());
 
-            var elseBody = TryConsume(Symbol.Else) ? Block() : null;
+            var elseBody = TryConsume(Symbol.Else)
+                ? Block(Symbol.Else, Symbol.Elseif)
+                : null;
 
             Expect(Symbol.End);
 
@@ -789,7 +809,7 @@ namespace IronLua.Compiler.Parsing
         Statement Repeat()
         {
             Expect(Symbol.Repeat);
-            var body = Block();
+            var body = Block(Symbol.Until);
             Expect(Symbol.Until);
             var test = Expression();
             return new Statement.Repeat(body, test);
