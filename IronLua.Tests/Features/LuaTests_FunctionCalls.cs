@@ -1,5 +1,6 @@
 ﻿using System;
 using IronLua.Hosting;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
@@ -148,6 +149,14 @@ print(x)";
             string code = "print(_G)";
 
             PerformStartingTest(code, "table: ");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "function arguments expected near '42'")]
+        public void TestFunction_ArgumentsExpected1()
+        {
+            engine.Execute("p:f 42");
         }
 
         [Test]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using IronLua.Hosting;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
@@ -139,6 +140,87 @@ end";
             expect.AppendLine("3\tD\tnumber");
             expect.AppendLine("4\tE\tnumber");
             PerformTest(code, expect.ToString());
+        }
+
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException), 
+            ExpectedMessage = "unexpected symbol near ';'")]
+        public void TestTables_ParserMsg1a()
+        {
+            engine.Execute("t = { ; }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near ','")]
+        public void TestTables_ParserMsg1b()
+        {
+            engine.Execute("t = { , }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException), 
+            ExpectedMessage = "'}' expected near '2'")]
+        public void TestTables_ParserMsg2()
+        {
+            engine.Execute("t = { 1 2 }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "'}' expected (to close '{' at line 1) near '2'")]
+        public void TestTables_ParserMsg3()
+        {
+            engine.Execute("t = { 1\r\n2 }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near '='")]
+        public void TestTables_ParserMsg4a()
+        {
+            engine.Execute("t = { [ = 2 }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "']' expected near '='")]
+        public void TestTables_ParserMsg4b()
+        {
+            engine.Execute("t = { [1 = 2 }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "'=' expected near '2'")]
+        public void TestTables_ParserMsg4c()
+        {
+            engine.Execute("t = { [1] 2 }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near '}'")]
+        public void TestTables_ParserMsg4d()
+        {
+            engine.Execute("t = { [1] = }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near ','")]
+        public void TestTables_ParserMsg4e()
+        {
+            engine.Execute("t = { [1] = , }");
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near '}'")]
+        public void TestTables_ParserMsg5b()
+        {
+            engine.Execute("t = { a = }");
         }
     }
 }

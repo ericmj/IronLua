@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using Microsoft.Scripting;
