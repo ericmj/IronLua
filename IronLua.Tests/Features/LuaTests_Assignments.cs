@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using IronLua.Hosting;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
@@ -246,7 +247,7 @@ t[f('x')], t[f('y')], t[f('z')] = t[f('aa')], t[f('bb')], t[f('cc')], t[f('dd')]
         {
             string code = @"
 function f(x)
-    print('f: ', x)
+    print('f:', x)
     return x
 end
 t = { [f('a')] = f(1), [f('b')] = f(2), [f('c')] = f(3) }
@@ -260,6 +261,14 @@ t = { [f('a')] = f(1), [f('b')] = f(2), [f('c')] = f(3) }
             expected.AppendLine("f:\t3");
 
             PerformTest(code, expected);
+        }
+
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near '='")]
+        public void TestTables_AssignmentErrorMsg1()
+        {
+            engine.Execute("a, = 1,2");
         }
     }
 }

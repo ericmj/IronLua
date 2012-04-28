@@ -20,20 +20,17 @@ namespace IronLua.Tests
     public class LexerTests
     {
         ScriptEngine engine;
-        Tokenizer tokenizer;
 
         [TestFixtureSetUp]
         public void CreateLuaEngine()
         {
-            tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
-
             engine = Lua.CreateEngine();
             Assert.That(engine, Is.Not.Null);
         }
 
-        string lua50 = TestUtils.GetTestPath("lua5.0.exe");
-        string lua51 = TestUtils.GetTestPath("lua5.1.exe");
-        string lua52 = TestUtils.GetTestPath("lua5.2.exe");
+        string lua50 = TestUtils.GetTestPath(@"libs\lua5.0.exe");
+        string lua51 = TestUtils.GetTestPath(@"libs\lua5.1.exe");
+        string lua52 = TestUtils.GetTestPath(@"libs\lua5.2.exe");
 
         public string ExecuteLuaSnippet(string exeFile, string snippet, bool giveStdErr = false)
         {
@@ -101,7 +98,7 @@ namespace IronLua.Tests
         public void LexerFailureTests(string exeFile, string snippet, string expect)
         {
             bool xfail = TestContext.CurrentContext.Test.Properties.Contains("FailureCase");
-
+            //Console.WriteLine("snipet {0}", snippet);
             string actual = ExecuteLuaSnippet(exeFile, snippet, xfail);
             //Console.WriteLine("actual {0}", actual);
             //Console.WriteLine("expect {0}", expect);
@@ -115,22 +112,37 @@ namespace IronLua.Tests
         //    LexerFailureTests(lua50, snippet, expect);
         //}
 
-        //[Test, TestCaseSource(typeof(TestDataSource), "LexerFailureCases")]
-        //public void LexerFailureTestsUnderLua51(string snippet, string expect)
-        //{
-        //    LexerFailureTests(lua51, snippet, expect);
-        //}
+        //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
+        public void LexerFailureTestsUnderLua51(string snippet, string expect)
+        {
+            Assert.That(File.Exists(lua51), Is.True);
+            LexerFailureTests(lua51, snippet, expect);
+        }
 
-        [Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
+        [Test, TestCaseSource(typeof(LexerTests.TestDataSource), "LexerTestCases")]
         public void LexerFailureTestsUnderLua52(string snippet, string expect)
         {
+            Assert.That(File.Exists(lua52), Is.True);
+            Console.WriteLine("Working with snippet: {0}", snippet);
             LexerFailureTests(lua52, snippet, expect);
+        }
+
+        //[Test]
+        public void DirectTest()
+        {
+            foreach (var td in TestDataSource.LexerTestCases())
+            {
+                Assert.That(td.Arguments.Length, Is.EqualTo(2));
+                LexerFailureTestsUnderLua52((string)td.Arguments[0], (string)td.Arguments[1]);
+            }
         }
 
         //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
         public void LexerErrorReportTests(string snippet, string expect)
         {
             bool mustfail = TestContext.CurrentContext.Test.Properties.Contains("FailureCase");
+
+            var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
 
             tokenizer.Initialize(null, new StringReader(snippet), null, SourceLocation.MinValue);
             try
@@ -147,7 +159,7 @@ namespace IronLua.Tests
 
         public static class TestDataSource
         {
-            public static IEnumerable<TestCaseData> LexerTestCases()
+            public static TestCaseData[] LexerTestCases()
             {
                 return LexerFailureCases().ToArray();
             }
@@ -156,11 +168,11 @@ namespace IronLua.Tests
             {
                 var f = TestUtils.GetTestPath(@"IronLua.Tests\Scripts\Lexer01_XXX.lua");
 
-                using (var r = File.OpenText(f))
+                using (var reader = File.OpenText(f))
                 {
                     var snippet = new StringBuilder();
                     string line;
-                    while ((line = r.ReadLine()) != null)
+                    while ((line = reader.ReadLine()) != null)
                     {
                         if (line.StartsWith("--XX") || line.StartsWith("--::"))
                         {

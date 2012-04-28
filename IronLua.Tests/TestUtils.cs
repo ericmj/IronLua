@@ -9,33 +9,16 @@ namespace IronLua.Tests
 {
     public static class TestUtils
     {
-        //public static readonly string ProjectBasePath = @"F:\workspace\DLR\IronLua-github";
-        public static readonly string ProjectBasePath = @"W:\dlr\IronLua-github";
+        public static readonly string ProjectBasePath = @"F:\workspace\DLR\IronLua-github";
+        //public static readonly string ProjectBasePath = @"W:\dlr\IronLua-github";
 
         public static string GetTestPath(string path)
         {
             return Path.Combine(ProjectBasePath, path);
         }
 
-        public static StreamReader SafeOpenText(string f)
-        {
-            try
-            {
-                return File.OpenText(f);
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Assert.Ignore("Directory not found");
-                return null;
-            }
-            catch (FileNotFoundException)
-            {
-                Assert.Ignore("File not found");
-                return null;
-            }
-        }
-
-        public static TextReader OpenReaderOrIgnoreTest(Func<TextReader> getReader)
+        public static T OpenReaderOrIgnoreTest<T>(Func<T> getReader)
+            where T : TextReader
         {
             try
             {
@@ -44,12 +27,12 @@ namespace IronLua.Tests
             catch (DirectoryNotFoundException)
             {
                 Assert.Ignore("Directory not found");
-                return null;
+                return default(T);
             }
             catch (FileNotFoundException)
             {
                 Assert.Ignore("File not found");
-                return null;
+                return default(T);
             }
         }
 

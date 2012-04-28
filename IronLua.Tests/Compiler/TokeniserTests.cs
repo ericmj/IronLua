@@ -6,7 +6,9 @@ using System.Linq;
 using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
+using IronLua.Hosting;
 using Microsoft.Scripting;
+using Microsoft.Scripting.Runtime;
 using NUnit.Framework;
 
 namespace IronLua.Tests.Compiler
@@ -20,11 +22,15 @@ namespace IronLua.Tests.Compiler
         public void FirstTest()
         {
             var luaFile = TestUtils.GetTestPath(@"lua-5.2.0-tests\literals.lua");
-            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
-            Console.WriteLine("Reading data from {0}", luaFile);
 
+            var engine = Lua.CreateEngine();
+            var context = Lua.GetLuaContext(engine);
+            var unit = context.CreateFileUnit(luaFile);
+            var reader = TestUtils.OpenReaderOrIgnoreTest(unit.GetReader);
+            Console.WriteLine("Reading data from {0}", new Uri(luaFile));
+            
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
-            tokenizer.Initialize(null, reader, null, SourceLocation.MinValue);
+            tokenizer.Initialize(null, reader, unit, SourceLocation.MinValue);
 
             var fname = @"C:\tmp\tokenizer.txt";
             using (var fout = File.CreateText(fname))
@@ -59,7 +65,7 @@ namespace IronLua.Tests.Compiler
                     fout.WriteLine();
                 }
             }
-            Console.WriteLine("Written results to {0}", fname);
+            Console.WriteLine("Written results to {0}", new Uri(fname));
         }
 
         public void RunLexerOnLuaTestSuiteFile(string luaFile, bool useLua52)
@@ -70,7 +76,10 @@ namespace IronLua.Tests.Compiler
                 UseLua52Features = useLua52,
             };
 
-            var reader = TestUtils.OpenReaderOrIgnoreTest(() => File.OpenText(luaFile));
+            var engine = Lua.CreateEngine();
+            var context = Lua.GetLuaContext(engine);
+            var unit = context.CreateFileUnit(luaFile);
+            var reader = TestUtils.OpenReaderOrIgnoreTest(unit.GetReader);
 
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
 
@@ -80,7 +89,7 @@ namespace IronLua.Tests.Compiler
             var sw = new Stopwatch();
             sw.Start();
 
-            tokenizer.Initialize(null, reader, null, SourceLocation.MinValue);
+            tokenizer.Initialize(null, reader, unit, SourceLocation.MinValue);
             while ((token = tokenizer.GetNextToken()).Symbol != Symbol.Eof)
             {
                 counter++;
