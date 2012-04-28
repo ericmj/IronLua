@@ -78,7 +78,6 @@ namespace IronLua.Compiler.Parsing
             //TokenSink = (t, s) => Debug.Print("{0,-12} {1,-10} {2,-10} {3}", t.Symbol, t.Span.Start, t.Span.End, t.Lexeme ?? "");
 
             // initialise the token management variables
-            Last = null;
             Current = GetNextToken();
             Next = GetNextToken();
         }
@@ -98,13 +97,11 @@ namespace IronLua.Compiler.Parsing
             return token;
         }
 
-        Token Last { get; set; }
         Token Current { get; set; }
         Token Next { get; set; }
 
         void Consume()
         {
-            Last = Current;
             Current = Next;
             Next = GetNextToken();
         }
