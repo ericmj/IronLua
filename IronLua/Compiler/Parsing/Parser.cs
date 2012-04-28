@@ -146,7 +146,30 @@ namespace IronLua.Compiler.Parsing
         {
             if (!TryConsume(symbol))
             {
-                throw ReportSyntaxError(ExceptionMessage.EXPECTED_SYMBOL, Current.Symbol, symbol);
+                throw ReportSyntaxError("'{0}' expected near '{1}'",
+                    symbol.ToTokenString(),
+                    Current.Lexeme);
+            }
+        }
+
+        void ExpectMatch(Symbol right, Symbol left, SourceLocation leftStart)
+        {
+            if (!TryConsume(right))
+            {
+                if (Current.Line == leftStart.Line)
+                {
+                    throw ReportSyntaxError("'{0}' expected near '{1}'",
+                        right.ToTokenString(),
+                        Current.Lexeme);
+                }
+                else
+                {
+                    throw ReportSyntaxError("'{0}' expected (to close '{1}' at line {2}) near '{3}'",
+                        right.ToTokenString(),
+                        left.ToTokenString(),
+                        leftStart.Line,
+                        Current.Lexeme);
+                }
             }
         }
 
@@ -225,35 +248,24 @@ namespace IronLua.Compiler.Parsing
         }
 
         /* Parses table
-         * [field {fieldsep field} [fieldsep]]
-         * fieldsep := ',' | ';' */
+         * '{' [field {sep field} [sep]] '}'
+         * sep := ',' | ';' */
         Expression.Table Table()
         {
+            var leftStart = Current.Span.Start;
             Expect(Symbol.LeftBrace);
-            var fields = new List<Field>();
 
-            var loop = true;
-            while (loop)
+            var fields = new List<Field>();
+            do
             {
                 if (CurrentSymbol == Symbol.RightBrace)
                     break;
+
                 fields.Add(Field());
 
-                switch (CurrentSymbol)
-                {
-                    case Symbol.Comma:
-                    case Symbol.SemiColon:
-                        Consume();
-                        break;
-                    case Symbol.RightBrace:
-                        loop = false;
-                        break;
-                    default:
-                        throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
-                }
-            }
+            } while (TryConsume(Symbol.Comma, Symbol.SemiColon));
 
-            Expect(Symbol.RightBrace);
+            ExpectMatch(Symbol.RightBrace, Symbol.LeftBrace, leftStart);
             return new Expression.Table(fields);
         }
 
@@ -309,22 +321,21 @@ namespace IronLua.Compiler.Parsing
             {
                 case Symbol.LeftBrack:
                     Consume();
-                    var member = Expression();
+                    var memberExpr = Expression();
                     Expect(Symbol.RightBrack);
                     Expect(Symbol.Equal);
                     var value = Expression();
-                    return new Field.MemberExpr(member, value);
+                    return new Field.MemberExpr(memberExpr, value);
+
+                case Symbol.Identifier:
+                    if (Next.Symbol != Symbol.Equal)
+                        goto default;
+                    var memberId = ConsumeLexeme();
+                    Expect(Symbol.Equal);
+                    return new Field.MemberId(memberId, Expression());
 
                 default:
-                    var expression = Expression();
-                    if (CurrentSymbol != Symbol.Equal)
-                        return new Field.Normal(expression);
-
-                    Consume();
-                    var memberId = expression.LiftIdentifier();
-                    if (memberId != null)
-                        return new Field.MemberId(memberId, Expression());
-                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
+                    return new Field.Normal(Expression());
             }
         }
 
@@ -346,15 +357,14 @@ namespace IronLua.Compiler.Parsing
             switch (CurrentSymbol)
             {
                 case Symbol.LeftParen:
-                    if (Current.Line != Last.Line)
-                        throw ReportSyntaxError(ExceptionMessage.AMBIGUOUS_SYNTAX_FUNCTION_CALL);
+                    var leftStart = Current.Span.Start;
                     Consume();
 
                     var arguments = new List<Expression>();
                     if (CurrentSymbol != Symbol.RightParen)
                         arguments = ExpressionList();
 
-                    Expect(Symbol.RightParen);
+                    ExpectMatch(Symbol.RightParen, Symbol.LeftParen, leftStart);
                     return new Arguments.Normal(arguments);
 
                 case Symbol.LeftBrace:
@@ -365,7 +375,7 @@ namespace IronLua.Compiler.Parsing
                     return new Arguments.String(str);
 
                 default:
-                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
+                    throw ReportSyntaxError("function arguments expected near '{0}'", Current.Lexeme);
             }
         }
 
@@ -530,8 +540,7 @@ namespace IronLua.Compiler.Parsing
                         var expression = BinaryExpression(SimpleExpression(), UNARY_OP_PRIORITY);
                         return new Expression.UnaryOp(unaryOp, expression);
                     }
-
-                    throw ReportSyntaxError(ExceptionMessage.UNEXPECTED_SYMBOL, CurrentSymbol);
+                    throw ReportSyntaxError("unexpected symbol near '{0}'", Current.Lexeme);
             }
         }
 
