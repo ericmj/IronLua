@@ -64,6 +64,7 @@ namespace IronLua.Compiler.Parsing
         // Markers
         Comment,
         Whitespace,
+        Shebang,         // '#!' at start of file
         Error,
         Eol,
         Eof,

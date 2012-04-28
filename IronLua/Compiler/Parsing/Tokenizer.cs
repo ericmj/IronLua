@@ -85,12 +85,6 @@ namespace IronLua.Compiler.Parsing
             _state = new State(state as State);
 
             _buffer = new TokenizerBuffer(sourceReader, initialLocation, _options.InitialBufferCapacity, _options.MultiEolns);
-
-            if (_options.SkipFirstLine)
-            {
-                if (_buffer.Peek() == '#' )//&& _buffer.GetChar(+1) == '!')
-                    _buffer.ReadLine(); // skip shibang
-            }
         }
 
         public Token GetNextToken()
@@ -221,6 +215,11 @@ namespace IronLua.Compiler.Parsing
                 case '^':
                     return MarkTokenEnd(Symbol.Caret);
                 case '#':
+                    if (Peek() == '!' && _buffer.Position == 1)
+                    {
+                        _buffer.ReadLine();
+                        return MarkTokenEnd(Symbol.Shebang, () => _buffer.GetTokenString());
+                    }
                     return MarkTokenEnd(Symbol.Hash);
                 case '(':
                     return MarkTokenEnd(Symbol.LeftParen);
@@ -863,7 +862,16 @@ namespace IronLua.Compiler.Parsing
 
         public static bool IsWhitespace(this int c)
         {
-            return (c == ' ' || c == '\t');
+            switch (c)
+            {
+                case ' ':
+                case '\t':
+                case '\f':
+                case '\v':
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 
