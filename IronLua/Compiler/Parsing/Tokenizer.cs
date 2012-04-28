@@ -191,8 +191,7 @@ namespace IronLua.Compiler.Parsing
             else
             {
                 _buffer.MarkSingleLineTokenEnd();
-                ReportError(1, "invalid character '{0}'", (char)current);
-                return Symbol.Error;
+                return ReportError(1, "invalid character '{0}'", (char)current);                
             }
         }
 
@@ -291,16 +290,14 @@ namespace IronLua.Compiler.Parsing
                 {
                     case TokenizerBuffer.EndOfFile:
                         _buffer.MarkSingleLineTokenEnd();
-                        ReportError(3, "Unterminated quoted string meets end of file");
                         //return new IncompleteStringToken(accum.ToString(), (quoteChar == '\''));
-                        return Symbol.Error;
+                        return ReportError(3, "Unterminated quoted string meets end of file");
 
                     case '\r':
                     case '\n':
                         if (skipWs) continue;
                         _buffer.MarkSingleLineTokenEnd(-1);
-                        ReportError(2, "unfinished string at '{0}'", _buffer.GetTokenString());
-                        return Symbol.Error;
+                        return ReportError(2, "unfinished string at '{0}'", _buffer.GetTokenString());
 
                     case ' ':
                     case '\t':
@@ -370,8 +367,7 @@ namespace IronLua.Compiler.Parsing
                                     else
                                     {
                                         _buffer.MarkSingleLineTokenEnd();
-                                        ReportError(4, "hexadecimal digit expected near '{0}'", _buffer.GetTokenSubstring(offset));
-                                        return Symbol.Error;
+                                        return ReportError(4, "hexadecimal digit expected near '{0}'", _buffer.GetTokenSubstring(offset));
                                     }
                                 }
                                 current = value;
@@ -423,8 +419,7 @@ namespace IronLua.Compiler.Parsing
                 }
 
                 _buffer.MarkSingleLineTokenEnd();
-                ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
-                return Symbol.Error;
+                return ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
             }
 
             ConsumeOneEol(); // Skip newline immediately following the start
@@ -439,9 +434,8 @@ namespace IronLua.Compiler.Parsing
                 {
                     case TokenizerBuffer.EndOfFile:
                         _buffer.MarkMultiLineTokenEnd();
-                        ReportError(5, "invalid long {0} delimiter at '{1}'",
-                            isComment ? "comment" : "string", _buffer.GetTokenString());
-                        return Symbol.Error;
+                        return ReportError(6, "invalid long {0} delimiter at '{1}'",
+                            isComment ? "comment" : "string", _buffer.GetTokenString());                        
 
                     case '\r': // need to replace \r\n sequence into \n ones
                         if (Peek() == '\n')
@@ -472,10 +466,7 @@ namespace IronLua.Compiler.Parsing
             if (!ConsumeOne(']'))
             {
                 _buffer.MarkSingleLineTokenEnd();
-                ReportError(5, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
-                return Symbol.Error;
-
-                throw Assert.Unreachable; // should really be this!
+                return ReportError(7, "invalid long string delimiter at '{0}'", _buffer.GetTokenString());
             }
 
             return MarkTokenEnd(isComment ? Symbol.Comment : Symbol.String,
@@ -539,8 +530,7 @@ namespace IronLua.Compiler.Parsing
             if (bad)
             {
                 _buffer.MarkSingleLineTokenEnd();
-                ReportError(6, "malformed number near '{0}'", _buffer.GetTokenString());
-                return Symbol.Error;
+                return ReportError(8, "malformed number near '{0}'", _buffer.GetTokenString());
             }
 
             return MarkTokenEnd(Symbol.Number, () => _buffer.GetTokenString());
@@ -652,14 +642,14 @@ namespace IronLua.Compiler.Parsing
 
         #region Error reporting
 
-        string Report(Severity severity, int errorCode, SourceSpan location, string message)
+        Symbol Report(Severity severity, int errorCode, SourceSpan location, string message)
         {
             Debug.Assert(severity != Severity.FatalError);
             ErrorSink.Add(_sourceUnit, message, location, errorCode, severity);
-            return message;
+            return Symbol.Error;
         }
 
-        internal string ReportError(int errorCode, string format, params object[] args)
+        Symbol ReportError(int errorCode, string format, params object[] args)
         {
             return Report(Severity.Error, errorCode, _buffer.TokenSpan, String.Format(format, args));
         }
