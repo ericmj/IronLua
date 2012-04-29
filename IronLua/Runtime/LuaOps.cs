@@ -242,7 +242,7 @@ namespace IronLua.Runtime
                     if (valueCount + 1 == values.Count)
                         AssignValuesToVariables(variables, varargs, varCount);
                     else
-                        variables[varCount] = varargs.First();
+                        variables[varCount] = varargs.FirstOrDefault();
                 }
                 else
                 {
