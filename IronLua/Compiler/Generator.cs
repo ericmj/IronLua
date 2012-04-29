@@ -165,6 +165,7 @@ namespace IronLua.Compiler
                             locals,
                             new[] {invokeIterFunc}),
                         Expr.IfThen(Expr.Equal(locals[0], Expr.Constant(null)), Expr.Break(scope.BreakLabel())),
+                        Expr.Assign(iterableVar, locals[0]),
                         Visit(statement.Body)),
                     scope.BreakLabel());
 
