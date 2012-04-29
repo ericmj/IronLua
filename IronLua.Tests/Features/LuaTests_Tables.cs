@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using IronLua.Hosting;
+using IronLua.Runtime;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
@@ -19,6 +20,11 @@ namespace IronLua.Tests.Features
         public void PrepareEngine()
         {
             engine = Lua.CreateEngine();
+        }
+
+        object Run(string code)
+        {
+            return engine.Execute(code);
         }
 
         public void PerformTest(string code, string expect)
@@ -142,6 +148,7 @@ end";
             PerformTest(code, expect.ToString());
         }
 
+        #region Syntax Exception tests
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException), 
@@ -222,5 +229,164 @@ end";
         {
             engine.Execute("t = { a = }");
         }
+
+        #endregion
+
+        #region Table construction tests
+        
+        [Test]
+        public void TestTables_Empty()
+        {
+            dynamic t = engine.Execute(@"return {}");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestTables_SimpleArray2()
+        {
+            dynamic t = engine.Execute(@"return { 1, 2, 3 }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable) t;
+            Assert.That(lt.Length(), Is.EqualTo(3));
+            Assert.That(lt.GetValue(1.0), Is.EqualTo(1.0));
+            Assert.That(lt.GetValue(2.0), Is.EqualTo(2.0));
+            Assert.That(lt.GetValue(3.0), Is.EqualTo(3.0));
+        }
+
+        [Test]
+        public void TestTables_SimpleArray3()
+        {
+            dynamic t = engine.Execute(@"return { 'a', 'b', 'c' }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(3));
+            Assert.That(lt.GetValue(1.0), Is.EqualTo("a"));
+            Assert.That(lt.GetValue(2.0), Is.EqualTo("b"));
+            Assert.That(lt.GetValue(3.0), Is.EqualTo("c"));
+        }
+
+        [Test]
+        public void TestTables_SimpleArray4()
+        {
+            dynamic t = engine.Execute(@"return { false, true, 42, 'abc', {}, }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(5));
+            Assert.That(lt.GetValue(1.0), Is.False);
+            Assert.That(lt.GetValue(2.0), Is.True);
+            Assert.That(lt.GetValue(3.0), Is.EqualTo(42));
+            Assert.That(lt.GetValue(4.0), Is.EqualTo("abc"));
+            Assert.That(lt.GetValue(5.0), Is.TypeOf<LuaTable>());
+        }
+
+        [Test]
+        public void TestTables_Dict1()
+        {
+            dynamic t = engine.Execute(@"return { a = 1, b = 2, c = 3 }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(0));
+            Assert.That(lt.GetValue("a"), Is.EqualTo(1.0));
+            Assert.That(lt.GetValue("b"), Is.EqualTo(2.0));
+            Assert.That(lt.GetValue("c"), Is.EqualTo(3.0));
+        }
+
+        [Test]
+        public void TestTables_Dict2()
+        {
+            dynamic t = engine.Execute(@"return { a = 'x', b = 'y', c = 'z' }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(0));
+            Assert.That(lt.GetValue("a"), Is.EqualTo("x"));
+            Assert.That(lt.GetValue("b"), Is.EqualTo("y"));
+            Assert.That(lt.GetValue("c"), Is.EqualTo("z"));
+        }
+
+        [Test]
+        public void TestTables_Dict3()
+        {
+            dynamic t = engine.Execute(@"return { a = false, b = true, c = 42, d = 'abc', e = {}, }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(0));
+            Assert.That(lt.GetValue("a"), Is.False);
+            Assert.That(lt.GetValue("b"), Is.True);
+            Assert.That(lt.GetValue("c"), Is.EqualTo(42.0));
+            Assert.That(lt.GetValue("d"), Is.EqualTo("abc"));
+            Assert.That(lt.GetValue("e"), Is.TypeOf<LuaTable>());
+        }
+
+        [Test]
+        public void TestTables_DictArray1()
+        {
+            dynamic t = engine.Execute(@"return { [1] = false, [2] = true, [3] = 42, [4] = 'abc', [5] = {}, }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable) t;
+            Assert.That(lt.Length(), Is.EqualTo(5));
+            Assert.That(lt.GetValue(1.0), Is.False);
+            Assert.That(lt.GetValue(2.0), Is.True);
+            Assert.That(lt.GetValue(3.0), Is.EqualTo(42));
+            Assert.That(lt.GetValue(4.0), Is.EqualTo("abc"));
+            Assert.That(lt.GetValue(5.0), Is.TypeOf<LuaTable>());
+        }
+
+        [Test]
+        public void TestTables_DictArray2()
+        {
+            dynamic t = engine.Execute(@"return { ['a'] = false, [2] = true, ['c'] = 42, [3] = 'abc', ['e'] = {}, }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(0));
+            Assert.That(lt.GetValue("a"), Is.False);
+            Assert.That(lt.GetValue(2.0), Is.True);
+            Assert.That(lt.GetValue("c"), Is.EqualTo(42.0));
+            Assert.That(lt.GetValue(3.0), Is.EqualTo("abc"));
+            Assert.That(lt.GetValue("e"), Is.TypeOf<LuaTable>());
+        }
+
+        [Test]
+        public void TestTables_DictArray3()
+        {
+            dynamic t = engine.Execute(@"return { 'ab', 'cd', ['x'] = 'ef', ['y'] = 'gh', }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(2));
+            Assert.That(lt.GetValue(1.0), Is.EqualTo("ab"));
+            Assert.That(lt.GetValue(2.0), Is.EqualTo("cd"));
+            Assert.That(lt.GetValue("x"), Is.EqualTo("ef"));
+            Assert.That(lt.GetValue("y"), Is.EqualTo("gh"));
+        }
+
+        [Test]
+        public void TestTables_DictArray4()
+        {
+            dynamic t = engine.Execute(@"return { ['x'] = 'ab', 'cd', ['y'] = 'ef', 'gh' }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(2));
+            Assert.That(lt.GetValue(1.0), Is.EqualTo("cd"));
+            Assert.That(lt.GetValue(2.0), Is.EqualTo("gh"));
+            Assert.That(lt.GetValue("x"), Is.EqualTo("ab"));
+            Assert.That(lt.GetValue("y"), Is.EqualTo("ef"));
+        }
+
+        [Test]
+        public void TestTables_DictArray5()
+        {
+            dynamic t = engine.Execute(@"return { [5] = 'ab', ['x'] = 'cd', 'ef', ['y'] = 'gh', 'ij' }");
+            Assert.That(t, Is.TypeOf<LuaTable>());
+            var lt = (LuaTable)t;
+            Assert.That(lt.Length(), Is.EqualTo(2));
+            Assert.That(lt.GetValue(1.0), Is.EqualTo("ef"));
+            Assert.That(lt.GetValue(2.0), Is.EqualTo("ij"));
+            Assert.That(lt.GetValue("x"), Is.EqualTo("cd"));
+            Assert.That(lt.GetValue("y"), Is.EqualTo("gh"));
+            Assert.That(lt.GetValue(5.0), Is.EqualTo("ab"));
+        }
+
+        #endregion
     }
 }
