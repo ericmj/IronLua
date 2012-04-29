@@ -145,12 +145,15 @@ namespace IronLua.Library
 
         public static Varargs Next(LuaTable table, object index = null)
         {
+            if (table == null)
+                throw new LuaRuntimeException("bad argument #1 to 'next' (table expected, got nil)");
+
             return table.Next(index);
         }
 
         public static Varargs Pairs(LuaTable t)
         {
-            return new Varargs(t, (Func<LuaTable, object, Varargs>)Next, null);
+            return new Varargs((Func<LuaTable, object, Varargs>)Next, t, null);
         }
 
         public Varargs PCall(Delegate f, params object[] args)
