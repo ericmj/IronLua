@@ -21,8 +21,8 @@ assert(type(_G) == 'table')
 assert(tostring(1.25) == "1.25")
 
 -- pairs
---t = { a = 1, b = 2, c = 3 }
---for k,v in pairs(t) do print(k,v) end
+t = { a = 1, b = 2, c = 3 }
+for k,v in pairs(t) do print(k,v) end
 
 -- ipairs
 --t = { 4, 5, 6 }

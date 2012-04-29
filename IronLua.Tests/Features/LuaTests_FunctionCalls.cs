@@ -23,7 +23,7 @@ namespace IronLua.Tests.Features
         public void PerformTest(string code, string expect)
         {
             string output, error;
-            dynamic result = engine.ExecuteTestCode(code, out output, out error);
+            dynamic result = engine.CaptureOutput(e => e.Execute(code), out output, out error);
 
             Assert.That((object)result, Is.Null);
             Assert.That(output, Is.EqualTo(expect + Environment.NewLine));
@@ -70,11 +70,10 @@ namespace IronLua.Tests.Features
             PerformTest(code, "3.14");
         }
 
-
         public void PerformStartingTest(string code, string expect)
         {
             string output, error;
-            dynamic result = engine.ExecuteTestCode(code, out output, out error);
+            dynamic result = engine.CaptureOutput(e => e.Execute(code), out output, out error);
 
             Assert.That((object)result, Is.Null);
             Assert.That(output, Is.StringStarting(expect) & Is.StringEnding(Environment.NewLine));
@@ -149,6 +148,28 @@ print(x)";
             string code = "print(_G)";
 
             PerformStartingTest(code, "table: ");
+        }
+       
+        [Test]
+        public void TestFunction_ReturnDelegate1()
+        {
+            dynamic value = engine.Execute(@"return function(x) print(x) end");
+
+            Assert.That(value, Is.TypeOf<Func<object, object>>());
+
+            string output, error;
+            engine.CaptureOutput(e => value("hi there"), out output, out error);
+            
+            Assert.That(output, Is.EqualTo("hi there" + Environment.NewLine));
+        }
+
+        [Test]
+        public void TestFunction_ReturnDelegate2()
+        {
+            dynamic value = engine.Execute(@"function f() return 42 end; return f");
+
+            Assert.That(value, Is.TypeOf<Func<object>>());
+            Assert.That(value(), Is.EqualTo(42.0));
         }
 
         [Test]

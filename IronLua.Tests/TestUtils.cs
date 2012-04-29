@@ -80,12 +80,7 @@ namespace IronLua.Tests
             }
         }
 
-        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, out string outStr, out string errStr)
-        {
-            return ExecuteTestCode(engine, code, engine.CreateScope(), out outStr, out errStr);
-        }
-
-        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, ScriptScope scope, out string outStr, out string errStr)
+        public static dynamic CaptureOutput(this ScriptEngine engine, Func<ScriptEngine, dynamic> action, out string outStr, out string errStr)
         {
             var io = engine.Runtime.IO;
 
@@ -96,10 +91,10 @@ namespace IronLua.Tests
             // Override the error output stream to capture the errors
             Stream errorStream = new MemoryStream();
             io.SetErrorOutput(errorStream, Encoding.ASCII);
-            
+
             try
             {
-                return engine.Execute(code, scope);
+                return action(engine);
             }
             finally
             {
@@ -117,7 +112,17 @@ namespace IronLua.Tests
                 // Reset the error stream and extract the text
                 errorStream.Seek(0, SeekOrigin.Begin);
                 errStr = new StreamReader(errorStream, Encoding.ASCII).ReadToEnd();
-            }
+            }            
+        }
+
+        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, out string outStr, out string errStr)
+        {
+            return CaptureOutput(engine, e => e.Execute(code), out outStr, out errStr);
+        }
+
+        public static dynamic ExecuteTestCode(this ScriptEngine engine, string code, ScriptScope scope, out string outStr, out string errStr)
+        {
+            return CaptureOutput(engine, e => e.Execute(code, scope), out outStr, out errStr);
         }
     }
 

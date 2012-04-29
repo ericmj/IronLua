@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Features\LuaTests_BinaryOps.cs" />
     <Compile Include="Features\LuaTests_local.cs" />
+    <Compile Include="Libraries\BaseLibTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BasicTests.cs" />
     <Compile Include="Compiler\GeneratorTests.cs" />

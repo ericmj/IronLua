@@ -348,5 +348,31 @@ else
 end";
             PerformTest(code, "one");
         }
+
+        [Test]
+        public void TestIfThenElse_VariableIsFunctionCallOne()
+        {
+            string code = @"
+local f = function() return true end
+if f() then
+    print 'one'
+else
+    print 'two'
+end";
+            PerformTest(code, "one");
+        }
+
+        [Test]
+        public void TestIfThenElse_VariableIsFunctionCallTwo()
+        {
+            string code = @"
+local f = function() return false end
+if f() then
+    print 'one'
+else
+    print 'two'
+end";
+            PerformTest(code, "two");
+        }
     }
 }

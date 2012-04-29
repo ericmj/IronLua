@@ -277,21 +277,21 @@ namespace IronLua.Tests.Features
             //Assert.That(Run(@"return '' or assert(false)"), Is.EqualTo(String.Empty), "Short-circuit failure");
         }
 
-        [Test]
+        [Test, Ignore("Tables not working yet")]
         public void TestBinary_AndOprTable()
         {
             Assert.That(Run(@"return {} and nil"), Is.Null);
 
-            //Assert.That(Run(@"return {} and false"), Is.False);
-            //Assert.That(Run(@"return {} and true"), Is.True);
+            Assert.That(Run(@"return {} and false"), Is.False);
+            Assert.That(Run(@"return {} and true"), Is.True);
 
-            //Assert.That(Run(@"return {} and 42"), Is.EqualTo(42.0));
+            Assert.That(Run(@"return {} and 42"), Is.EqualTo(42.0));
 
-            //Assert.That(Run(@"return {} and 'x'"), Is.EqualTo("x"));
+            Assert.That(Run(@"return {} and 'x'"), Is.EqualTo("x"));
 
-            //Assert.That(Run(@"return {1} and {2}"), Is.TypeOf<LuaTable>());
+            Assert.That(Run(@"return {1} and {2}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return {} and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return {} and f"), Is.TypeOf<Delegate>());
         }
 
         [Test, Ignore("Tables not working yet")]
