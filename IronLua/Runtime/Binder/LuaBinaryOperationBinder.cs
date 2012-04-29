@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
 using ExprType = System.Linq.Expressions.ExpressionType;
@@ -19,7 +20,9 @@ namespace IronLua.Runtime.Binder
                     {ExprType.LessThanOrEqual,    BinaryOpType.Relational},
                     {ExprType.GreaterThanOrEqual, BinaryOpType.Relational},
                     {ExprType.OrElse,             BinaryOpType.Logical},
+                    {ExprType.Or,                 BinaryOpType.Logical},
                     {ExprType.AndAlso,            BinaryOpType.Logical},
+                    {ExprType.And,                BinaryOpType.Logical},
                     {ExprType.Add,                BinaryOpType.Numeric},
                     {ExprType.Subtract,           BinaryOpType.Numeric},
                     {ExprType.Multiply,           BinaryOpType.Numeric},
@@ -82,26 +85,38 @@ namespace IronLua.Runtime.Binder
         Expr Logical(DynamicMetaObject left, DynamicMetaObject right)
         {
             // Assign left operand to a temp variable for single evaluation
-            var tempLeft = Expr.Variable(left.LimitType);
+            ParamExpr tempLeft = Expr.Variable(left.LimitType);
 
-            var compareExpr = (Expr)tempLeft;
-            Expr ifExpr = null;
+            Expr compareExpr = tempLeft;
+            if (left.LimitType != typeof(bool))
+                compareExpr = Expr.NotEqual(
+                    Expr.Convert(tempLeft, typeof(object)),
+                    Expr.Constant(null));
 
+            Expr leftExpr = tempLeft;
+            Expr rightExpr = right.Expression;
+
+            if (left.LimitType != right.LimitType)
+            {
+                leftExpr = Expr.Convert(leftExpr, typeof(object));
+                rightExpr = Expr.Convert(rightExpr, typeof(object));
+            }
+
+            Expr ifExpr;
             switch (Operation)
             {
                 case ExprType.AndAlso:
-                    if (left.LimitType != typeof(bool))
-                        compareExpr = Expr.Equal(tempLeft, Expr.Constant(null));
-
-                    ifExpr = Expr.IfThenElse(compareExpr, right.Expression, tempLeft);
+                case ExprType.And:
+                    ifExpr = Expr.Condition(compareExpr, rightExpr, leftExpr);
                     break;
 
                 case ExprType.OrElse:
-                    if (left.LimitType != typeof(bool))
-                        compareExpr = Expr.NotEqual(tempLeft, Expr.Constant(null));
-
-                    ifExpr = Expr.IfThenElse(compareExpr, tempLeft, right.Expression);
+                case ExprType.Or:
+                    ifExpr = Expr.Condition(compareExpr, leftExpr, rightExpr);
                     break;
+
+                default:
+                    throw Assert.Unreachable;
             }
 
             return

@@ -21,8 +21,8 @@ namespace IronLua.Compiler
         static readonly Dictionary<BinaryOp, ExprType> binaryExprTypes =
             new Dictionary<BinaryOp, ExprType>
                 {
-                    {BinaryOp.Or,           ExprType.OrElse},
-                    {BinaryOp.And,          ExprType.AndAlso},
+                    {BinaryOp.Or,           ExprType.Or/*Else*/},
+                    {BinaryOp.And,          ExprType.And/*Also*/},
                     {BinaryOp.Equal,        ExprType.Equal},
                     {BinaryOp.NotEqual,     ExprType.NotEqual},
                     {BinaryOp.Less,         ExprType.LessThan},

@@ -220,7 +220,7 @@ namespace IronLua.Compiler.Ast
 
         public class Goto : Statement
         {
-            public string Label { get; private set; }
+            public string @Label { get; private set; }
 
             public Goto(string label)
             {
