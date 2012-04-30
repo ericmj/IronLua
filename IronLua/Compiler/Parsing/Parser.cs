@@ -60,19 +60,17 @@ namespace IronLua.Compiler.Parsing
                     {BinaryOp.Power,        new Tuple<int, int>(9, 8)}  // Left associative
                 };
 
-        private readonly ILexer lexer;
+        private readonly ILexer _lexer;
         private ErrorSink _errors;
         private LuaCompilerOptions _options;
 
-        public Parser(ILexer lexer, ErrorSink errorSink, LuaCompilerOptions options = null)
+        public Parser(ILexer lexer, ErrorSink errorSink = null, LuaCompilerOptions options = null)
         {
             ContractUtils.RequiresNotNull(lexer, "lexer");
-            ContractUtils.RequiresNotNull(errorSink, "errorSink");
 
-            this.lexer = lexer;
-
-            _errors = errorSink;
-            _options = options ?? new LuaCompilerOptions();
+            _lexer = lexer;
+            _errors = errorSink ?? ErrorSink.Default;
+            _options = options ?? LuaCompilerOptions.Default;
 
             // Debug: used to display the sequence of tokens that were read
             //TokenSink = (t, s) => Debug.Print("{0,-12} {1,-10} {2,-10} {3}", t.Symbol, s.Start, s.End, t.Lexeme);
@@ -88,7 +86,14 @@ namespace IronLua.Compiler.Parsing
 
         internal Token GetNextToken()
         {
-            Token token = lexer.GetNextToken();
+            Token token;
+            do
+            {
+                token = _lexer.GetNextToken();
+                // ignore the following tokens
+            } while (token.Symbol == Symbol.Whitespace ||
+                     token.Symbol == Symbol.Comment ||
+                     token.Symbol == Symbol.Eol);
 
             var tokenSink = TokenSink;
             if (tokenSink != null)
@@ -203,8 +208,8 @@ namespace IronLua.Compiler.Parsing
 
         Exception ReportError(int errorCode, string message)
         {
-            _errors.Add(lexer.SourceUnit, message, Current.Span, errorCode, Severity.Error);
-            return lexer.SyntaxException(message);
+            _errors.Add(_lexer.SourceUnit, message, Current.Span, errorCode, Severity.Error);
+            return _lexer.SyntaxException(message);
         }
 
         Exception ReportSyntaxError(string format, params object[] args)

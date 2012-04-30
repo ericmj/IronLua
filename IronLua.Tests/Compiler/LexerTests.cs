@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
 using Microsoft.Scripting;
@@ -147,7 +148,9 @@ namespace IronLua.Tests
             tokenizer.Initialize(null, new StringReader(snippet), null, SourceLocation.MinValue);
             try
             {
-                var unused = tokenizer.EnumerateTokens().Last();
+                var unused = tokenizer.EnumerateTokens(s => true) // all tokens
+                                      .TakeWhile(t => t.Symbol != Symbol.Eof)
+                                      .Last();
                 if (mustfail)
                     Assert.Fail("Expected a SyntaxErrorException");
             }

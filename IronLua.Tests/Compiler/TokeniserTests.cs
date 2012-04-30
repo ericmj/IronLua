@@ -35,33 +35,18 @@ namespace IronLua.Tests.Compiler
             var fname = @"C:\tmp\tokenizer.txt";
             using (var fout = File.CreateText(fname))
             {
-                Token token;
-                while ((token = tokenizer.GetNextToken()).Symbol != Symbol.Eof)
+                foreach (var token in tokenizer.EnumerateTokens().TakeWhile(t => t.Symbol != Symbol.Eof))
                 {
                     if (token.Symbol == Symbol.Whitespace)
                         continue;
                     if (token.Symbol == Symbol.EndOfLine)
                         continue;
 
-                    var span = tokenizer.CurrentTokenSpan();
-
                     fout.Write("{0,-12}", token.Symbol);
-                    fout.Write("{0,-10}", span.Start);
-                    fout.Write("{0,-10}", span.End);
-                    {
-                        fout.Write(tokenizer.CurrentTokenString());
-                        //fout.Write(tokenizer.CurrentTokenValue());
-                    }
-
-                    if (token.Symbol == Symbol.String
-                        && tokenizer.CurrentTokenString().Contains("\\z"))
-                    {
-                        //fout.WriteLine();
-                        //fout.Write("LINE1: {0}", tokenizer.CurrentTokenString());
-                        fout.WriteLine();
-                        fout.Write("LINE2: {0}", tokenizer.CurrentTokenValue());
-                    }
-
+                    fout.Write("{0,-10}", token.Span.Start);
+                    fout.Write("{0,-10}", token.Span.End);
+                    fout.Write("{0}", token.Lexeme);
+                    
                     fout.WriteLine();
                 }
             }
@@ -83,17 +68,13 @@ namespace IronLua.Tests.Compiler
 
             var tokenizer = new Tokenizer(ErrorSink.Default, options);
 
-            Token token;
-            int counter = 0;
-
             var sw = new Stopwatch();
             sw.Start();
 
             tokenizer.Initialize(null, reader, unit, SourceLocation.MinValue);
-            while ((token = tokenizer.GetNextToken()).Symbol != Symbol.Eof)
-            {
-                counter++;
-            }
+            int counter = tokenizer.EnumerateTokens()
+                                   .TakeWhile(t => t.Symbol != Symbol.Eof)
+                                   .Count();
 
             sw.Stop();
             Console.WriteLine("Tokenizer run: {0} ms, {1} tokens", sw.ElapsedMilliseconds, counter);

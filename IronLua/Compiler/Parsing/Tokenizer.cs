@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using IronLua.Util;
 using Microsoft.Scripting;
@@ -10,25 +11,6 @@ using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Parsing
 {
-    [Serializable]
-    public class LuaCompilerOptions : CompilerOptions
-    {
-        public bool SkipFirstLine { get; set; }
-        public bool MultiEolns { get; set; }
-        public bool UseLua51Features { get; private set; }
-        public bool UseLua52Features { get; set; }
-        public int InitialBufferCapacity { get; set; }
-
-        public LuaCompilerOptions()
-        {
-            SkipFirstLine = true;
-            MultiEolns = true;
-            UseLua51Features = true;
-            UseLua52Features = true;
-            InitialBufferCapacity = 1024;
-        }
-    }
-
     public class Tokenizer : TokenizerService, ILexer
     {
         private static readonly Dictionary<string, Symbol> Keywords =
@@ -86,17 +68,52 @@ namespace IronLua.Compiler.Parsing
 
             _buffer = new TokenizerBuffer(sourceReader, initialLocation, _options.InitialBufferCapacity, _options.MultiEolns);
         }
+        
+        internal bool IsParserToken(Symbol symbol)
+        {
+            switch (symbol)
+            {
+                case Symbol.Whitespace:
+                case Symbol.Comment:
+                case Symbol.Eol:
+                    return false;
+
+                default:
+                    return true;
+            }
+        }
+
+        internal IEnumerable<Token> EnumerateParserTokens()
+        {
+            return EnumerateTokens(IsParserToken).TakeWhile(t => t.Symbol != Symbol.Eof);
+        }
+
+        public IEnumerable<Token> EnumerateTokens(Func<Symbol, bool> predicate)
+        {
+            while (true)
+            {
+                Symbol symbol = GetNextSymbol();
+
+                if (predicate(symbol))
+                {
+                    yield return new Token(symbol, _lastTokenSpan, _lastTokenValue);
+                }
+            }
+        }
+
+        public IEnumerable<Token> EnumerateTokens()
+        {
+            while (true)
+            {
+                Symbol symbol = GetNextSymbol();
+
+                yield return new Token(symbol, _lastTokenSpan, _lastTokenValue);
+            }
+        }
 
         public Token GetNextToken()
         {
-            Symbol symbol;
-            do
-            {
-                symbol = GetNextSymbol();
-
-            } while (symbol == Symbol.Whitespace ||
-                     symbol == Symbol.Comment ||
-                     symbol == Symbol.Eol);
+            Symbol symbol = GetNextSymbol();
 
             return new Token(symbol, _lastTokenSpan, _lastTokenValue);
         }
@@ -656,18 +673,6 @@ namespace IronLua.Compiler.Parsing
 
         #endregion
 
-        internal IEnumerable<Token> EnumerateTokens()
-        {
-            Token token;
-            do
-            {
-                token = GetNextToken();
-
-                yield return token;
-
-            } while (token.Symbol != Symbol.Eof);
-        }
-
         internal static TokenInfo GetTokenInfo(Symbol token)
         {
             var result = new TokenInfo();
@@ -677,13 +682,28 @@ namespace IronLua.Compiler.Parsing
             switch (token)
             {
                 case Symbol.And:
-                    result.Category = TokenCategory.Keyword;
-                    break;
-
+                case Symbol.Break:
                 case Symbol.Do:
+                case Symbol.Else:
+                case Symbol.Elseif:
                 case Symbol.End:
+                case Symbol.False:
+                case Symbol.For:
+                case Symbol.Function:
+                case Symbol.Goto:
+                case Symbol.If:
+                case Symbol.In:
+                case Symbol.Local:
+                case Symbol.Nil:
+                case Symbol.Not:
+                case Symbol.Or:
+                case Symbol.Repeat:
+                case Symbol.Return:
+                case Symbol.Then:
+                case Symbol.True:
+                case Symbol.Until:
+                case Symbol.While:
                     result.Category = TokenCategory.Keyword;
-                    result.Trigger = TokenTriggers.MatchBraces;
                     break;
 
                 case Symbol.Identifier:
@@ -711,8 +731,8 @@ namespace IronLua.Compiler.Parsing
 
         public override TokenInfo ReadToken()
         {
-            var token = GetNextToken();
-            TokenInfo result = GetTokenInfo(token.Symbol);
+            Symbol symbol = GetNextSymbol();
+            TokenInfo result = GetTokenInfo(symbol);
             result.SourceSpan = _lastTokenSpan;
             return result;
         }

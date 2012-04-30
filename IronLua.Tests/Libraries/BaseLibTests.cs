@@ -92,5 +92,16 @@ namespace IronLua.Tests.Libraries
 
             Assert.That(output, Is.EqualTo("a\t1\r\nb\t2\r\nc\t3\r\n"));
         } 
+
+        [Test]
+        public void TestForLoop()
+        {
+            string code = @"for i = 1,3 do print(i) end";
+
+            string output, error;
+            engine.CaptureOutput(e => e.Execute(code), out output, out error);
+
+            Assert.That(output, Is.EqualTo("1\r\n2\r\n3\r\n"));
+        }
     }
 }
