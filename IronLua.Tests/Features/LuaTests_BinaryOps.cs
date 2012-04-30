@@ -39,7 +39,7 @@ namespace IronLua.Tests.Features
             
             Assert.That(Run(@"return nil and {}"), Is.Null);
             
-            //Assert.That(Run(@"function f() end; return nil and f"), Is.Null);
+            Assert.That(Run(@"return nil and function() end"), Is.Null);
 
             //Assert.That(Run(@"return false and assert(false)"), Is.Null, "Short-circuit failure");
         }
@@ -58,7 +58,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return nil or {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return nil or f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return nil or function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -75,7 +75,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return false and {}"), Is.False);
 
-            //Assert.That(Run(@"function f() end; return false and f"), Is.False);
+            Assert.That(Run(@"return false and function() end"), Is.False);
 
             //Assert.That(Run(@"return false and assert(false)"), Is.False, "Short-circuit failure");
         }
@@ -94,7 +94,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return false or {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return false or f"), Is.TypeOf<Delegate>(), "Short-circuit failure");
+            Assert.That(Run(@"return false or function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return true and {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return true and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return true and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -128,7 +128,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return true or {}"), Is.True);
 
-            //Assert.That(Run(@"function f() end; return true or f"), Is.True);
+            Assert.That(Run(@"return true or function() end"), Is.True);
 
             //Assert.That(Run(@"return true or assert(false)"), Is.True, "Short-circuit failure");
         }
@@ -147,7 +147,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 10 and {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return 10 and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return 10 and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -164,7 +164,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 10 or {}"), Is.EqualTo(10.0));
 
-            //Assert.That(Run(@"function f() end; return 10 or f"), Is.EqualTo(10.0));
+            Assert.That(Run(@"return 10 or function() end"), Is.EqualTo(10.0));
 
             //Assert.That(Run(@"return 10 or assert(false)"), Is.EqualTo(10.0), "Short-circuit failure");
         }
@@ -183,7 +183,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 0 and {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return 0 and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return 0 and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -200,7 +200,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 0 or {}"), Is.EqualTo(0.0));
 
-            //Assert.That(Run(@"function f() end; return 0 or f"), Is.EqualTo(0.0));
+            Assert.That(Run(@"return 0 or function() end"), Is.EqualTo(0.0));
 
             //Assert.That(Run(@"return 0 or assert(false)"), Is.EqualTo(0.0), "Short-circuit failure");
         }
@@ -219,7 +219,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 'a' and {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return 'a' and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return 'a' and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -236,7 +236,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return 'a' or {}"), Is.EqualTo("a"));
 
-            //Assert.That(Run(@"function f() end; return 'a' or f"), Is.EqualTo("a"));
+            Assert.That(Run(@"return 'a' or function() end"), Is.EqualTo("a"));
 
             //Assert.That(Run(@"return 'a' or assert(false)"), Is.EqualTo("a"), "Short circuit failure");
         }
@@ -255,7 +255,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return '' and {}"), Is.TypeOf<LuaTable>());
 
-            //Assert.That(Run(@"function f() end; return '' and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"return '' and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test]
@@ -272,7 +272,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return '' or {}"), Is.EqualTo(String.Empty));
 
-            //Assert.That(Run(@"function f() end; return '' or f"), Is.EqualTo(String.Empty));
+            Assert.That(Run(@"return '' or function() end"), Is.EqualTo(String.Empty));
 
             //Assert.That(Run(@"return '' or assert(false)"), Is.EqualTo(String.Empty), "Short-circuit failure");
         }
@@ -291,7 +291,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return {1} and {2}"), Is.TypeOf<LuaTable>());
 
-            Assert.That(Run(@"function f() end; return {} and f"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return {} and f"), Is.TypeOf<Func<Object>>());
         }
 
         [Test, Ignore("Tables not working yet")]
@@ -328,27 +328,27 @@ namespace IronLua.Tests.Features
             Assert.That(Run(@"return function() end and {}"), Is.TypeOf<LuaTable>());
 
             var func = Run(@"return function() return 1 end and function() return 2 end");
-            Assert.That(func, Is.TypeOf<Func<dynamic>>());
-            Assert.That(((Func<dynamic>)func)(), Is.EqualTo(2.0));
+            Assert.That(func, Is.TypeOf<Func<Object>>());
+            Assert.That(((Func<Object>)func)(), Is.EqualTo(2.0));
         }
 
         [Test]
         public void TestBinary_OrOprFunction()
         {
-            Assert.That(Run(@"return function() end or nil"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or nil"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"return function() end or false"), Is.TypeOf<Func<dynamic>>());
-            Assert.That(Run(@"return function() end or true"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or false"), Is.TypeOf<Func<Object>>());
+            Assert.That(Run(@"return function() end or true"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"return function() end or 42"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or 42"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"return function() end or 'x'"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or 'x'"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"return function() end or {}"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or {}"), Is.TypeOf<Func<Object>>());
 
             var func = Run(@"return function() return 1 end or function() return 2 end");
-            Assert.That(func, Is.TypeOf<Func<dynamic>>());
-            Assert.That(((Func<dynamic>)func)(), Is.EqualTo(1.0));
+            Assert.That(func, Is.TypeOf<Func<Object>>());
+            Assert.That(((Func<Object>)func)(), Is.EqualTo(1.0));
         }
 
         [Test, Ignore("Function variables not working yet")]
@@ -366,29 +366,41 @@ namespace IronLua.Tests.Features
             Assert.That(Run(@"function f() end; return f and {}"), Is.TypeOf<LuaTable>());
 
             var func = Run(@"function f() return 1 end; function g() return 2 end; return f and g");
-            Assert.That(func, Is.TypeOf<Delegate>());
-            Assert.That(((Func<int>) func)(), Is.EqualTo(2));
+            Assert.That(func, Is.TypeOf<Func<Object>>());
+            Assert.That(((Func<Object>)func)(), Is.EqualTo(2));
         }
 
         [Test, Ignore("Functions variables not working yet")]
         public void TestBinary_OrOprFunctionVariable()
         {
-            Assert.That(Run(@"function f() end; return f or nil"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return f or nil"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"function f() end; return f or false"), Is.TypeOf<Delegate>());
-            Assert.That(Run(@"function f() end; return f or true"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return f or false"), Is.TypeOf<Func<Object>>());
+            Assert.That(Run(@"function f() end; return f or true"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"function f() end; return f or 42"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return f or 42"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"function f() end; return f or 'b'"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return f or 'b'"), Is.TypeOf<Func<Object>>());
 
-            Assert.That(Run(@"function f() end; return f or {}"), Is.TypeOf<Delegate>());
+            Assert.That(Run(@"function f() end; return f or {}"), Is.TypeOf<Func<Object>>());
 
             var func = Run(@"function f() return 1 end; function g() return 2 end; return f or g");
-            Assert.That(func, Is.TypeOf<Delegate>());
-            Assert.That(((Func<int>)func)(), Is.EqualTo(1));
+            Assert.That(func, Is.TypeOf<Func<Object>>());
+            Assert.That(((Func<Object>)func)(), Is.EqualTo(1));
 
-            Assert.That(Run(@"function f() end; return f or assert(false)"), Is.TypeOf<Delegate>(), "Short-circuit failure");
+            Assert.That(Run(@"function f() end; return f or assert(false)"), Is.TypeOf<Func<Object>>(), "Short-circuit failure");
+        }
+
+        [Test]
+        public void TestBinary_NumberStringConvertsion()
+        {
+            Assert.That(Run(@"return 1 + 2"), Is.EqualTo(3.0));
+
+            Assert.That(Run(@"return '1' .. '2'"), Is.EqualTo("12"));
+
+            Assert.That(Run(@"return 1 .. 2"), Is.EqualTo("12"));
+
+            Assert.That(Run(@"return '1' + '2'"), Is.EqualTo(3.0));
         }
     }
 }
