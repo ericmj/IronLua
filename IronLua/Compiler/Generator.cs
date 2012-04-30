@@ -68,10 +68,14 @@ namespace IronLua.Compiler
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
             var locals = scope.AllLocals();
 
-            // Don't output blocks if we don't declare any locals and it's a single statement
-            var expr = locals.Length == 0 && statementExprs.Count == 1
-                           ? statementExprs[0]
-                           : Expr.Block(locals, statementExprs);
+            Expr expr;
+            if (statementExprs.Count == 0)
+                expr = Expr.Empty();
+            else if (statementExprs.Count == 1 && locals.Length == 0)
+                // Don't output blocks if we don't declare any locals and it's a single statement
+                expr = statementExprs[0];
+            else
+                expr = Expr.Block(locals, statementExprs);
 
             scope = parentScope;
             return expr;
@@ -249,15 +253,17 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.While statement)
         {
-            return Expr.Loop(
+            var breakLabel = scope.BreakLabel();
+            var stat = Expr.Loop(
                 Expr.IfThenElse(
                     Expr.Dynamic(
                         Context.DynamicCache.GetConvertBinder(typeof(bool)),
                         typeof(bool),
                         statement.Test.Visit(this)),
                     Visit(statement.Body),
-                    Expr.Break(scope.BreakLabel())),
-                scope.BreakLabel());
+                    Expr.Break(breakLabel)),
+                breakLabel);
+            return stat;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Goto statement)
