@@ -31,6 +31,10 @@ namespace IronLua.Runtime.Binder
         {
             if (target.LimitType == typeof(bool))
                 return Expr.Convert(target.Expression, typeof(bool));
+
+            if (target.LimitType.IsValueType)
+                return Expr.Constant(true); // all value types resolve to true
+
             return Expr.NotEqual(target.Expression, Expr.Constant(null));
         }
 
