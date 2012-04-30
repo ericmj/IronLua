@@ -31,6 +31,20 @@ namespace IronLua.Tests.Features
         }
 
         [Test]
+        public void TestFunction_EmptyDoEnd()
+        {
+            engine.Execute(@"do end");
+        }
+
+        [Test]
+        public void TestFunction_EmptyBlock()
+        {
+            var f = engine.Execute(@"return function() end");
+            Assert.That(f, Is.TypeOf<Func<dynamic>>());
+            f(); // no exceptions should be thrown
+        }
+
+        [Test]
         public void TestFunction_print_HelloWorld1()
         {
             string code = "print \"Hello World\"";

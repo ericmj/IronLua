@@ -219,6 +219,41 @@ end";
             PerformTest(code, "one");
         }
 
+        [Test]
+        public void TestIfThenElse_NumberZero()
+        {
+            string code = @"
+if 0 then
+    print 'one'
+else
+    print 'two'
+end";
+            PerformTest(code, "one");
+        }
+
+        [Test]
+        public void TestIfThenElse_String()
+        {
+            string code = @"
+if 'a' then
+    print 'one'
+else
+    print 'two'
+end";
+            PerformTest(code, "one");
+        }
+
+        [Test]
+        public void TestIfThenElse_StringEmpty()
+        {
+            string code = @"
+if '' then
+    print 'one'
+else
+    print 'two'
+end";
+            PerformTest(code, "one");
+        }
 
         [Test]
         public void TestIfThenElse_nil()

@@ -313,8 +313,46 @@ namespace IronLua.Tests.Features
             Assert.That(Run(@"return {} or assert(false)"), Is.TypeOf<LuaTable>(), "Short-circuit failure");
         }
 
-        [Test, Ignore("Functions not working yet")]
+        [Test]
         public void TestBinary_AndOprFunction()
+        {
+            Assert.That(Run(@"return function() end and nil"), Is.Null);
+
+            Assert.That(Run(@"return function() end and false"), Is.False);
+            Assert.That(Run(@"return function() end and true"), Is.True);
+
+            Assert.That(Run(@"return function() end and 42"), Is.EqualTo(42.0));
+
+            Assert.That(Run(@"return function() end and 'x'"), Is.EqualTo("x"));
+
+            Assert.That(Run(@"return function() end and {}"), Is.TypeOf<LuaTable>());
+
+            var func = Run(@"return function() return 1 end and function() return 2 end");
+            Assert.That(func, Is.TypeOf<Func<dynamic>>());
+            Assert.That(((Func<dynamic>)func)(), Is.EqualTo(2.0));
+        }
+
+        [Test]
+        public void TestBinary_OrOprFunction()
+        {
+            Assert.That(Run(@"return function() end or nil"), Is.TypeOf<Func<dynamic>>());
+
+            Assert.That(Run(@"return function() end or false"), Is.TypeOf<Func<dynamic>>());
+            Assert.That(Run(@"return function() end or true"), Is.TypeOf<Func<dynamic>>());
+
+            Assert.That(Run(@"return function() end or 42"), Is.TypeOf<Func<dynamic>>());
+
+            Assert.That(Run(@"return function() end or 'x'"), Is.TypeOf<Func<dynamic>>());
+
+            Assert.That(Run(@"return function() end or {}"), Is.TypeOf<Func<dynamic>>());
+
+            var func = Run(@"return function() return 1 end or function() return 2 end");
+            Assert.That(func, Is.TypeOf<Func<dynamic>>());
+            Assert.That(((Func<dynamic>)func)(), Is.EqualTo(1.0));
+        }
+
+        [Test, Ignore("Function variables not working yet")]
+        public void TestBinary_AndOprFunctionVariable()
         {
             Assert.That(Run(@"function f() end; return f and nil"), Is.Null);
 
@@ -332,8 +370,8 @@ namespace IronLua.Tests.Features
             Assert.That(((Func<int>) func)(), Is.EqualTo(2));
         }
 
-        [Test, Ignore("Functions not working yet")]
-        public void TestBinary_OrOprFunction()
+        [Test, Ignore("Functions variables not working yet")]
+        public void TestBinary_OrOprFunctionVariable()
         {
             Assert.That(Run(@"function f() end; return f or nil"), Is.TypeOf<Delegate>());
 
