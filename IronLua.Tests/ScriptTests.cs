@@ -1,7 +1,6 @@
 using System.IO;
 using System.Linq;
 using IronLua.Hosting;
-using IronLua.Tests.Compiler;
 using NUnit.Framework;
 
 namespace IronLua.Tests
@@ -33,32 +32,6 @@ namespace IronLua.Tests
         public void RunLuaScript(string script)
         {
             Lua.CreateEngine().ExecuteFile(Path.Combine(ScriptPath, script));
-        }
-    }
-
-    [TestFixture]    
-    public class ScriptTestCases
-    {
-        // See ParserTest class for documentation
-
-        public void ExecuteLuaTestSuite(string testCaseFile)
-        {
-            TestUtils.AssertSyntaxError(() =>
-            {
-                Lua.CreateEngine().ExecuteFile(testCaseFile);
-            });
-        }
-
-        [Test, TestCaseSource(typeof(ParserTests.LuaTestSuiteSource), "Lua52TestCases")]
-        public void ExcuteTestOnLua52TestSuite(string luaFile)
-        {
-            ExecuteLuaTestSuite(luaFile);
-        }
-
-        //[Test, TestCaseSource(typeof(ParserTests.LuaTestSuiteSource), "Lua51TestCases")]
-        public void ExcuteTestOnLua51TestSuite(string luaFile)
-        {
-            ExecuteLuaTestSuite(luaFile);
         }
     }
 }
