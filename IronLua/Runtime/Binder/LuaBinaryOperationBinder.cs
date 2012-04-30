@@ -134,10 +134,12 @@ namespace IronLua.Runtime.Binder
             if (leftExpr == null)
                 return null;
 
-            if (left.LimitType == typeof(string))
-                return FallbackIfNumberIsNan(leftExpr, left, right);
+            var oprExpr = Expr.MakeBinary(Operation, leftExpr, rightExpr);
 
-            return Expr.Convert(Expr.MakeBinary(Operation, leftExpr, rightExpr), typeof(object));
+            if (left.LimitType == typeof(string))
+                return FallbackIfNumberIsNan(oprExpr, left, right);
+
+            return Expr.Convert(oprExpr, typeof(object));
         }
 
         Expr FallbackIfNumberIsNan(Expr conversionResult, DynamicMetaObject left, DynamicMetaObject right)
