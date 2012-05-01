@@ -10,5 +10,10 @@ namespace IronLua.Compiler.Ast
         {
             Statements = statements;
         }
+
+        public Block(Statement statement)
+            : this(new List<Statement>() { statement })
+        {
+        }
     }
 }

@@ -77,7 +77,6 @@
     <Compile Include="Compiler\Ast\BinaryOp.cs" />
     <Compile Include="Compiler\Ast\Block.cs" />
     <Compile Include="Compiler\Ast\FunctionBody.cs" />
-    <Compile Include="Compiler\Ast\Elseif.cs" />
     <Compile Include="Compiler\Ast\Expression.cs" />
     <Compile Include="Compiler\Ast\Field.cs" />
     <Compile Include="Compiler\Ast\FunctionCall.cs" />

@@ -801,36 +801,37 @@ namespace IronLua.Compiler.Parsing
         }
 
         /* Parses if
-         * stat -> 'if' expr 'then' block {elseif} ['else' block] 'end' */
+         * stat -> 'if' testThenBody {'elseif' testThenBody} ['else' block] 'end' */
         Statement If()
         {
             Expect(Symbol.If);
-            var test = Expression();
-            Expect(Symbol.Then);
-            var body = Block(Symbol.End, Symbol.Else, Symbol.Elseif);
 
-            var elseifs = new List<Elseif>();
-            while (Current.Symbol == Symbol.Elseif)
-                elseifs.Add(Elseif());
+            var iflist = new List<Statement.If.TestThenBody>()
+            {
+                TestThenBody()
+            };
+
+            while (TryConsume(Symbol.Elseif))
+            {
+                iflist.Add(TestThenBody());
+            }
 
             var elseBody = TryConsume(Symbol.Else)
                 ? Block(Symbol.End)
                 : null;
 
             Expect(Symbol.End);
-
-            return new Statement.If(test, body, elseifs, elseBody);
+            return new Statement.If(iflist, elseBody);
         }
 
-        /* Parses elseif
-         * 'elseif' expression 'then' block */
-        Elseif Elseif()
+        /* Parses then
+         * test 'then' block */
+        Statement.If.TestThenBody TestThenBody()
         {
-            Expect(Symbol.Elseif);
             var test = Expression();
             Expect(Symbol.Then);
             var body = Block(Symbol.End, Symbol.Else, Symbol.Elseif);
-            return new Elseif(test, body);
+            return new Statement.If.TestThenBody(test, body);
         }
 
         /* Parses repeat

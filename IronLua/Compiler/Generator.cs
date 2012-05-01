@@ -203,19 +203,22 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.If statement)
         {
-            var testExpr = statement.Test.Visit(this);
-            var bodyExpr = Visit(statement.Body);
-            var elseExpr = statement.ElseBody != null ? Visit(statement.ElseBody) : Expr.Default(typeof(void));
-            var elseifExprs = statement.Elseifs.Aggregate(elseExpr, ElseifCombiner);
+            var binder = context.DynamicCache.GetConvertBinder(typeof(bool));
+            var expr = statement.ElseBody != null 
+                     ? Visit(statement.ElseBody)
+                     : Expr.Empty();
 
-            return
-                Expr.IfThenElse(
-                    Expr.Dynamic(
-                        context.DynamicCache.GetConvertBinder(typeof(bool)),
-                        typeof(bool),
-                        testExpr),
-                    bodyExpr,
-                    elseifExprs);
+            var list = statement.IfList;
+            for (int i = list.Count - 1; i >= 0; --i)
+            {
+                var ifThen = list[i];
+                expr = Expr.IfThenElse(
+                         Expr.Dynamic(binder, typeof(bool), ifThen.Test.Visit(this)),
+                         Visit(ifThen.Body),
+                         expr);
+            }
+
+            return expr;
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
@@ -245,11 +248,8 @@ namespace IronLua.Compiler
 
             // Temporarily rewrite the AST so that the test expression 
             // can be evaluated in the same scope as the body.
-            stats.Add(new Statement.If(
-                statement.Test,
-                new Block(new List<Statement>() { new LastStatement.Break() }),
-                new List<Elseif>(),
-                null));
+            stats.Add(new Statement.If(statement.Test, 
+                new Block(new LastStatement.Break())));
 
             var breakLabel = scope.BreakLabel();
             var expr = Expr.Loop(
@@ -699,17 +699,6 @@ namespace IronLua.Compiler
                 Expr.Block(
                     new[] { valuesVar },
                     exprs);
-        }
-
-        Expr ElseifCombiner(Expr expr, Elseif elseif)
-        {
-            return
-                Expr.IfThenElse(Expr.Dynamic(
-                        context.DynamicCache.GetConvertBinder(typeof(bool)),
-                        typeof(bool),
-                        elseif.Test.Visit(this)),
-                    Visit(elseif.Body),
-                    expr);
         }
 
         LoopExpression ForLoop(Statement.For statement, ParameterExpression stepVar, ParameterExpression loopVariable,

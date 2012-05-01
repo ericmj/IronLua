@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Ast
 {
@@ -90,17 +90,35 @@ namespace IronLua.Compiler.Ast
 
         public class If : Statement
         {
-            public Expression Test { get; set; }
-            public Block Body { get; set; }
-            public List<Elseif> Elseifs { get; set; }
-            public Block ElseBody { get; set; }
+            public List<TestThenBody> IfList { get; private set; }
+            public Block ElseBody { get; private set; }
 
-            public If(Expression test, Block body, List<Elseif> elseifs, Block elseBody)
+            public If(List<TestThenBody> ifList, Block elseBody)
             {
-                Test = test;
-                Body = body;
-                Elseifs = elseifs;
+                ContractUtils.RequiresNotEmpty(ifList, "ifList");
+                IfList = ifList;
                 ElseBody = elseBody;
+            }
+
+            public If(Expression test, Block body)
+            {
+                IfList = new List<TestThenBody>()
+                {
+                    new TestThenBody(test, body)
+                };
+                ElseBody = null;
+            }
+
+            public class TestThenBody
+            {
+                public Expression Test { get; private set; }
+                public Block Body { get; private set; }
+
+                public TestThenBody(Expression test, Block body)
+                {
+                    Test = test;
+                    Body = body;
+                }
             }
 
             public override T Visit<T>(IStatementVisitor<T> visitor)

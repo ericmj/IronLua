@@ -409,5 +409,70 @@ else
 end";
             PerformTest(code, "two");
         }
+
+        [Test]
+        public void TestIfThenElse_CheckOrderOfEvaluation_One()
+        {
+            string code = @"
+function f(x,y)
+    print(x)
+    return y
+end
+if f('one',true) then
+elseif f('two',true) then
+elseif f('three',true) then
+else print('four')
+end";
+            PerformTest(code, String.Join(Environment.NewLine, new[] { "one" }));
+        }
+
+        [Test]
+        public void TestIfThenElse_CheckOrderOfEvaluation_Two()
+        {
+            string code = @"
+function f(x,y)
+    print(x)
+    return y
+end
+if f('one',false) then
+elseif f('two',true) then
+elseif f('three',true) then
+else print('four')
+end";
+            PerformTest(code, String.Join(Environment.NewLine, new[] { "one", "two" }));
+        }
+
+        [Test]
+        public void TestIfThenElse_CheckOrderOfEvaluation_Three()
+        {
+            string code = @"
+function f(x,y)
+    print(x)
+    return y
+end
+if f('one',false) then
+elseif f('two',false) then
+elseif f('three',true) then
+else print('four')
+end";
+            PerformTest(code, String.Join(Environment.NewLine, new[] { "one", "two", "three" }));
+        }
+
+        [Test]
+        public void TestIfThenElse_CheckOrderOfEvaluation_Four()
+        {
+            string code = @"
+function f(x,y)
+    print(x)
+    return y
+end
+if f('one',false) then
+elseif f('two',false) then
+elseif f('three',false) then
+else print('four')
+end";
+            PerformTest(code, String.Join(Environment.NewLine, new[] { "one", "two", "three", "four" }));
+        }
+
     }
 }
