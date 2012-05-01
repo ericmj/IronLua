@@ -17,5 +17,10 @@ namespace IronLua.Runtime
             : base(data.ToArray())
         {            
         }
+
+        public object First()
+        {
+            return Items.FirstOrDefault();
+        }
     }
 }

@@ -220,11 +220,16 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalAssign statement)
         {
-            var values = WrapWithVarargsFirst(statement.Values);
+            var values = (statement.Values != null && statement.Values.Count > 0) 
+                       ? WrapWithVarargsFirst(statement.Values) : new List<Expr>();
             var locals = statement.Identifiers.Select(v => scope.AddLocal(v)).ToList();
 
-            if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
-                return VarargsExpandAssignment(locals, values);
+            if (statement.Values != null && statement.Values.Count > 0)
+            {
+                var lastValue = statement.Values.Last();
+                if (lastValue.IsVarargs() || lastValue.IsFunctionCall())
+                    return VarargsExpandAssignment(locals, values);
+            }
 
             return AssignWithTemporaries(locals, values, Expr.Assign);
         }
@@ -621,12 +626,16 @@ namespace IronLua.Compiler
 
         Expr TryWrapWithVarargsFirst(Expression value)
         {
-            var valueExpr = Expr.Convert(value.Visit(this), typeof(object));
-
             // If expr is a varargs or function call expression we need to return the first element in
             // the Varargs list if the value is of type Varargs or do nothing
             if (value.IsVarargs())
-                return Expr.Call(valueExpr, MemberInfos.VarargsFirst);
+            {
+                var varargsExpr = Expr.Convert(value.Visit(this), typeof(Varargs));
+
+                return Expr.Call(varargsExpr, MemberInfos.VarargsFirst);
+            }
+
+            var valueExpr = Expr.Convert(value.Visit(this), typeof(object));
 
             if (value.IsFunctionCall())
             {
@@ -638,7 +647,7 @@ namespace IronLua.Compiler
                         Expr.Assign(variable, valueExpr),
                         Expr.IfThenElse(
                             Expr.TypeIs(variable, typeof(Varargs)),
-                            Expr.Call(variable, MemberInfos.VarargsFirst),
+                            Expr.Call(Expr.Convert(variable, typeof(Varargs)), MemberInfos.VarargsFirst),
                             variable));
             }
 
