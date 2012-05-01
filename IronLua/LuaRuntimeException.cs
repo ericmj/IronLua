@@ -15,15 +15,9 @@ namespace IronLua
             : base(String.Format(format, args))
         {
         }
-
-        public LuaRuntimeException(Exception inner, string format, params object[] args)
-            : base(String.Format(format, args), inner)
-        {
-        }
         
-        protected LuaRuntimeException(
-            SerializationInfo info,
-            StreamingContext context) : base(info, context)
+        protected LuaRuntimeException(SerializationInfo info, StreamingContext context) 
+            : base(info, context)
         {
         }
     }
