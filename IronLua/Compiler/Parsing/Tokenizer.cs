@@ -11,6 +11,15 @@ using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Parsing
 {
+    internal interface ILexer
+    {
+        Token GetNextToken();
+
+        LuaSyntaxException SyntaxException(string message);
+
+        SourceUnit SourceUnit { get; }
+    }
+
     public class Tokenizer : TokenizerService, ILexer
     {
         private static readonly Dictionary<string, Symbol> Keywords =

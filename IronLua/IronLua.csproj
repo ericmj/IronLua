@@ -53,7 +53,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
-    <Compile Include="Compiler\Parsing\ILexer.cs" />
     <Compile Include="Compiler\LuaCompilerOptions.cs" />
     <Compile Include="Compiler\Parsing\Parser.cs" />
     <Compile Include="Compiler\Parsing\Symbol.cs" />
