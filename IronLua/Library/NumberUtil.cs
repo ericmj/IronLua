@@ -12,7 +12,7 @@ namespace IronLua.Library
         /* Parses a decimal number */
         public static bool TryParseDecimalNumber(string number, out double result)
         {
-            return Double.TryParse(number, DECIMAL_NUMBER_STYLE, Constant.INVARIANT_CULTURE, out result);
+            return Double.TryParse(number, DECIMAL_NUMBER_STYLE, CultureInfo.InvariantCulture, out result);
         }
 
         /* Parses a hex number */
@@ -49,17 +49,17 @@ namespace IronLua.Library
             bool successful = true;
 
             if (!String.IsNullOrEmpty(hexIntPart)) 
-                successful &= UInt64.TryParse(hexIntPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out integer);
+                successful &= UInt64.TryParse(hexIntPart, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out integer);
 
             if (!String.IsNullOrEmpty(hexFracPart))
             {
                 ulong value;
-                successful &= UInt64.TryParse(hexFracPart, NumberStyles.AllowHexSpecifier, Constant.INVARIANT_CULTURE, out value);
-                fraction = value / (double)(16 ^ hexFracPart.Length);
+                successful &= UInt64.TryParse(hexFracPart, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out value);
+                fraction = value / Math.Pow(16.0, hexFracPart.Length);
             }
 
             if (!String.IsNullOrEmpty(exponentPart))
-                successful &= Int64.TryParse(exponentPart, NumberStyles.AllowLeadingSign, Constant.INVARIANT_CULTURE, out exponent);
+                successful &= Int64.TryParse(exponentPart, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out exponent);
 
             result = (integer + fraction) * Math.Pow(2.0, exponent); 
             return successful;

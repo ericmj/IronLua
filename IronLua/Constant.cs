@@ -1,13 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Globalization;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
 namespace IronLua
 {
     static class Constant
     {
-        public static readonly CultureInfo INVARIANT_CULTURE = CultureInfo.InvariantCulture;
-
         // Only includes metamethods that can be translated from ExprTypes
         public static readonly Dictionary<ExprType, string> METAMETHODS =
             new Dictionary<ExprType, string>
