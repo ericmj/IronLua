@@ -45,7 +45,11 @@ namespace IronLua.Library
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
             try
             {
-                return CompileString(source)();
+                return CompileString(Context, source)();
+            }
+            catch (SyntaxErrorException ex)
+            {
+                throw new LuaRuntimeException(ex.Message, ex);
             }
             catch (LuaSyntaxException e)
             {
@@ -112,7 +116,11 @@ namespace IronLua.Library
 
             try
             {
-                return new Varargs(CompileString(sb.ToString()));
+                return new Varargs(CompileString(Context, sb.ToString()));
+            }
+            catch (SyntaxErrorException ex)
+            {
+                return new Varargs(null, ex.Message);
             }
             catch (LuaSyntaxException e)
             {
@@ -125,7 +133,11 @@ namespace IronLua.Library
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
             try
             {
-                return new Varargs(CompileString(source));
+                return new Varargs(CompileString(Context, source));
+            }
+            catch (SyntaxErrorException ex)
+            {
+                return new Varargs(null, ex.Message);
             }
             catch (LuaSyntaxException e)
             {
@@ -137,7 +149,11 @@ namespace IronLua.Library
         {
             try
             {
-                return new Varargs(CompileString(str));
+                return new Varargs(CompileString(Context, str));
+            }
+            catch (SyntaxErrorException ex)
+            {
+                return new Varargs(null, ex.Message);
             }
             catch (LuaSyntaxException e)
             {
@@ -380,11 +396,6 @@ namespace IronLua.Library
                 return c - 'a' + 10;
 
             return -1;
-        }
-
-        Func<object> CompileString(string source)
-        {
-            return CompileString(Context, source);
         }
 
         static Func<object> CompileString(LuaContext context, string source)
