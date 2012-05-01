@@ -29,7 +29,7 @@ namespace IronLua.Tests.Compiler
                 var parser = new Parser(tokenizer, tokenizer.ErrorSink, options);
                 var ast = parser.Parse();
                 Assert.That(ast, Is.Not.Null);
-                var gen = new Generator(((LuaContext)sourceUnit.LanguageContext).Ctx);
+                var gen = new Generator((LuaContext)sourceUnit.LanguageContext);
                 var expr = gen.Compile(ast);
                 Assert.That(expr, Is.Not.Null);
             });

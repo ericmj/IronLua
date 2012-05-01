@@ -80,7 +80,7 @@ namespace IronLua.Tests
             //Assert.That(t[1], Is.EqualTo(5));
             //Assert.That(t[2], Is.EqualTo(10));
             //Assert.That(t[3], Is.EqualTo(15));
-            //Assert.That(t["B"], Is.EqualTo("beta"));            
+            //Assert.That(t["B"], Is.EqualTo("beta"));
         }
 
         [Test]
@@ -88,6 +88,14 @@ namespace IronLua.Tests
         {
             var t = Lua.CreateEngine().Execute("t = {}; assert(type(t) == 'table'); return t");
             Assert.That(t, Is.TypeOf<LuaTable>());
+        }
+
+        [Test]
+        public void StrangeNumbers()
+        {
+            var engine = Lua.CreateEngine();
+
+            Assert.That(engine.Execute("return 0x.8"), Is.EqualTo(0.5));            
         }
     }
 }

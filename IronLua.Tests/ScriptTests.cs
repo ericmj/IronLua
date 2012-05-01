@@ -8,30 +8,30 @@ namespace IronLua.Tests
     [TestFixture]
     public class ScriptTests
     {
-        string ScriptPath = TestUtils.GetTestPath(@"IronLua.Tests\Scripts");
-
         [Test]
         [ExpectedException(typeof(LuaRuntimeException), ExpectedMessage = "Assertion failed")]
         public void ExecuteAssertFalse()
         {
             Lua.CreateEngine().Execute("assert(false)");
         }
-        [Datapoints]
-        public string[] ScriptFiles
+
+        [Test, TestCaseSource(typeof(ScriptSources), "GetTestCases")]
+        public void RunLuaScripts(string luaFile)
         {
-            get
-            {
-                return Directory.EnumerateFiles(ScriptPath, "*.lua")
-                                .Select(Path.GetFileName)
-                                .Where(f => !Path.GetFileNameWithoutExtension(f).EndsWith("XXX"))
-                                .ToArray();
-            }
+            Lua.CreateEngine().ExecuteFile(luaFile);
         }
 
-        [Theory]
-        public void RunLuaScript(string script)
+        public static class ScriptSources
         {
-            Lua.CreateEngine().ExecuteFile(Path.Combine(ScriptPath, script));
+            static string ScriptPath = TestUtils.GetTestPath(@"IronLua.Tests\Scripts");
+
+            public static TestCaseData[] GetTestCases()
+            {
+                var query = from f in Directory.EnumerateFiles(ScriptPath, "*.lua")
+                            where !Path.GetFileNameWithoutExtension(f).EndsWith("XXX")
+                            select new TestCaseData(f).SetName(Path.GetFileName(f));
+                return query.ToArray();
+            }
         }
     }
 }
