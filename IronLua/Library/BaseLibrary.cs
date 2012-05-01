@@ -6,18 +6,20 @@ using System.Text;
 using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
 using IronLua.Runtime;
-using IronLua.Runtime.Binder;
 using Microsoft.Scripting;
+using Microsoft.Scripting.Runtime;
+using Microsoft.Scripting.Utils;
 
 namespace IronLua.Library
 {
     class BaseLibrary : Library
     {
-        public BaseLibrary(Context context) : base(context)
+        public BaseLibrary(LuaContext context) 
+            : base(context)
         {
         }
 
-        public static Varargs Assert(bool v, object message = null, params object[] additional)
+        public Varargs Assert(bool v, object message = null, params object[] additional)
         {
             if (v)
             {
@@ -51,7 +53,7 @@ namespace IronLua.Library
             }
         }
 
-        public static void Error(string message, object level)
+        public void Error(string message, object level)
         {
             // TODO: Use level when call stacks are implemented
             throw new LuaRuntimeException(message);
@@ -77,7 +79,7 @@ namespace IronLua.Library
             return table2 ?? table;
         }
 
-        public static Varargs IPairs(LuaTable t)
+        public Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
             Func<double, object> func =
@@ -143,7 +145,7 @@ namespace IronLua.Library
             }
         }
 
-        public static Varargs Next(LuaTable table, object index = null)
+        public Varargs Next(LuaTable table, object index = null)
         {
             if (table == null)
                 throw new LuaRuntimeException("bad argument #1 to 'next' (table expected, got nil)");
@@ -151,7 +153,7 @@ namespace IronLua.Library
             return table.Next(index);
         }
 
-        public static Varargs Pairs(LuaTable t)
+        public Varargs Pairs(LuaTable t)
         {
             return new Varargs((Func<LuaTable, object, Varargs>)Next, t, null);
         }
@@ -169,10 +171,9 @@ namespace IronLua.Library
             }
         }
 
-        public static void Print(params object[] args)
+        public void Print(params object[] args)
         {
-            LuaContext context = Context.LuaContext;
-            var domain = context.DomainManager;
+            var domain = Context.DomainManager;
             var writer = domain.SharedIO.OutputWriter;
 
             for (var i = 0; i < args.Length; i++)
@@ -383,11 +384,25 @@ namespace IronLua.Library
 
         Func<object> CompileString(string source)
         {
-            // TODO: replace Lexer with Tokenizer class
-            var input = new Input(source);
-            var parser = new Parser(new Lexer(input), ErrorSink.Default);
+            return CompileString(Context, source);
+        }
+
+        static Func<object> CompileString(LuaContext context, string source)
+        {
+            ContractUtils.RequiresNotNull(context, "context");
+
+            var sourceUnit = context.CreateSnippet(source, SourceCodeKind.Statements);
+
+            //var options = (LuaCompilerOptions)context.GetCompilerOptions();
+            //var errorSink = context.GetCompilerErrorSink();
+            //var lexer = context.GetService<TokenizerService>();
+
+            var lexer = new Tokenizer(ErrorSink.Default, LuaCompilerOptions.Default);
+            lexer.Initialize(null, sourceUnit.GetReader(), sourceUnit, SourceLocation.MinValue);
+
+            var parser = new Parser(lexer, lexer.ErrorSink);
             var ast = parser.Parse();
-            var gen = new Generator(Context);
+            var gen = new Generator(context);
             var expr = gen.Compile(ast);
             return expr.Compile();
         }

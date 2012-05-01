@@ -31,11 +31,12 @@ namespace IronLua.Runtime.Binder
                     {ExprType.Power,              BinaryOpType.Numeric}
                 };
 
-        readonly Context context;
+        readonly LuaContext context;
 
-        public LuaBinaryOperationBinder(Context context, ExprType op)
+        public LuaBinaryOperationBinder(LuaContext context, ExprType op)
             : base(op)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 
@@ -152,7 +153,7 @@ namespace IronLua.Runtime.Binder
             var expr = Expr.Condition(
                 Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), conversionVar),
                 Expr.Invoke(
-                    Expr.Constant((Func<Context, ExprType, object, object, object>)LuaOps.NumericMetamethod),
+                    Expr.Constant((Func<LuaContext, ExprType, object, object, object>)LuaOps.NumericMetamethod),
                     Expr.Constant(context),
                     Expr.Constant(Operation),
                     Expr.Convert(left.Expression, typeof(object)),

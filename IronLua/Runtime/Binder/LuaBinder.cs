@@ -7,11 +7,11 @@ namespace IronLua.Runtime.Binder
     {
         readonly LuaContext _context;
 
-        public LuaBinder(LuaContext luaContext)
+        public LuaBinder(LuaContext context)
         {
-            ContractUtils.RequiresNotNull(luaContext, "luaContext");
+            ContractUtils.RequiresNotNull(context, "context");
 
-            _context = luaContext;
+            _context = context;
         }
 
         public LuaBinder(LuaBinder binder)

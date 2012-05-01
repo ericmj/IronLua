@@ -5,7 +5,7 @@ namespace IronLua.Library
 {
     class MathLibrary : Library
     {
-        public MathLibrary(Context context)
+        public MathLibrary(LuaContext context)
             : base(context)
         {
 

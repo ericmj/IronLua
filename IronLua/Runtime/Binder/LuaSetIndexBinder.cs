@@ -1,16 +1,18 @@
 using System;
 using System.Dynamic;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaSetIndexBinder : SetIndexBinder
     {
-        readonly Context context;
+        readonly LuaContext context;
 
-        public LuaSetIndexBinder(Context context)
+        public LuaSetIndexBinder(LuaContext context)
             : base(new CallInfo(1))
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 

@@ -6,7 +6,7 @@ namespace IronLua.Library
 {
     class OSLibrary : Library
     {
-        public OSLibrary(Context context)
+        public OSLibrary(LuaContext context)
             : base(context)
         {
         }

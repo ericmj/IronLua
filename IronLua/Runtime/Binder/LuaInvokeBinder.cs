@@ -9,17 +9,19 @@ using System.Runtime.CompilerServices;
 using IronLua.Compiler;
 using IronLua.Library;
 using IronLua.Util;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaInvokeBinder : InvokeBinder
     {
-        readonly Context context;
+        readonly LuaContext context;
 
-        public LuaInvokeBinder(Context context, CallInfo callInfo)
+        public LuaInvokeBinder(LuaContext context, CallInfo callInfo)
             : base(callInfo)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 

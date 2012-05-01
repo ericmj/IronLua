@@ -54,8 +54,6 @@
   <ItemGroup>
     <Compile Include="Compiler\ExprHelpers.cs" />
     <Compile Include="Compiler\Parsing\ILexer.cs" />
-    <Compile Include="Compiler\Parsing\Input.cs" />
-    <Compile Include="Compiler\Parsing\Lexer.cs" />
     <Compile Include="Compiler\LuaCompilerOptions.cs" />
     <Compile Include="Compiler\Parsing\Parser.cs" />
     <Compile Include="Compiler\Parsing\Symbol.cs" />
@@ -68,6 +66,7 @@
     <Compile Include="Hosting\LuaService.cs" />
     <Compile Include="Library\MathLibrary.cs" />
     <Compile Include="Library\OSLibrary.cs" />
+    <Compile Include="Library\PackageLibrary.cs" />
     <Compile Include="Runtime\Binder\LuaBinder.cs" />
     <Compile Include="Runtime\LuaOptions.cs" />
     <Compile Include="Runtime\LuaContext.cs" />
@@ -115,7 +114,6 @@
     <Compile Include="Runtime\Binder\LuaSetIndexBinder.cs" />
     <Compile Include="Runtime\Binder\LuaSetMemberBinder.cs" />
     <Compile Include="Runtime\Binder\LuaUnaryOperationBinder.cs" />
-    <Compile Include="Runtime\Context.cs" />
     <Compile Include="Runtime\LuaOps.cs" />
     <Compile Include="Runtime\LuaScriptCode.cs" />
     <Compile Include="Runtime\LuaTable.cs" />

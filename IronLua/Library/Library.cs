@@ -1,13 +1,15 @@
 ﻿using IronLua.Runtime;
+using Microsoft.Scripting.Utils;
 
 namespace IronLua.Library
 {
     abstract class Library
     {
-        protected Context Context { get; private set; }
+        protected LuaContext Context { get; private set; }
 
-        protected Library(Context context)
+        protected Library(LuaContext context)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             Context = context;
         }
 

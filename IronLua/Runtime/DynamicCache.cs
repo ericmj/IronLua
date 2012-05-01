@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq.Expressions;
 using IronLua.Runtime.Binder;
+using Microsoft.Scripting.Utils;
 
 namespace IronLua.Runtime
 {
     // TODO: Make thread-safe
     class DynamicCache
     {
-        readonly Context context;
+        readonly LuaContext context;
         readonly Dictionary<ExpressionType, LuaBinaryOperationBinder> binaryOperationBinders;
         readonly Dictionary<ExpressionType, LuaUnaryOperationBinder> unaryOperationBinders;
         readonly Dictionary<InvokeMemberBinderKey, LuaInvokeMemberBinder> invokeMemberBinders;
@@ -27,8 +28,9 @@ namespace IronLua.Runtime
         Func<object, object, object, object> getDynamicCallCache2;
         Func<object, object, object, object, object> getDynamicCallCache3;
 
-        public DynamicCache(Context context)
+        public DynamicCache(LuaContext context)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
             binaryOperationBinders = new Dictionary<ExpressionType, LuaBinaryOperationBinder>();
             unaryOperationBinders = new Dictionary<ExpressionType, LuaUnaryOperationBinder>();
@@ -125,7 +127,7 @@ namespace IronLua.Runtime
             var objVar = Expression.Parameter(typeof(object));
             var keyVar = Expression.Parameter(typeof(object));
             var expr = Expression.Lambda<Func<object, object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetGetIndexBinder(), typeof(object), objVar, keyVar),
+                Expression.Dynamic(this.GetGetIndexBinder(), typeof(object), objVar, keyVar),
                 objVar, keyVar);
 
             return getDynamicIndexCache = expr.Compile();
@@ -140,7 +142,7 @@ namespace IronLua.Runtime
             var keyVar = Expression.Parameter(typeof(object));
             var valueVar = Expression.Parameter(typeof(object));
             var expr = Expression.Lambda<Func<object, object, object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetSetIndexBinder(), typeof(object), objVar, keyVar, valueVar),
+                Expression.Dynamic(this.GetSetIndexBinder(), typeof(object), objVar, keyVar, valueVar),
                 objVar, keyVar, valueVar);
 
             return getDynamicNewIndexCache = expr.Compile();
@@ -153,7 +155,7 @@ namespace IronLua.Runtime
 
             var funcVar = Expression.Parameter(typeof(object));
             var expr = Expression.Lambda<Func<object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(0)), typeof(object), funcVar), funcVar);
+                Expression.Dynamic(this.GetInvokeBinder(new CallInfo(0)), typeof(object), funcVar), funcVar);
 
             return getDynamicCallCache0 = expr.Compile();
         }
@@ -166,7 +168,7 @@ namespace IronLua.Runtime
             var funcVar = Expression.Parameter(typeof(object));
             var argVar = Expression.Parameter(typeof(object));
             var expr = Expression.Lambda<Func<object, object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(1)), typeof(object), funcVar, argVar),
+                Expression.Dynamic(this.GetInvokeBinder(new CallInfo(1)), typeof(object), funcVar, argVar),
                 funcVar, argVar);
 
             return getDynamicCallCache1 = expr.Compile();
@@ -182,7 +184,7 @@ namespace IronLua.Runtime
             var arg2Var = Expression.Parameter(typeof(object));
 
             var expr = Expression.Lambda<Func<object, object, object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(2)), typeof(object), funcVar, arg1Var, arg2Var),
+                Expression.Dynamic(this.GetInvokeBinder(new CallInfo(2)), typeof(object), funcVar, arg1Var, arg2Var),
                 funcVar, arg1Var, arg2Var);
 
             return getDynamicCallCache2 = expr.Compile();
@@ -199,7 +201,7 @@ namespace IronLua.Runtime
             var arg3Var = Expression.Parameter(typeof(object));
 
             var expr = Expression.Lambda<Func<object, object, object, object, object>>(
-                Expression.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(3)), typeof(object), funcVar, arg1Var, arg2Var, arg3Var),
+                Expression.Dynamic(this.GetInvokeBinder(new CallInfo(3)), typeof(object), funcVar, arg1Var, arg2Var, arg3Var),
                 funcVar, arg1Var, arg2Var, arg3Var);
 
             return getDynamicCallCache3 = expr.Compile();

@@ -1,5 +1,6 @@
 using System;
 using System.Dynamic;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
 
@@ -7,11 +8,12 @@ namespace IronLua.Runtime.Binder
 {
     class LuaUnaryOperationBinder : UnaryOperationBinder
     {
-        readonly Context context;
+        readonly LuaContext context;
 
-        public LuaUnaryOperationBinder(Context context, ExprType operation)
+        public LuaUnaryOperationBinder(LuaContext context, ExprType operation)
             : base(operation)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 
@@ -70,7 +72,7 @@ namespace IronLua.Runtime.Binder
             var expr = Expr.IfThenElse(
                 Expr.Invoke(Expr.Constant((Func<double, bool>)Double.IsNaN), numVar),
                 Expr.Invoke(
-                    Expr.Constant((Func<Context, object, object>)LuaOps.UnaryMinusMetamethod),
+                    Expr.Constant((Func<LuaContext, object, object>)LuaOps.UnaryMinusMetamethod),
                     Expr.Constant(context),
                     Expr.Constant(Operation),
                     Expr.Convert(numExpr, typeof(object))),

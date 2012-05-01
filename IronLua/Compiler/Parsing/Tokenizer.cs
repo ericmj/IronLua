@@ -62,9 +62,13 @@ namespace IronLua.Compiler.Parsing
         public override void Initialize(object state, TextReader sourceReader, SourceUnit sourceUnit, SourceLocation initialLocation)
         {
             ContractUtils.RequiresNotNull(sourceReader, "sourceReader");
+            ContractUtils.RequiresNotNull(sourceUnit, "sourceUnit");
+            
+            _lastTokenSpan = SourceSpan.Invalid;
+            _lastTokenValue = null;
 
             _sourceUnit = sourceUnit;
-            _state = new State(state as State);
+            _state = new State(state as Tokenizer.State);
 
             _buffer = new TokenizerBuffer(sourceReader, initialLocation, _options.InitialBufferCapacity, _options.MultiEolns);
         }

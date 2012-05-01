@@ -6,15 +6,15 @@ namespace IronLua.Compiler
 {
     static class ExprHelpers
     {
-        public static Expr ConvertToBoolean(Context context, Expr expression)
+        public static Expr ConvertToBoolean(LuaContext context, Expr expression)
         {
-            var convertBinder = Context.DynamicCache.GetConvertBinder(typeof(bool));
+            var convertBinder = context.DynamicCache.GetConvertBinder(typeof(bool));
             return Expr.Dynamic(convertBinder, typeof(bool), expression);
         }
 
-        public static Expr ConvertToNumber(Context context, Expr expression)
+        public static Expr ConvertToNumber(LuaContext context, Expr expression)
         {
-            var convertBinder = Context.DynamicCache.GetConvertBinder(typeof(double));
+            var convertBinder = context.DynamicCache.GetConvertBinder(typeof(double));
             return Expr.Dynamic(convertBinder, typeof(double), expression);
         }
 
@@ -25,7 +25,7 @@ namespace IronLua.Compiler
                 Expr.Throw(Expr.New(MemberInfos.NewRuntimeException, Expr.Constant(format), Expr.Constant(args))));
         }
 
-        public static Expr ConvertToNumberAndCheck(Context context, Expr expression, string format, params object[] args)
+        public static Expr ConvertToNumberAndCheck(LuaContext context, Expr expression, string format, params object[] args)
         {
             var numberVar = Expr.Variable(typeof(double));
             var assignNumber = Expr.Assign(numberVar, ConvertToNumber(context, expression));

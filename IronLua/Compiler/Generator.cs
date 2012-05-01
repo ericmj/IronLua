@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using IronLua.Compiler.Ast;
 using IronLua.Runtime;
 using IronLua.Util;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
 using ExprType = System.Linq.Expressions.ExpressionType;
@@ -45,10 +46,11 @@ namespace IronLua.Compiler
                 };
 
         Scope scope;
-        readonly Context context;
+        readonly LuaContext context;
 
-        public Generator(Context context)
+        public Generator(LuaContext context)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 
@@ -159,7 +161,7 @@ namespace IronLua.Compiler
             scope = Scope.CreateChild(scope);
             var locals = statement.Identifiers.Select(id => scope.AddLocal(id)).ToList();
 
-            var invokeIterFunc = Expr.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(2)),
+            var invokeIterFunc = Expr.Dynamic(context.DynamicCache.GetInvokeBinder(new CallInfo(2)),
                                               typeof(object), iterFuncVar, iterStateVar, iterableVar);
             var loop =
                 Expr.Loop(
@@ -209,7 +211,7 @@ namespace IronLua.Compiler
             return
                 Expr.IfThenElse(
                     Expr.Dynamic(
-                        Context.DynamicCache.GetConvertBinder(typeof(bool)),
+                        context.DynamicCache.GetConvertBinder(typeof(bool)),
                         typeof(bool),
                         testExpr),
                     bodyExpr,
@@ -257,7 +259,7 @@ namespace IronLua.Compiler
             var stat = Expr.Loop(
                 Expr.IfThenElse(
                     Expr.Dynamic(
-                        Context.DynamicCache.GetConvertBinder(typeof(bool)),
+                        context.DynamicCache.GetConvertBinder(typeof(bool)),
                         typeof(bool),
                         statement.Test.Visit(this)),
                     Visit(statement.Body),
@@ -307,13 +309,13 @@ namespace IronLua.Compiler
             var right = expression.Right.Visit(this);
             ExprType operation;
             if (binaryExprTypes.TryGetValue(expression.Operation, out operation))
-                return Expr.Dynamic(Context.DynamicCache.GetBinaryOperationBinder(operation),
+                return Expr.Dynamic(context.DynamicCache.GetBinaryOperationBinder(operation),
                                     typeof(object), left, right);
 
             // BinaryOp have to be Concat at this point which can't be represented as a binary operation in the DLR
             return
                 Expr.Invoke(
-                    Expr.Constant((Func<Context, object, object, object>)LuaOps.Concat),
+                    Expr.Constant((Func<LuaContext, object, object, object>)LuaOps.Concat),
                     Expr.Constant(context),
                     Expr.Convert(left, typeof(object)),
                     Expr.Convert(right, typeof(object)));
@@ -390,12 +392,12 @@ namespace IronLua.Compiler
             var operand = expression.Operand.Visit(this);
             ExprType operation;
             if (unaryExprTypes.TryGetValue(expression.Operation, out operation))
-                return Expr.Dynamic(Context.DynamicCache.GetUnaryOperationBinder(operation),
+                return Expr.Dynamic(context.DynamicCache.GetUnaryOperationBinder(operation),
                                     typeof(object), operand);
 
             // UnaryOp have to be Length at this point which can't be represented as a unary operation in the DLR
             return Expr.Invoke(
-                Expr.Constant((Func<Context, object, object>)LuaOps.Length),
+                Expr.Constant((Func<LuaContext, object, object>)LuaOps.Length),
                 Expr.Constant(context),
                 Expr.Convert(operand, typeof(object)));
         }
@@ -447,15 +449,15 @@ namespace IronLua.Compiler
                     if (scope.TryGetLocal(variable.Identifier, out local))
                         return local;
 
-                    return Expr.Dynamic(Context.DynamicCache.GetGetMemberBinder(variable.Identifier),
+                    return Expr.Dynamic(context.DynamicCache.GetGetMemberBinder(variable.Identifier),
                                         typeof(object), Expr.Constant(context.Globals));
 
                 case VariableType.MemberId:
-                    return Expr.Dynamic(Context.DynamicCache.GetGetMemberBinder(variable.Identifier),
+                    return Expr.Dynamic(context.DynamicCache.GetGetMemberBinder(variable.Identifier),
                                         typeof(object), variable.Object);
 
                 case VariableType.MemberExpr:
-                    return Expr.Dynamic(Context.DynamicCache.GetGetIndexBinder(), typeof(object),
+                    return Expr.Dynamic(context.DynamicCache.GetGetIndexBinder(), typeof(object),
                                         variable.Object, variable.Member);
 
                 default:
@@ -472,7 +474,7 @@ namespace IronLua.Compiler
             invokeArgs[0] = funcExpr;
             Array.Copy(argExprs, 0, invokeArgs, 1, argExprs.Length);
 
-            return Expr.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
+            return Expr.Dynamic(context.DynamicCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
                                 typeof(object), invokeArgs);
         }
 
@@ -482,7 +484,7 @@ namespace IronLua.Compiler
             var tableVar = Expr.Variable(typeof(object));
             var assignExpr = Expr.Assign(tableVar, tableExpr);
 
-            var tableGetMember = Expr.Dynamic(Context.DynamicCache.GetGetMemberBinder(functionCall.Name),
+            var tableGetMember = Expr.Dynamic(context.DynamicCache.GetGetMemberBinder(functionCall.Name),
                                               typeof(object), tableVar);
 
             var argExprs = functionCall.Arguments.Visit(this);
@@ -491,7 +493,7 @@ namespace IronLua.Compiler
             invokeArgs[1] = tableVar;
             Array.Copy(argExprs, 0, invokeArgs, 2, argExprs.Length);
 
-            var invokeExpr = Expr.Dynamic(Context.DynamicCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
+            var invokeExpr = Expr.Dynamic(context.DynamicCache.GetInvokeBinder(new CallInfo(argExprs.Length)),
                                           typeof(object), invokeArgs);
 
             return
@@ -557,15 +559,15 @@ namespace IronLua.Compiler
                     if (scope.TryGetLocal(variable.Identifier, out local))
                         return Expr.Assign(local, value);
 
-                    return Expr.Dynamic(Context.DynamicCache.GetSetMemberBinder(variable.Identifier),
+                    return Expr.Dynamic(context.DynamicCache.GetSetMemberBinder(variable.Identifier),
                                         typeof(object), Expr.Constant(context.Globals), value);
 
                 case VariableType.MemberId:
-                    return Expr.Dynamic(Context.DynamicCache.GetSetMemberBinder(variable.Identifier),
+                    return Expr.Dynamic(context.DynamicCache.GetSetMemberBinder(variable.Identifier),
                                         typeof(object), variable.Object, value);
 
                 case VariableType.MemberExpr:
-                    return Expr.Dynamic(Context.DynamicCache.GetSetIndexBinder(), typeof(object),
+                    return Expr.Dynamic(context.DynamicCache.GetSetIndexBinder(), typeof(object),
                                         variable.Object, variable.Member, value);
 
                 default:
@@ -586,7 +588,7 @@ namespace IronLua.Compiler
             {
                 if (isLocal)
                     return Expr.Assign(local, value);
-                return Expr.Dynamic(Context.DynamicCache.GetSetMemberBinder(firstId),
+                return Expr.Dynamic(context.DynamicCache.GetSetMemberBinder(firstId),
                                     typeof(object), Expr.Constant(context.Globals), value);
             }
 
@@ -594,16 +596,16 @@ namespace IronLua.Compiler
             if (isLocal)
                 expr = local;
             else
-                expr = Expr.Dynamic(Context.DynamicCache.GetGetMemberBinder(firstId),
+                expr = Expr.Dynamic(context.DynamicCache.GetGetMemberBinder(firstId),
                                     typeof(object), Expr.Constant(context.Globals));
 
             // Loop over all elements except the first and the last and perform get member on them
             expr = identifiers
                 .Skip(1).Take(identifiers.Count - 2)
-                .Aggregate(expr, (e, id) => Expr.Dynamic(Context.DynamicCache.GetGetMemberBinder(id), typeof(object), e));
+                .Aggregate(expr, (e, id) => Expr.Dynamic(context.DynamicCache.GetGetMemberBinder(id), typeof(object), e));
 
             // Do the assignment on the last identifier
-            return Expr.Dynamic(Context.DynamicCache.GetSetMemberBinder(identifiers.Last()),
+            return Expr.Dynamic(context.DynamicCache.GetSetMemberBinder(identifiers.Last()),
                                         typeof(object), expr, value);
         }
 
@@ -683,7 +685,7 @@ namespace IronLua.Compiler
         {
             return
                 Expr.IfThenElse(Expr.Dynamic(
-                        Context.DynamicCache.GetConvertBinder(typeof(bool)),
+                        context.DynamicCache.GetConvertBinder(typeof(bool)),
                         typeof(bool),
                         elseif.Test.Visit(this)),
                     Visit(elseif.Body),

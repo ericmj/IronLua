@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using IronLua.Runtime;
@@ -8,7 +7,7 @@ namespace IronLua.Library
 {
     class StringLibrary : Library
     {
-        public StringLibrary(Context context) 
+        public StringLibrary(LuaContext context) 
             : base(context)
         {
         }

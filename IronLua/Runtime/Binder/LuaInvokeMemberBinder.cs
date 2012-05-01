@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Dynamic;
 using System.Linq;
+using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaInvokeMemberBinder : InvokeMemberBinder
     {
-        readonly Context context;
+        readonly LuaContext context;
 
-        public LuaInvokeMemberBinder(Context context, string name, CallInfo callInfo)
+        public LuaInvokeMemberBinder(LuaContext context, string name, CallInfo callInfo)
             : base(name, false, callInfo)
         {
+            ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
 
@@ -29,7 +31,7 @@ namespace IronLua.Runtime.Binder
             var restrictions = target.Restrictions.Merge(BindingRestrictions.Combine(args));
             var expression =
                 Expr.Dynamic(
-                    Context.DynamicCache.GetInvokeBinder(new CallInfo(args.Length)),
+                    context.DynamicCache.GetInvokeBinder(new CallInfo(args.Length)),
                     typeof(object),
                     combinedArgs);
 

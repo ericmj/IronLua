@@ -7,6 +7,7 @@ using System.Threading;
 using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
+using IronLua.Library;
 using IronLua.Runtime.Binder;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
@@ -17,7 +18,8 @@ namespace IronLua.Runtime
 {
     public sealed class LuaContext : LanguageContext
     {
-        readonly Context _ctx;
+        private readonly DynamicCache _dynamicCache;
+        private readonly LuaTable _globals;
 
         public LuaContext(ScriptDomainManager manager, IDictionary<string, object> options = null)
             : base(manager)
@@ -25,13 +27,49 @@ namespace IronLua.Runtime
             // TODO: options
 
             _binder = new LuaBinder(this);
-            _ctx = new Context(this);
+            _dynamicCache = new DynamicCache(this);
+            _globals = SetupLibraries(new LuaTable());
+            _metatables = SetupMetatables();
         }
 
-        internal Context Ctx
+        internal LuaTable Globals
         {
-            get { return _ctx; }
+            get { return _globals; }
         }
+
+        internal DynamicCache DynamicCache
+        {
+            get { return _dynamicCache; }
+        }
+
+        #region Metatable management
+
+        readonly Dictionary<Type, LuaTable> _metatables;
+
+        Dictionary<Type, LuaTable> SetupMetatables()
+        {
+            return new Dictionary<Type, LuaTable>()
+            {
+                {typeof(bool), new LuaTable()},
+                {typeof(double), new LuaTable()},
+                {typeof(string), new LuaTable()},
+                {typeof(Delegate), new LuaTable()},
+            };
+        }
+
+        internal LuaTable GetTypeMetatable(object obj)
+        {
+            if (obj == null)
+                return null;
+
+            LuaTable table;
+            if (_metatables.TryGetValue(obj.GetType(), out table))
+                return table;
+
+            throw new ArgumentOutOfRangeException("obj", "Argument is of non-supported type");
+        }
+
+        #endregion
 
         public override ScriptCode CompileSourceCode(SourceUnit sourceUnit, CompilerOptions options, ErrorSink errorSink)
         {
@@ -50,11 +88,6 @@ namespace IronLua.Runtime
             try
             {
                 reader = sourceUnit.GetReader();
-
-                if (luaOptions.SkipFirstLine && 
-                    sourceUnit.Kind == SourceCodeKind.File && 
-                    reader.Peek() == '#')
-                    reader.ReadLine();
             }
             catch (IOException ex)
             {
@@ -74,7 +107,7 @@ namespace IronLua.Runtime
 #endif
                 var parser = new Parser(lexer, errorSink);
                 var ast = parser.Parse();
-                var gen = new Generator(_ctx);
+                var gen = new Generator(this);
                 var expr = gen.Compile(ast);
                 var lamda = expr.Compile();
 
@@ -168,5 +201,60 @@ namespace IronLua.Runtime
             
             return obj.ToString();
         }
+
+        #region Lua base library management
+
+        LuaTable SetupLibraries(LuaTable globals)
+        {
+            ContractUtils.RequiresNotNull(globals, "globals");
+
+            BaseLibrary = new BaseLibrary(this);
+            BaseLibrary.Setup(globals);
+
+            PackageLibrary = new PackageLibrary(this);
+            var packagelibTable = new LuaTable();
+            PackageLibrary.Setup(packagelibTable);
+            globals.SetValue("package", packagelibTable);
+
+            //TableLibrary = new TableLibrary();
+            var tablelibTable = new LuaTable();
+            //TableLibrary.Setup(tablelibTable);
+            globals.SetValue("table", tablelibTable);
+
+            MathLibrary = new MathLibrary(this);
+            var mathlibTable = new LuaTable();
+            MathLibrary.Setup(mathlibTable);
+            globals.SetValue("math", mathlibTable);
+
+            StringLibrary = new StringLibrary(this);
+            var strlibTable = new LuaTable();
+            StringLibrary.Setup(strlibTable);
+            globals.SetValue("string", strlibTable);
+
+            //IoLibrary = new IoLibrary(this);
+            var iolibTable = new LuaTable();
+            //IoLibrary.Setup(iolibTable);
+            globals.SetValue("io", iolibTable);
+
+            OSLibrary = new OSLibrary(this);
+            var oslibTable = new LuaTable();
+            OSLibrary.Setup(oslibTable);
+            globals.SetValue("os", oslibTable);
+
+            //DebugLibrary = new DebugLibrary(this);
+            var debuglibTable = new LuaTable();
+            //DebugLibrary.Setup(debuglibTable);
+            globals.SetValue("debug", debuglibTable);
+
+            return globals;
+        }
+
+        internal BaseLibrary BaseLibrary;
+        internal StringLibrary StringLibrary;
+        internal MathLibrary MathLibrary;
+        internal OSLibrary OSLibrary;
+        internal PackageLibrary PackageLibrary;
+
+        #endregion
     }
 }
