@@ -204,27 +204,26 @@ namespace IronLua.Compiler.Ast
 
         public class LabelDecl : Statement
         {
-            public string Name { get; private set; }
+            public string LabelName { get; private set; }
 
             public LabelDecl(string name)
             {
-                Name = name;
+                LabelName = name;
             }
 
             public override T Visit<T>(IStatementVisitor<T> visitor)
             {
-                //return visitor.Visit(this);
-                throw new NotImplementedException();
+                return visitor.Visit(this);
             }
         }
 
         public class Goto : Statement
         {
-            public string @Label { get; private set; }
+            public string LabelName { get; private set; }
 
             public Goto(string label)
             {
-                Label = label;
+                LabelName = label;
             }
 
             public override T Visit<T>(IStatementVisitor<T> visitor)

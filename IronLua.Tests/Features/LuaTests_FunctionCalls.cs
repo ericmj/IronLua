@@ -31,6 +31,12 @@ namespace IronLua.Tests.Features
         }
 
         [Test]
+        public void TestReturn_Empty()
+        {
+            engine.Execute("return ;");
+        }
+
+        [Test]
         public void TestFunction_EmptyDoEnd()
         {
             engine.Execute(@"do end");

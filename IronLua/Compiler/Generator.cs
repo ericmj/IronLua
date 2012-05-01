@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using IronLua.Compiler.Ast;
 using IronLua.Runtime;
 using IronLua.Util;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
@@ -65,19 +66,18 @@ namespace IronLua.Compiler
         Expr Visit(Block block)
         {
             var parentScope = scope;
-            scope = Scope.CreateChild(parentScope);
+            scope = Scope.CreateChildFrom(parentScope);
 
             var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
-            var locals = scope.AllLocals();
 
             Expr expr;
             if (statementExprs.Count == 0)
                 expr = Expr.Empty();
-            else if (statementExprs.Count == 1 && locals.Length == 0)
+            else if (statementExprs.Count == 1 && scope.LocalsCount == 0)
                 // Don't output blocks if we don't declare any locals and it's a single statement
                 expr = statementExprs[0];
             else
-                expr = Expr.Block(locals, statementExprs);
+                expr = Expr.Block(scope.GetLocals(), statementExprs);
 
             scope = parentScope;
             return expr;
@@ -86,7 +86,7 @@ namespace IronLua.Compiler
         Expr Visit(string name, FunctionBody function)
         {
             var parentScope = scope;
-            scope = Scope.CreateFunctionChild(scope);
+            scope = Scope.CreateFunctionChildFrom(scope);
 
             var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
             if (function.Varargs)
@@ -112,14 +112,14 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
         {
-            scope = Scope.CreateChild(scope);
+            scope = Scope.CreateChildFrom(scope);
             return Visit(statement.Body);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.For statement)
         {
             var parentScope = scope;
-            scope = Scope.CreateChild(parentScope);
+            scope = Scope.CreateChildFrom(parentScope);
 
             var step = statement.Step == null
                            ? new Expression.Number(1.0).Visit(this)
@@ -158,7 +158,7 @@ namespace IronLua.Compiler
             var assignIterVars = VarargsExpandAssignment(iterVars, valueExprs);
 
             var parentScope = scope;
-            scope = Scope.CreateChild(scope);
+            scope = Scope.CreateChildFrom(scope);
             var locals = statement.Identifiers.Select(id => scope.AddLocal(id)).ToList();
 
             var invokeIterFunc = Expr.Dynamic(context.DynamicCache.GetInvokeBinder(new CallInfo(2)),
@@ -241,20 +241,23 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Repeat statement)
         {
-            // Temporarily rewrite the AST so that the test expression can be evaulated in the same scope as the body
-            statement.Body.Statements.Add(
-                new Statement.If(
-                    statement.Test,
-                    new Block(new List<Statement>() { new LastStatement.Break() }),
-                    new List<Elseif>(),
-                    null));
+            var stats = statement.Body.Statements;
+
+            // Temporarily rewrite the AST so that the test expression 
+            // can be evaluated in the same scope as the body.
+            stats.Add(new Statement.If(
+                statement.Test,
+                new Block(new List<Statement>() { new LastStatement.Break() }),
+                new List<Elseif>(),
+                null));
 
             var breakLabel = scope.BreakLabel();
             var expr = Expr.Loop(
                 Visit(statement.Body),
                 breakLabel);
 
-            statement.Body.Statements.RemoveAt(statement.Body.Statements.Count - 2);
+            // Remove the temporary statement we added.
+            stats.RemoveAt(stats.Count - 1);
             return expr;
         }
 
@@ -275,12 +278,19 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Goto statement)
         {
-            if (statement.Label == "break")
+            ContractUtils.RequiresNotNull(statement.LabelName, "LabelName");
+
+            if (statement.LabelName == "@break")
             {
                 return Expr.Break(scope.BreakLabel());
             }
 
-            throw new NotImplementedException();
+            return Expr.Goto(scope.AddLabel(statement.LabelName));
+        }
+
+        Expr IStatementVisitor<Expr>.Visit(Statement.LabelDecl statement)
+        {
+            return Expr.Label(scope.AddLabel(statement.LabelName));
         }
 
         Expr IStatementVisitor<Expr>.Visit(LastStatement.Break statement)
@@ -299,7 +309,8 @@ namespace IronLua.Compiler
                 .Select(expr => Expr.Convert(expr.Visit(this), typeof(object))).ToArray();
 
             if (returnValues.Length == 0)
-                return Expr.Return(returnLabel);
+                return Expr.Return(returnLabel, Expr.Constant(null)); // hack!
+                //return Expr.Return(returnLabel); // FIXME: how do we get the return label to be void in this case?
             if (returnValues.Length == 1)
                 return Expr.Return(returnLabel, returnValues[0]);
 

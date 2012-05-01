@@ -8,16 +8,25 @@ namespace IronLua.Compiler
 {
     class Scope
     {
-        Scope parent;
+        const string BreakLabelName = "@break";
+        const string ReturnLabelName = "@return";
+
+        readonly Scope parent;
         readonly Dictionary<string, ParamExpr> variables;
-        LabelTarget breakLabel;
-        LabelTarget returnLabel;
+        readonly Dictionary<string, LabelTarget> labels;
 
         public bool IsRoot { get { return parent == null; } }
 
-        private Scope()
+        private Scope(Scope parent = null)
         {
-            variables = new Dictionary<string, ParamExpr>();
+            this.parent = parent;
+            this.variables = new Dictionary<string, ParamExpr>();
+            this.labels = new Dictionary<string, LabelTarget>();
+        }
+
+        public int LocalsCount
+        {
+            get { return variables.Count; }
         }
 
         public ParamExpr[] AllLocals()
@@ -26,6 +35,11 @@ namespace IronLua.Compiler
             var array = new ParamExpr[values.Count];
             values.CopyTo(array, 0);
             return array;
+        }
+
+        public IEnumerable<ParamExpr> GetLocals()
+        {
+            return variables.Values;
         }
 
         public bool TryGetLocal(string name, out ParamExpr local)
@@ -48,41 +62,59 @@ namespace IronLua.Compiler
             return param;
         }
 
-        public LabelTarget BreakLabel()
+        public LabelTarget AddLabel(string name)
         {
-            return breakLabel ?? (breakLabel = Expr.Label());
+            LabelTarget label;
+
+            if (!labels.TryGetValue(name, out label))
+                labels.Add(name, label = Expr.Label(name));
+
+            return label;
         }
 
-        public static Scope CreateRoot()
+        public bool TryGetLabel(string name, out LabelTarget label)
         {
-            return new Scope { returnLabel = Expr.Label(typeof(object)) };
-        }
+            if (labels.TryGetValue(name, out label))
+                return true;
 
-        public static Scope CreateChild(Scope parent)
-        {
-            return new Scope
-                       {
-                           parent = parent,
-                           breakLabel = parent.breakLabel
-                       };
-        }
+            if (parent != null)
+                return parent.TryGetLabel(name, out label);
 
-        public static Scope CreateFunctionChild(Scope parent)
-        {
-            return new Scope
-                       {
-                           parent = parent,
-                           returnLabel = Expr.Label(typeof(object))
-                       };
+            return false;
         }
 
         public LabelTarget GetReturnLabel()
         {
-            if (returnLabel != null)
-                return returnLabel;
-            if (parent == null)
-                return null;
-            return parent.GetReturnLabel();
+            LabelTarget label;
+            return TryGetLabel(ReturnLabelName, out label) ? label : null;
+        }
+
+        public LabelTarget BreakLabel()
+        {
+            return AddLabel(BreakLabelName); 
+        }
+
+        public static Scope CreateRoot()
+        {
+            var scope = new Scope();
+            scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
+            return scope;            
+        }
+
+        public static Scope CreateChildFrom(Scope parent)
+        {
+            var scope = new Scope(parent);
+            LabelTarget breakLabel;
+            if (parent.labels.TryGetValue(BreakLabelName, out breakLabel))
+                scope.labels.Add(BreakLabelName, breakLabel);
+            return scope;
+        }
+
+        public static Scope CreateFunctionChildFrom(Scope parent)
+        {
+            var scope = new Scope(parent);
+            scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
+            return scope;
         }
     }
 }

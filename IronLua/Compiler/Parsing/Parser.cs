@@ -874,7 +874,7 @@ namespace IronLua.Compiler.Parsing
             if (_options.UseLua52Features)
             {
                 TryConsume(Symbol.SemiColon);
-                return new Statement.Goto("break");
+                return new Statement.Goto("@break");
             }
             return new LastStatement.Break();
         }

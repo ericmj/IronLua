@@ -55,6 +55,7 @@
         T Visit(Statement.Repeat statement);
         T Visit(Statement.While statement);
         T Visit(Statement.Goto statement);
+        T Visit(Statement.LabelDecl statement);
 
         T Visit(LastStatement.Break lastStatement);
         T Visit(LastStatement.Return lastStatement);

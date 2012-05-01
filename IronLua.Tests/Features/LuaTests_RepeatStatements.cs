@@ -29,6 +29,20 @@ namespace IronLua.Tests.Features
         }
 
         [Test]
+        public void TestRepeat_EmptyLoop()
+        {
+            engine.Execute(@"repeat until true");
+            // should not throw any exceptions
+        }
+
+        [Test]
+        public void TestRepeat_UntilUseLocalVariableDeclaredInsideLoop()
+        {
+            engine.Execute(@"repeat local i = 42 until i == 42");
+            // should not throw any exceptions
+        }
+
+        [Test]
         public void TestRepeat_10loops_GlobalVariable()
         {
             string code = @"
