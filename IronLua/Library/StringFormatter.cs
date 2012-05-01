@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using IronLua.Util;
@@ -263,7 +264,7 @@ namespace IronLua.Library
             void FormatScienctific(double value, bool upperCase)
             {
                 string formatString = (upperCase ? "E" : "e") + (Precision == -1 ? 6 : Precision);
-                var str = Math.Abs(value).ToString(formatString, Constant.INVARIANT_CULTURE);
+                var str = Math.Abs(value).ToString(formatString, CultureInfo.InvariantCulture);
                 sb.Append(str);
                 AddDecimalPoint(str);
                 AddSign(value);
@@ -273,7 +274,7 @@ namespace IronLua.Library
             void FormatFloating(double value)
             {
                 var formatString = "N" + (Precision == -1 ? 6 : Precision);
-                var str = Math.Abs(value).ToString(formatString, Constant.INVARIANT_CULTURE);
+                var str = Math.Abs(value).ToString(formatString, CultureInfo.InvariantCulture);
 
                 sb.Append(str);
                 AddDecimalPoint(str);
