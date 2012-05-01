@@ -57,9 +57,23 @@ namespace IronLua.Tests.Features
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
             ExpectedMessage = "'(' expected near '.'")]
-        public void TestNumber_ParserMsg4()
+        public void TestLocal_ParserMsg4()
         {
             engine.Execute("local function t.f() end");
+        }
+
+        [Test]
+        public void TestLocal_SingleVariableWithNoAsighment()
+        {
+            engine.Execute("local a");
+            // no exception should be thrown.
+        }
+
+        [Test]
+        public void TestLocal_TwoVariablesWithNoAsighment()
+        {
+            engine.Execute("local a, b");
+            // no exception should be thrown.
         }
     }
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.Text;
-using IronLua.Hosting;
+﻿using IronLua.Hosting;
 using IronLua.Runtime;
 using NUnit.Framework;
 
@@ -70,7 +67,7 @@ namespace IronLua.Tests
         [Test]
         public void ExecuteResultTable()
         {
-            var t = Lua.CreateEngine().Execute("return { 5, 10, 15, A = 'alpha', ['B'] = 'beta' }");
+            dynamic t = Lua.CreateEngine().Execute("return { 5, 10, 15, A = 'alpha', ['B'] = 'beta' }");
 
             Assert.That(t, Is.TypeOf<LuaTable>());
             Assert.That(t.A, Is.EqualTo("alpha"));
