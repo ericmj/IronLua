@@ -1,3 +1,4 @@
+using System;
 using IronLua.Compiler;
 using IronLua.Compiler.Parsing;
 using IronLua.Hosting;
@@ -51,6 +52,8 @@ namespace IronLua.Tests.Compiler
             var engine = Lua.CreateEngine();
             var context = Lua.GetLuaContext(engine);
             var sourceUnit = context.CreateFileUnit(luaFile);
+
+            Console.WriteLine("Running: {0}", new Uri(luaFile));
 
             GeneratorTest(sourceUnit, useLua52);
         }
