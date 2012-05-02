@@ -114,6 +114,21 @@ namespace IronLua.Tests.Features
         }
 
         [Test]
+        public void TestAssign_ThreeVariablesFromFunction()
+        {
+            string code =
+                @"
+function f() 
+  return 1
+end
+a,b = f(), f()
+return b
+";
+            var b = engine.Execute(code);
+            Assert.That(b, Is.EqualTo(1.0));
+        }
+
+        [Test]
         public void TestAssign_AssignNonExistingVariableAssignsNil()
         {
             string code = @"a = xxx"; // destroy a
