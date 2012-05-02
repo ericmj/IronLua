@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using IronLua.Hosting;
 using NUnit.Framework;
 
@@ -15,7 +16,9 @@ namespace IronLua.Tests.Compiler
             { 
                 { "UseLua52Features", useLua52 }, // TODO: need to make use of these options inside CreateEngine
             };
-            var engine = Lua.CreateEngine(options); 
+            var engine = Lua.CreateEngine(options);
+
+            Console.WriteLine("Executing: {0}", new Uri(testCaseFile));
 
             TestUtils.AssertSyntaxError(() =>
             {

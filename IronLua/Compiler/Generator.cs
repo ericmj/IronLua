@@ -104,7 +104,8 @@ namespace IronLua.Compiler
             var variables = statement.Variables.Select(v => v.Visit(this)).ToList();
             var values = WrapWithVarargsFirst(statement.Values);
 
-            if (statement.Values.Last().IsVarargs() || statement.Values.Last().IsFunctionCall())
+            var lastValue = statement.Values.Last();
+            if (lastValue.IsVarargs() || lastValue.IsFunctionCall())
                 return VarargsExpandAssignment(variables, values);
 
             return AssignWithTemporaries(variables, values, Assign);
@@ -661,7 +662,7 @@ namespace IronLua.Compiler
                     Expr.Block(
                         new[] { variable },
                         Expr.Assign(variable, valueExpr),
-                        Expr.IfThenElse(
+                        Expr.Condition(
                             Expr.TypeIs(variable, typeof(Varargs)),
                             Expr.Call(Expr.Convert(variable, typeof(Varargs)), MemberInfos.VarargsFirst),
                             variable));

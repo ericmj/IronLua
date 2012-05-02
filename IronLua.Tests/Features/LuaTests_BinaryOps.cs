@@ -402,5 +402,11 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return '1' + '2'"), Is.EqualTo(3.0));
         }
+
+        [Test]
+        public void TestBinary_LessThanNil()
+        {
+            Assert.That(Run("return 'alo' < 'alo1'"), Is.True);
+        }
     }
 }
