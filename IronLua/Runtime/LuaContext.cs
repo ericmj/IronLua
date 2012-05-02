@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Dynamic;
 using System.IO;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using IronLua.Compiler;
@@ -41,6 +43,80 @@ namespace IronLua.Runtime
         {
             get { return _dynamicCache; }
         }
+
+        #region Object Operations Support
+
+        // These methods is called by the DynamicOperations class that can be
+        // retrieved via the inherited Operations property of this class.
+
+        public override UnaryOperationBinder CreateUnaryOperationBinder(ExpressionType operation)
+        {
+            return DynamicCache.GetUnaryOperationBinder(operation);
+        }
+
+        public override BinaryOperationBinder CreateBinaryOperationBinder(ExpressionType operation)
+        {
+            return DynamicCache.GetBinaryOperationBinder(operation);
+        }
+
+        public override ConvertBinder CreateConvertBinder(Type toType, bool? explicitCast)
+        {
+            ContractUtils.Requires(explicitCast == false, "explicitCast");
+            return DynamicCache.GetConvertBinder(toType);
+        }
+
+        public override GetMemberBinder CreateGetMemberBinder(string name, bool ignoreCase)
+        {
+            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            return DynamicCache.GetGetMemberBinder(name);            
+        }
+
+        public override SetMemberBinder CreateSetMemberBinder(string name, bool ignoreCase)
+        {
+            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            return DynamicCache.GetSetMemberBinder(name);
+        }
+
+        public override DeleteMemberBinder CreateDeleteMemberBinder(string name, bool ignoreCase)
+        {
+            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            // TODO: not implemented yet
+            return base.CreateDeleteMemberBinder(name, ignoreCase);
+        }
+
+        public GetIndexBinder CreateGetIndexBinder(CallInfo callInfo)
+        {
+            return DynamicCache.GetGetIndexBinder();//callInfo);
+        }
+
+        public SetIndexBinder CreateSetIndexBinder(CallInfo callInfo)
+        {
+            return DynamicCache.GetSetIndexBinder();//callInfo);
+        }
+
+        public DeleteIndexBinder CreateDeleteIndexBinder()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override InvokeMemberBinder CreateCallBinder(string name, bool ignoreCase, CallInfo callInfo)
+        {
+            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            return DynamicCache.GetInvokeMemberBinder(name, callInfo);
+        }
+
+        public override InvokeBinder CreateInvokeBinder(CallInfo callInfo)
+        {
+            return DynamicCache.GetInvokeBinder(callInfo);
+        }
+
+        public override CreateInstanceBinder CreateCreateBinder(CallInfo callInfo)
+        {
+            // TODO: not implemented yet
+            return base.CreateCreateBinder(callInfo);
+        }
+
+        #endregion
 
         #region Metatable management
 

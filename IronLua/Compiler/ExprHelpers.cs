@@ -8,13 +8,13 @@ namespace IronLua.Compiler
     {
         public static Expr ConvertToBoolean(LuaContext context, Expr expression)
         {
-            var convertBinder = context.DynamicCache.GetConvertBinder(typeof(bool));
+            var convertBinder = context.CreateConvertBinder(typeof(bool), false);
             return Expr.Dynamic(convertBinder, typeof(bool), expression);
         }
 
         public static Expr ConvertToNumber(LuaContext context, Expr expression)
         {
-            var convertBinder = context.DynamicCache.GetConvertBinder(typeof(double));
+            var convertBinder = context.CreateConvertBinder(typeof(double), false);
             return Expr.Dynamic(convertBinder, typeof(double), expression);
         }
 
