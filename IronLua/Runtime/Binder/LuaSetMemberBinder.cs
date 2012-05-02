@@ -12,7 +12,7 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackSetMember(DynamicMetaObject target, DynamicMetaObject value, DynamicMetaObject errorSuggestion)
         {
-            throw new InvalidOperationException();
+            throw new NotImplementedException();
         }
     }
 }
