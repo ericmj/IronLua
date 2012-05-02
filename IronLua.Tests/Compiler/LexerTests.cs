@@ -98,6 +98,7 @@ namespace IronLua.Tests
 
         public void LexerFailureTests(string exeFile, string snippet, string expect)
         {
+            Assert.That(File.Exists(exeFile), Is.True, "Lua interpeter not found");
             bool xfail = TestContext.CurrentContext.Test.Properties.Contains("FailureCase");
             //Console.WriteLine("snipet {0}", snippet);
             string actual = ExecuteLuaSnippet(exeFile, snippet, xfail);
