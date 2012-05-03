@@ -7,18 +7,23 @@ namespace IronLua.Runtime.Binder
 {
     class LuaSetIndexBinder : SetIndexBinder
     {
-        readonly LuaContext context;
+        private readonly LuaContext _context;
 
         public LuaSetIndexBinder(LuaContext context)
             : base(new CallInfo(1))
         {
             ContractUtils.RequiresNotNull(context, "context");
-            this.context = context;
+            _context = context;
         }
 
+        public LuaContext Context
+        {
+            get { return _context; }
+        }
+        
         public override DynamicMetaObject FallbackSetIndex(DynamicMetaObject target, DynamicMetaObject[] indexes, DynamicMetaObject value, DynamicMetaObject errorSuggestion)
         {
-            var expression = MetamethodFallbacks.NewIndex(context, target, indexes, value);
+            var expression = MetamethodFallbacks.NewIndex(_context, target, indexes, value);
 
             return new DynamicMetaObject(expression, BindingRestrictions.Empty);
         }

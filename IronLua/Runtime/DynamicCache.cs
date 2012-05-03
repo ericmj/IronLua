@@ -69,7 +69,7 @@ namespace IronLua.Runtime
 
         public SetMemberBinder GetSetMemberBinder(string name)
         {
-            return GetCachedBinder(setMemberBinders, name, k => new LuaSetMemberBinder(k));
+            return GetCachedBinder(setMemberBinders, name, k => new LuaSetMemberBinder(context, k));
         }
 
         public SetIndexBinder GetSetIndexBinder()
@@ -79,7 +79,7 @@ namespace IronLua.Runtime
 
         public GetMemberBinder GetGetMemberBinder(string name)
         {
-            return GetCachedBinder(getMemberBinders, name, k => new LuaGetMemberBinder(k));
+            return GetCachedBinder(getMemberBinders, name, k => new LuaGetMemberBinder(context, k));
         }
 
         public GetIndexBinder GetGetIndexBinder()

@@ -67,19 +67,25 @@ namespace IronLua.Runtime
 
         public override GetMemberBinder CreateGetMemberBinder(string name, bool ignoreCase)
         {
-            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
-            return DynamicCache.GetGetMemberBinder(name);            
+            if (ignoreCase)
+                return base.CreateGetMemberBinder(name, ignoreCase);
+
+            return DynamicCache.GetGetMemberBinder(name);
         }
 
         public override SetMemberBinder CreateSetMemberBinder(string name, bool ignoreCase)
         {
-            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            if (ignoreCase)
+                return base.CreateSetMemberBinder(name, ignoreCase);
+
             return DynamicCache.GetSetMemberBinder(name);
         }
 
         public override DeleteMemberBinder CreateDeleteMemberBinder(string name, bool ignoreCase)
         {
-            ContractUtils.Requires(ignoreCase == false, "ignoreCase");
+            if (ignoreCase)
+                return base.CreateDeleteMemberBinder(name, ignoreCase);
+
             // TODO: not implemented yet
             return base.CreateDeleteMemberBinder(name, ignoreCase);
         }
