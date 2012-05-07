@@ -1,4 +1,5 @@
-﻿using IronLua.Hosting;
+﻿using System;
+using IronLua.Hosting;
 using IronLua.Runtime;
 using NUnit.Framework;
 
@@ -93,6 +94,41 @@ namespace IronLua.Tests
             var engine = Lua.CreateEngine();
 
             Assert.That(engine.Execute("return 0x.8"), Is.EqualTo(0.5));            
+        }
+
+        [Test]
+        public void ScopeTest01()
+        {
+            var engine = Lua.CreateEngine();
+            var scope = engine.CreateScope();
+
+            scope.SetVariable("a", 42);
+            object a = scope.GetVariable("a");
+            Assert.That(a, Is.EqualTo(42.0));
+        }
+
+
+        [Test]
+        public void ScopeTest02()
+        {
+            var engine = Lua.CreateEngine();
+            var scope = engine.CreateScope();
+
+            engine.Execute("a = 42", scope);
+            object a = scope.GetVariable("a");
+            Assert.That(a, Is.EqualTo(42));
+        }
+
+        [Test]
+        public void ScopeTest03()
+        {
+            var engine = Lua.CreateEngine();
+            var scope = engine.CreateScope();
+
+            scope.SetVariable("a", 42);
+            //engine.Execute("assert(a == 42)");
+            object la = engine.Execute("return a"); 
+            Assert.That(la, Is.EqualTo(42));
         }
     }
 }
