@@ -18,6 +18,11 @@ namespace IronLua.Compiler.Ast
                 Values = values;
             }
 
+            public Assign(Variable variable, Expression value)
+                : this(new List<Variable>{ variable }, new List<Expression>{ value })
+            {
+            }
+
             public override T Visit<T>(IStatementVisitor<T> visitor)
             {
                 return visitor.Visit(this);
@@ -212,6 +217,11 @@ namespace IronLua.Compiler.Ast
             {
                 Identifiers = identifiers;
                 Values = values;
+            }
+
+            public LocalAssign(string identifier, Expression value)
+                : this(new List<string>{ identifier }, new List<Expression>{ value })
+            {
             }
 
             public override T Visit<T>(IStatementVisitor<T> visitor)
