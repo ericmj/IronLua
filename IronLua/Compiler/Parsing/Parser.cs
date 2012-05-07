@@ -745,8 +745,8 @@ namespace IronLua.Compiler.Parsing
         Statement LocalFunction()
         {
             Expect(Symbol.Function);
-            var identifier = ExpectLexeme(Symbol.Identifier);
-            return new Statement.LocalFunction(identifier, FunctionBody());
+            var name = ExpectLexeme(Symbol.Identifier);
+            return new Statement.LocalFunction(name, FunctionBody());
         }
 
         /* Parses function
