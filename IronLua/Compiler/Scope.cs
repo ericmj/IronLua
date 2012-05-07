@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
 
@@ -14,6 +15,8 @@ namespace IronLua.Compiler
         readonly Scope parent;
         readonly Dictionary<string, ParamExpr> variables;
         readonly Dictionary<string, LabelTarget> labels;
+
+        static int hiddenId;
 
         public bool IsRoot { get { return parent == null; } }
 
@@ -60,6 +63,13 @@ namespace IronLua.Compiler
                 variables.Add(name, param = Expr.Variable(type ?? typeof(object)));
 
             return param;
+        }
+
+        public void AddHidden(ParamExpr param)
+        {
+            var id = Interlocked.Increment(ref hiddenId);
+            var key = String.Format("$H{0}", id);
+            variables.Add(key, param);
         }
 
         public LabelTarget AddLabel(string name)
