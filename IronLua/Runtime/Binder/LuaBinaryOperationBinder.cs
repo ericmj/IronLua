@@ -40,13 +40,19 @@ namespace IronLua.Runtime.Binder
             this.context = context;
         }
 
-        public override DynamicMetaObject FallbackBinaryOperation(DynamicMetaObject target, DynamicMetaObject arg, DynamicMetaObject errorSuggestion)
+        public override DynamicMetaObject FallbackBinaryOperation(
+            DynamicMetaObject target, 
+            DynamicMetaObject arg, 
+            DynamicMetaObject errorSuggestion)
         {
+            // Defer if any object has no value so that we evaulate their
+            // Expressions and nest a CallSite for the InvokeMember.
             if (!target.HasValue || !arg.HasValue)
                 return Defer(target, arg);
 
             DynamicMetaObject targetFirst, argFirst;
-            if (RuntimeHelpers.TryGetFirstVarargs(target, out targetFirst) | RuntimeHelpers.TryGetFirstVarargs(arg, out argFirst))
+            if (RuntimeHelpers.TryGetFirstVarargs(target, out targetFirst) &&
+                RuntimeHelpers.TryGetFirstVarargs(arg, out argFirst))
                 return FallbackBinaryOperation(targetFirst, argFirst, errorSuggestion);
 
             Expr expression = null;
@@ -66,7 +72,8 @@ namespace IronLua.Runtime.Binder
             if (expression == null)
                 expression = MetamethodFallbacks.BinaryOp(context, Operation, target, arg);
 
-            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), RuntimeHelpers.MergeTypeRestrictions(target, arg));
+            return new DynamicMetaObject(Expr.Convert(expression, typeof(object)), 
+                RuntimeHelpers.MergeTypeRestrictions(target, arg));
         }
 
         Expr Relational(DynamicMetaObject left, DynamicMetaObject right)
