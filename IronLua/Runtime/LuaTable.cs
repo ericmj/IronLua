@@ -232,7 +232,7 @@ namespace IronLua.Runtime
 
             public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
             {
-                var expression = Expr.Dynamic(new LuaGetMemberBinder(binder.Name), typeof(object), Expression);
+                var expression = Expr.Dynamic(new LuaGetMemberBinder(null, binder.Name), typeof(object), Expression);
                 return binder.FallbackInvoke(new DynamicMetaObject(expression, Restrictions), args, null);
             }
 

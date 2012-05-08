@@ -1,7 +1,5 @@
-using System;
+using System.Diagnostics.Contracts;
 using System.Dynamic;
-using Microsoft.Scripting.Utils;
-using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
@@ -9,11 +7,16 @@ namespace IronLua.Runtime.Binder
     {
         private readonly LuaContext _context;
 
-        public LuaSetIndexBinder(LuaContext context)
-            : base(new CallInfo(1))
+        public LuaSetIndexBinder(LuaContext context, CallInfo callInfo)
+            : base(callInfo)
         {
-            ContractUtils.RequiresNotNull(context, "context");
+            Contract.Requires(context != null);
             _context = context;
+        }
+
+        public LuaSetIndexBinder(LuaContext context)
+            : this(context, new CallInfo(1))
+        {
         }
 
         public LuaContext Context

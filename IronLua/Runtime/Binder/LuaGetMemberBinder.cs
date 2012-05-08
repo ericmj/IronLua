@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.Contracts;
 using System.Dynamic;
 
 namespace IronLua.Runtime.Binder
@@ -7,16 +8,10 @@ namespace IronLua.Runtime.Binder
     {
         private readonly LuaContext _context;
 
-        [Obsolete("TODO: Need to fix this to pass in a LuaContext")]
-        public LuaGetMemberBinder(string name)
-            : this(null, name)
+        public LuaGetMemberBinder(LuaContext context, string name, bool ignoreCase = false)
+            : base(name, ignoreCase)
         {
-            // TODO: need to fix LuaTable, does not have a Context
-        }
-
-        public LuaGetMemberBinder(LuaContext context, string name)
-            : base(name, false)
-        {
+            Contract.Requires(context != null);
             _context = context;
         }
 
@@ -25,8 +20,17 @@ namespace IronLua.Runtime.Binder
             get { return _context; }
         }
 
-        public override DynamicMetaObject FallbackGetMember(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
+        public override DynamicMetaObject FallbackGetMember(
+            DynamicMetaObject target, 
+            DynamicMetaObject errorSuggestion)
         {
+            // Defer if any object has no value so that we evaulate their
+            // Expressions and nest a CallSite for the InvokeMember.
+            if (!target.HasValue) 
+                return Defer(target);
+
+            _context.Binder.GetMember("__get", target);
+
             throw new NotImplementedException();
         }
     }

@@ -64,7 +64,7 @@ namespace IronLua.Runtime
 
         public ConvertBinder GetConvertBinder(Type type)
         {
-            return GetCachedBinder(convertBinders, type, k => new LuaConvertBinder(k));
+            return GetCachedBinder(convertBinders, type, k => new LuaConvertBinder(context, k));
         }
 
         public SetMemberBinder GetSetMemberBinder(string name)

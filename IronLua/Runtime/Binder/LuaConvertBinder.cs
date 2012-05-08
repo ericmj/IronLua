@@ -1,16 +1,22 @@
 using System;
+using System.Diagnostics.Contracts;
 using System.Dynamic;
 using System.Linq.Expressions;
 using IronLua.Library;
+using Microsoft.Scripting.Actions;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace IronLua.Runtime.Binder
 {
     class LuaConvertBinder : ConvertBinder
     {
-        public LuaConvertBinder(Type type)
+        private readonly LuaContext _context;
+
+        public LuaConvertBinder(LuaContext context, Type type)
             : base(type, false)
         {
+            Contract.Requires(context != null);
+            _context = context;
         }
 
         public override DynamicMetaObject FallbackConvert(DynamicMetaObject target, DynamicMetaObject errorSuggestion)
@@ -23,6 +29,8 @@ namespace IronLua.Runtime.Binder
 
             if (expression == null)
                 throw new InvalidOperationException();
+
+            //_context.Binder.ConvertTo(Type, ConversionResultKind.ImplicitCast, target);
 
             return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(target));
         }
