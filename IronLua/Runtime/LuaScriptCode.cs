@@ -1,37 +1,37 @@
 using System;
+using System.Diagnostics.Contracts;
+using System.Dynamic;
 using System.Linq.Expressions;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Runtime;
 
 namespace IronLua.Runtime
 {
+    /// <summary>
+    /// This class represents compiled Lua code for the language implementation
+    /// support the DLR Hosting APIs require.  The DLR Hosting APIs call on
+    /// this class to run code in a new ScriptScope (represented as Scope at 
+    /// the language implementation level or a provided ScriptScope.    
+    /// </summary>
     internal class LuaScriptCode : ScriptCode
     {
-        public LuaScriptCode(SourceUnit sourceUnit)
+        private readonly Expression<Func<IDynamicMetaObjectProvider, dynamic>> _exprLambda;
+        private Func<IDynamicMetaObjectProvider, dynamic> _compiledLambda;
+
+        public LuaScriptCode(SourceUnit sourceUnit, Expression<Func<IDynamicMetaObjectProvider, dynamic>> chunk)
             : base(sourceUnit)
         {
-        }
-
-        private readonly Func<dynamic> _code;
-
-        public LuaScriptCode(SourceUnit sourceUnit, Func<dynamic> chunk)
-            : base(sourceUnit)
-        {
-            _code = chunk;
+            Contract.Requires(chunk != null);
+            _exprLambda = chunk;
         }
 
         public override object Run(Scope scope)
         {
-            //Console.WriteLine("This is where we 'execute' the compiled code");            
+            Contract.Requires(scope != null);
+            if (_compiledLambda == null)
+                _compiledLambda = _exprLambda.Compile();
 
-            if (_code != null)
-            {
-                return _code();
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+            return _compiledLambda(scope);
         }
     }
 }

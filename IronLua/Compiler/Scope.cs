@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq.Expressions;
 using System.Threading;
 using Expr = System.Linq.Expressions.Expression;
@@ -15,6 +16,8 @@ namespace IronLua.Compiler
         readonly Scope parent;
         readonly Dictionary<string, ParamExpr> variables;
         readonly Dictionary<string, LabelTarget> labels;
+
+        ParamExpr dlrGlobals; // only set if parent == null
 
         static int hiddenId;
 
@@ -104,11 +107,21 @@ namespace IronLua.Compiler
             return AddLabel(BreakLabelName); 
         }
 
-        public static Scope CreateRoot()
+        public ParamExpr GetDlrGlobals()
         {
+            if (dlrGlobals != null || parent == null)
+                return dlrGlobals;
+
+            return parent.GetDlrGlobals();
+        }
+
+        public static Scope CreateRoot(ParamExpr dlrGlobals)
+        {
+            Contract.Requires(dlrGlobals != null);
             var scope = new Scope();
+            scope.dlrGlobals = dlrGlobals;
             scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
-            return scope;            
+            return scope;
         }
 
         public static Scope CreateChildFrom(Scope parent)

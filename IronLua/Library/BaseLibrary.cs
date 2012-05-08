@@ -45,7 +45,8 @@ namespace IronLua.Library
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
             try
             {
-                return CompileString(Context, source)();
+                var scope = new Microsoft.Scripting.Runtime.Scope();
+                return CompileString(Context, source)(scope);
             }
             catch (SyntaxErrorException ex)
             {
@@ -398,7 +399,7 @@ namespace IronLua.Library
             return -1;
         }
 
-        static Func<object> CompileString(LuaContext context, string source)
+        static Func<Microsoft.Scripting.Runtime.Scope, dynamic> CompileString(LuaContext context, string source)
         {
             ContractUtils.RequiresNotNull(context, "context");
 

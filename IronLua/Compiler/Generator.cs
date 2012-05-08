@@ -55,48 +55,57 @@ namespace IronLua.Compiler
             this.context = context;
         }
 
-        public Expression<Func<dynamic>> Compile(Block block)
+        public Expression<Func<IDynamicMetaObjectProvider, dynamic>> Compile(Block block)
         {
-            scope = Scope.CreateRoot();
+            var dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
+            scope = Scope.CreateRoot(dlrGlobals);
             var blockExpr = Visit(block);
             var expr = Expr.Block(blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
-            return Expr.Lambda<Func<dynamic>>(expr);
+            return Expr.Lambda<Func<IDynamicMetaObjectProvider, dynamic>>(expr, dlrGlobals);
         }
 
         Expr Visit(Block block)
         {
             var parentScope = scope;
-            scope = Scope.CreateChildFrom(parentScope);
+            try
+            {
+                scope = Scope.CreateChildFrom(parentScope);
 
-            var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
+                var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
 
-            Expr expr;
-            if (statementExprs.Count == 0)
-                expr = Expr.Empty();
-            else if (statementExprs.Count == 1 && scope.LocalsCount == 0)
-                // Don't output blocks if we don't declare any locals and it's a single statement
-                expr = statementExprs[0];
-            else
-                expr = Expr.Block(scope.GetLocals(), statementExprs);
-
-            scope = parentScope;
-            return expr;
+                if (statementExprs.Count == 0)
+                    return Expr.Empty();
+                else if (statementExprs.Count == 1 && scope.LocalsCount == 0)
+                    // Don't output blocks if we don't declare any locals and it's a single statement
+                    return statementExprs[0];
+                else
+                    return Expr.Block(scope.GetLocals(), statementExprs);
+            } 
+            finally
+            {
+                scope = parentScope;
+            }
         }
 
         Expr Visit(string name, FunctionBody function)
         {
             var parentScope = scope;
-            scope = Scope.CreateFunctionChildFrom(scope);
+            try
+            {
+                scope = Scope.CreateFunctionChildFrom(scope);
 
-            var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
-            if (function.Varargs)
-                parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
+                var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
+                if (function.Varargs)
+                    parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
 
-            var bodyExpr = Expr.Block(Visit(function.Body), Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
-            var lambdaExpr = Expr.Lambda(bodyExpr, Constant.FUNCTION_PREFIX + name, parameters);
-
-            scope = parentScope;
-            return lambdaExpr;
+                var bodyExpr = Expr.Block(Visit(function.Body),
+                                Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
+                return Expr.Lambda(bodyExpr, Constant.FUNCTION_PREFIX + name, parameters);
+            }
+            finally
+            {
+                scope = parentScope;
+            }
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Assign statement)
@@ -120,21 +129,22 @@ namespace IronLua.Compiler
         Expr IStatementVisitor<Expr>.Visit(Statement.For statement)
         {
             var parentScope = scope;
-            scope = Scope.CreateChildFrom(parentScope);
+            try
+            {
+                scope = Scope.CreateChildFrom(parentScope);
 
-            var step = statement.Step == null
-                           ? new Expression.Number(1.0).Visit(this)
-                           : ExprHelpers.ConvertToNumber(context, statement.Step.Visit(this));
+                var step = statement.Step == null
+                               ? new Expression.Number(1.0).Visit(this)
+                               : ExprHelpers.ConvertToNumber(context, statement.Step.Visit(this));
 
-            var loopVariable = scope.AddLocal(statement.Identifier);
-            var varVar = Expr.Variable(typeof(double));
-            var limitVar = Expr.Variable(typeof(double));
-            var stepVar = Expr.Variable(typeof(double));
+                var loopVariable = scope.AddLocal(statement.Identifier);
+                var varVar = Expr.Variable(typeof(double));
+                var limitVar = Expr.Variable(typeof(double));
+                var stepVar = Expr.Variable(typeof(double));
 
-            var breakConditionExpr = ForLoopBreakCondition(limitVar, stepVar, varVar);
+                var breakConditionExpr = ForLoopBreakCondition(limitVar, stepVar, varVar);
 
-            var expr =
-                Expr.Block(
+                return Expr.Block(
                     new[] { loopVariable, varVar, limitVar, stepVar },
                     Expr.Assign(varVar, ExprHelpers.ConvertToNumber(context, statement.Var.Visit(this))),
                     Expr.Assign(limitVar, ExprHelpers.ConvertToNumber(context, statement.Limit.Visit(this))),
@@ -143,9 +153,11 @@ namespace IronLua.Compiler
                     ExprHelpers.CheckNumberForNan(limitVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "limit")),
                     ExprHelpers.CheckNumberForNan(stepVar, String.Format(ExceptionMessage.FOR_VALUE_NOT_NUMBER, "step")),
                     ForLoop(statement, stepVar, loopVariable, varVar, breakConditionExpr));
-
-            scope = parentScope;
-            return expr;
+            }
+            finally
+            {
+                scope = parentScope;
+            }
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.ForIn statement)
@@ -469,6 +481,9 @@ namespace IronLua.Compiler
                     return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
                                         typeof(object), Expr.Constant(context.Globals));
 
+                    //return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
+                    //                    typeof(object), scope.GetDlrGlobals());
+
                 case VariableType.MemberId:
                     return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
                                         typeof(object), variable.Object);
@@ -578,6 +593,9 @@ namespace IronLua.Compiler
 
                     return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
                                         typeof(object), Expr.Constant(context.Globals), value);
+
+                    //return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
+                    //                    typeof(object), scope.GetDlrGlobals(), value);
 
                 case VariableType.MemberId:
                     return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
