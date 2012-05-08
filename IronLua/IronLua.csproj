@@ -90,7 +90,7 @@
     <Compile Include="Compiler\Ast\Variable.cs" />
     <Compile Include="Compiler\FieldVisit.cs" />
     <Compile Include="Compiler\Generator.cs" />
-    <Compile Include="Compiler\Scope.cs" />
+    <Compile Include="Compiler\LuaScope.cs" />
     <Compile Include="Compiler\VariableVisit.cs" />
     <Compile Include="Constant.cs" />
     <Compile Include="ExceptionMessage.cs" />

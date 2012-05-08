@@ -46,7 +46,7 @@ namespace IronLua.Compiler
                     {UnaryOp.Not,    ExprType.Not}
                 };
 
-        Scope scope;
+        LuaScope scope;
         readonly LuaContext context;
 
         public Generator(LuaContext context)
@@ -58,7 +58,7 @@ namespace IronLua.Compiler
         public Expression<Func<IDynamicMetaObjectProvider, dynamic>> Compile(Block block)
         {
             var dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
-            scope = Scope.CreateRoot(dlrGlobals);
+            scope = LuaScope.CreateRoot(dlrGlobals);
             var blockExpr = Visit(block);
             var expr = Expr.Block(blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
             return Expr.Lambda<Func<IDynamicMetaObjectProvider, dynamic>>(expr, dlrGlobals);
@@ -69,7 +69,7 @@ namespace IronLua.Compiler
             var parentScope = scope;
             try
             {
-                scope = Scope.CreateChildFrom(parentScope);
+                scope = LuaScope.CreateChildFrom(parentScope);
 
                 var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
 
@@ -92,7 +92,7 @@ namespace IronLua.Compiler
             var parentScope = scope;
             try
             {
-                scope = Scope.CreateFunctionChildFrom(scope);
+                scope = LuaScope.CreateFunctionChildFrom(scope);
 
                 var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
                 if (function.Varargs)
@@ -122,7 +122,7 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Do statement)
         {
-            scope = Scope.CreateChildFrom(scope);
+            scope = LuaScope.CreateChildFrom(scope);
             return Visit(statement.Body);
         }
 
@@ -131,7 +131,7 @@ namespace IronLua.Compiler
             var parentScope = scope;
             try
             {
-                scope = Scope.CreateChildFrom(parentScope);
+                scope = LuaScope.CreateChildFrom(parentScope);
 
                 var step = statement.Step == null
                                ? new Expression.Number(1.0).Visit(this)
@@ -171,7 +171,7 @@ namespace IronLua.Compiler
             var assignIterVars = VarargsExpandAssignment(iterVars, valueExprs);
 
             var parentScope = scope;
-            scope = Scope.CreateChildFrom(scope);
+            scope = LuaScope.CreateChildFrom(scope);
             var locals = statement.Identifiers.Select(id => scope.AddLocal(id)).ToList();
 
             var invokeIterFunc = Expr.Dynamic(context.CreateInvokeBinder(new CallInfo(2)),

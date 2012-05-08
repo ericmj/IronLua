@@ -8,12 +8,12 @@ using ParamExpr = System.Linq.Expressions.ParameterExpression;
 
 namespace IronLua.Compiler
 {
-    class Scope
+    class LuaScope
     {
         const string BreakLabelName = "@break";
         const string ReturnLabelName = "@return";
 
-        readonly Scope parent;
+        readonly LuaScope parent;
         readonly Dictionary<string, ParamExpr> variables;
         readonly Dictionary<string, LabelTarget> labels;
 
@@ -23,7 +23,7 @@ namespace IronLua.Compiler
 
         public bool IsRoot { get { return parent == null; } }
 
-        private Scope(Scope parent = null)
+        private LuaScope(LuaScope parent = null)
         {
             this.parent = parent;
             this.variables = new Dictionary<string, ParamExpr>();
@@ -115,27 +115,27 @@ namespace IronLua.Compiler
             return parent.GetDlrGlobals();
         }
 
-        public static Scope CreateRoot(ParamExpr dlrGlobals)
+        public static LuaScope CreateRoot(ParamExpr dlrGlobals)
         {
             Contract.Requires(dlrGlobals != null);
-            var scope = new Scope();
+            var scope = new LuaScope();
             scope.dlrGlobals = dlrGlobals;
             scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
             return scope;
         }
 
-        public static Scope CreateChildFrom(Scope parent)
+        public static LuaScope CreateChildFrom(LuaScope parent)
         {
-            var scope = new Scope(parent);
+            var scope = new LuaScope(parent);
             LabelTarget breakLabel;
             if (parent.labels.TryGetValue(BreakLabelName, out breakLabel))
                 scope.labels.Add(BreakLabelName, breakLabel);
             return scope;
         }
 
-        public static Scope CreateFunctionChildFrom(Scope parent)
+        public static LuaScope CreateFunctionChildFrom(LuaScope parent)
         {
-            var scope = new Scope(parent);
+            var scope = new LuaScope(parent);
             scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
             return scope;
         }
