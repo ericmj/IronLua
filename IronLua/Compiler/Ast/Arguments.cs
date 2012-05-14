@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 
 namespace IronLua.Compiler.Ast
 {
@@ -8,10 +9,11 @@ namespace IronLua.Compiler.Ast
 
         public class Normal : Arguments
         {
-            public List<Expression> Arguments { get; set; }
+            public List<Expression> Arguments { get; private set; }
 
             public Normal(List<Expression> arguments)
             {
+                Contract.Requires(arguments != null);
                 Arguments = arguments;
             }
 
@@ -23,10 +25,11 @@ namespace IronLua.Compiler.Ast
 
         public class Table : Arguments
         {
-            public Expression.Table Value { get; set; }
+            public Expression.Table Value { get; private set; }
 
             public Table(Expression.Table value)
             {
+                Contract.Requires(value != null);
                 Value = value;
             }
 
@@ -38,10 +41,11 @@ namespace IronLua.Compiler.Ast
 
         public class String : Arguments
         {
-            public Expression.String Literal { get; set; }
+            public Expression.String Literal { get; private set; }
 
             public String(Expression.String literal)
             {
+                Contract.Requires(literal != null);
                 Literal = literal;
             }
 
