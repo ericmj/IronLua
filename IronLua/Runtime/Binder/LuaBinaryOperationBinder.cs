@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
+using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
@@ -59,8 +60,19 @@ namespace IronLua.Runtime.Binder
             switch (BinaryExprTypes[Operation])
             {
                 case BinaryOpType.Relational:
-                    expression = Relational(target, arg);
-                    break;
+                    {
+                        var returnType = this.ReturnType;
+                        var left = target;
+                        var right = arg;
+                        var mo = context.Binder.DoOperation(Operation, left, right);
+                        if (mo.Expression.Type != returnType)
+                        {
+                            mo = mo.Clone(Expr.Convert(mo.Expression, returnType));
+                        }
+                        return mo;
+                    }
+                    //expression = Relational(target, arg);
+                    //break;
                 case BinaryOpType.Logical:
                     expression = Logical(target, arg);
                     break;
