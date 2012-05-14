@@ -27,7 +27,6 @@ namespace IronLua.Runtime
 
         public override object Run(Scope scope)
         {
-            Contract.Requires(scope != null);
             if (_compiledLambda == null)
                 _compiledLambda = _exprLambda.Compile();
 
