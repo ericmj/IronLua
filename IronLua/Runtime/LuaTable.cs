@@ -49,13 +49,14 @@ namespace IronLua.Runtime
                     if (entries[i].Key != null)
                         return new Varargs(entries[i].Key, entries[i].Value);
                 }
-                return null;
             }
-
-            for (var i = FindEntry(index) + 1; i < entries.Length; i++)
+            else
             {
-                if (entries[i].Key != null)
-                    return new Varargs(entries[i].Key, entries[i].Value);
+                for (var i = FindEntry(index) + 1; i < entries.Length; i++)
+                {
+                    if (entries[i].Key != null)
+                        return new Varargs(entries[i].Key, entries[i].Value);
+                }
             }
             return null;
         }
