@@ -10,7 +10,6 @@ namespace IronLua.Compiler.Ast
         public Block(List<Statement> statements)
         {
             Contract.Requires(statements != null);
-            Contract.Requires(statements.Count > 0);
             Statements = statements;
         }
 
