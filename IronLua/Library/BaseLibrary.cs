@@ -197,7 +197,7 @@ namespace IronLua.Library
             {
                 if (i > 0) 
                     writer.Write("\t");
-                writer.Write(args[i]);
+                writer.Write(ToStringEx(args[i]));
             }
             writer.WriteLine();
         }
@@ -280,22 +280,45 @@ namespace IronLua.Library
             return Context.DynamicCache.GetDynamicCall1()(metaToString, e);
         }
 
+        public string ToStringEx(object v)
+        {
+            if (ReferenceEquals(v, null))
+                return "nil";
+
+            // TODO: check if metatable exist and if __tostring entry is set
+
+            if (v is LuaTable)
+                return String.Format("table: {0}", "00000000"); // FIXME
+            
+            if (v is Delegate)
+                return String.Format("function: {0}", "00000000"); // FIXME
+            
+            return v.ToString();
+        }
+
         public static string Type(object v)
         {
-            if (v == null)
+            return ReferenceEquals(v, null) 
+                ? "nil" 
+                : TypeName(v.GetType());
+        }
+
+        public static string TypeName(Type t)
+        {
+            if (t == typeof(DynamicNull))
                 return "nil";
-            if (v is bool)
+            if (t == typeof(bool))
                 return "boolean";
-            if (v is double)
+            if (t == typeof(double))
                 return "number";
-            if (v is string)
+            if (t == typeof(string))
                 return "string";
-            if (v is Delegate)
+            if (t.IsSubclassOf(typeof(Delegate)))
                 return "function";
-            if (v is LuaTable)
+            if (t == typeof(LuaTable))
                 return "table";
 
-            return v.GetType().FullName;
+            return t.FullName;
         }
 
         public static Varargs Unpack(LuaTable list, object i = null, object j = null)

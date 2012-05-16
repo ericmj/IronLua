@@ -8,6 +8,7 @@ using IronLua.Compiler.Ast;
 using IronLua.Runtime;
 using IronLua.Util;
 using Microsoft.Scripting;
+using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
 using ParamExpr = System.Linq.Expressions.ParameterExpression;
@@ -362,7 +363,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Nil expression)
         {
-            return Expr.Default(typeof(object));
+            return Expr.Constant(null, typeof(DynamicNull));
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Number expression)
