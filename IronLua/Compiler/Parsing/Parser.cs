@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using IronLua.Compiler.Ast;
 using IronLua.Library;
 using Microsoft.Scripting;
@@ -66,7 +67,7 @@ namespace IronLua.Compiler.Parsing
 
         public Parser(ILexer lexer, ErrorSink errorSink = null, LuaCompilerOptions options = null)
         {
-            ContractUtils.RequiresNotNull(lexer, "lexer");
+            Contract.Requires(lexer != null);
 
             _lexer = lexer;
             _errors = errorSink ?? ErrorSink.Default;
