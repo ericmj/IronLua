@@ -230,6 +230,14 @@ end";
             engine.Execute("t = { a = }");
         }
 
+        [Test]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "'}' expected near '='")]
+        public void TestTables_ParserMsg6()
+        {
+            engine.Execute("t = { f() = 3, 2, 1 }");
+        }
+
         #endregion
 
         #region Table construction tests

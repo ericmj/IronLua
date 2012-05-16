@@ -291,7 +291,7 @@ namespace IronLua.Tests.Features
 
             Assert.That(Run(@"return {1} and {2}"), Is.TypeOf<LuaTable>());
 
-            Assert.That(Run(@"function f() end; return {} and f"), Is.TypeOf<Func<Object>>());
+            Assert.That(Run(@"return {} and function() end"), Is.TypeOf<Func<Object>>());
         }
 
         [Test, Ignore("Tables not working yet")]
@@ -477,7 +477,7 @@ namespace IronLua.Tests.Features
         }
 
         [Test, ExpectedException(typeof(LuaRuntimeException),
-            ExpectedMessage = "attempt to compare table with number")]
+            ExpectedMessage = "attempt to compare function with number")]
         public void TestBinary_LessThan_FunctionWithNumber()
         {
             engine.Execute("return function() end < 6");
@@ -512,7 +512,7 @@ namespace IronLua.Tests.Features
         }
 
         [Test, ExpectedException(typeof(LuaRuntimeException),
-            ExpectedMessage = "attempt to compare string with table")]
+            ExpectedMessage = "attempt to compare string with function")]
         public void TestBinary_LessThan_StringWithFunction()
         {
             engine.Execute("return 'abc' < function() end");
