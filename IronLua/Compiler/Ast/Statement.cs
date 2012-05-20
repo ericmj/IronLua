@@ -1,16 +1,20 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using Microsoft.Scripting;
 using Microsoft.Scripting.Utils;
 
 namespace IronLua.Compiler.Ast
 {
     abstract class Statement : Node
     {
+        public SourceSpan Span;
+
         public abstract T Visit<T>(IStatementVisitor<T> visitor);
 
         public class Assign : Statement
         {
-            public List<Variable> Variables { get; set; }
-            public List<Expression> Values { get; set; }
+            public List<Variable> Variables { get; private set; }
+            public List<Expression> Values { get; private set; }
 
             public Assign(List<Variable> variables, List<Expression> values)
             {
@@ -20,6 +24,33 @@ namespace IronLua.Compiler.Ast
 
             public Assign(Variable variable, Expression value)
                 : this(new List<Variable>{ variable }, new List<Expression>{ value })
+            {
+            }
+
+            public override T Visit<T>(IStatementVisitor<T> visitor)
+            {
+                return visitor.Visit(this);
+            }
+        }
+
+        public class LocalAssign : Statement
+        {
+            public List<string> Identifiers { get; private set; }
+            public List<Expression> Values { get; private set; }
+
+            public LocalAssign(List<string> identifiers, List<Expression> values)
+            {
+                Identifiers = identifiers;
+                Values = values;
+            }
+
+            public LocalAssign(string identifier, Expression value)
+                : this(new List<string> { identifier }, new List<Expression> { value })
+            {
+            }
+
+            public LocalAssign(string identifier)
+                : this(new List<string> { identifier }, null)
             {
             }
 
@@ -176,52 +207,38 @@ namespace IronLua.Compiler.Ast
 
         public class Function : Statement
         {
-            public FunctionName Name { get; set; }
-            public FunctionBody Body { get; set; }
+            public FunctionName Name { get; private set; }
+            public FunctionBody Body { get; private set; }
 
             public Function(FunctionName name, FunctionBody body)
             {
+                Contract.Requires(name != null);
+                Contract.Requires(body != null);
                 Name = name;
                 Body = body;
             }
 
+            public virtual bool IsLocal
+            {
+                get { return false; }
+            }
+
             public override T Visit<T>(IStatementVisitor<T> visitor)
             {
                 return visitor.Visit(this);
             }
         }
 
-        public class LocalFunction : Statement
+        public class LocalFunction : Statement.Function
         {
-            public string Identifier { get; set; }
-            public FunctionBody Body { get; set; }
-
             public LocalFunction(string identifier, FunctionBody body)
+                : base(new FunctionName(identifier), body)
             {
-                Identifier = identifier;
-                Body = body;
             }
 
-            public override T Visit<T>(IStatementVisitor<T> visitor)
+            public override bool IsLocal
             {
-                return visitor.Visit(this);
-            }
-        }
-
-        public class LocalAssign : Statement
-        {
-            public List<string> Identifiers { get; set; }
-            public List<Expression> Values { get; set; }
-
-            public LocalAssign(List<string> identifiers, List<Expression> values)
-            {
-                Identifiers = identifiers;
-                Values = values;
-            }
-
-            public LocalAssign(string identifier, Expression value)
-                : this(new List<string>{ identifier }, new List<Expression>{ value })
-            {
+                get { return true; }
             }
 
             public override T Visit<T>(IStatementVisitor<T> visitor)

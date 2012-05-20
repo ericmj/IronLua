@@ -1,7 +1,11 @@
+using Microsoft.Scripting;
+
 namespace IronLua.Compiler.Ast
 {
     abstract class Variable : Node
     {
+        public SourceSpan Span;
+
         public abstract T Visit<T>(IVariableVisitor<T> visitor);
 
         public class Identifier : Variable

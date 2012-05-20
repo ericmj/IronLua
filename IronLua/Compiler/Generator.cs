@@ -49,6 +49,7 @@ namespace IronLua.Compiler
 
         LuaScope scope;
         readonly LuaContext context;
+        SymbolDocumentInfo _document;
 
         public Generator(LuaContext context)
         {
@@ -56,8 +57,11 @@ namespace IronLua.Compiler
             this.context = context;
         }
 
-        public Expression<Func<IDynamicMetaObjectProvider, dynamic>> Compile(Block block)
+        public Expression<Func<IDynamicMetaObjectProvider, dynamic>> Compile(Block block, SourceUnit sourceUnit = null)
         {
+            if (sourceUnit != null)
+                _document = sourceUnit.Document ?? Expr.SymbolDocument("(chunk)", sourceUnit.LanguageContext.LanguageGuid, sourceUnit.LanguageContext.VendorGuid);
+
             var dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
             scope = LuaScope.CreateRoot(dlrGlobals);
             var blockExpr = Visit(block);
@@ -72,7 +76,17 @@ namespace IronLua.Compiler
             {
                 scope = LuaScope.CreateChildFrom(parentScope);
 
-                var statementExprs = block.Statements.Select(s => s.Visit(this)).ToList();
+                var statementExprs = new List<Expr>();
+                if (block.Statements.Count > 0)
+                {
+                    if (_document != null)
+                    {
+                        statementExprs.Add(Expr.DebugInfo(_document, 
+                            block.Span.Start.Line, block.Span.Start.Column, 
+                            block.Span.End.Line, block.Span.End.Column));
+                    }
+                    statementExprs.AddRange(block.Statements.Select(s => s.Visit(this)));
+                }
 
                 if (statementExprs.Count == 0)
                     return Expr.Empty();
@@ -88,20 +102,26 @@ namespace IronLua.Compiler
             }
         }
 
-        Expr Visit(string name, FunctionBody function)
+        Expr Visit(FunctionName name, FunctionBody function)
         {
             var parentScope = scope;
             try
             {
                 scope = LuaScope.CreateFunctionChildFrom(scope);
 
-                var parameters = function.Parameters.Select(p => scope.AddLocal(p)).ToList();
-                if (function.Varargs)
+                var parameters = new List<ParamExpr>();
+                if (name.HasTableMethod)
+                    parameters.Add(scope.AddLocal("self"));
+                parameters.AddRange(
+                    function.Parameters.Select(p => scope.AddLocal(p)));
+                if (function.HasVarargs)
                     parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
 
                 var bodyExpr = Expr.Block(Visit(function.Body),
                                 Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
-                return Expr.Lambda(bodyExpr, Constant.FUNCTION_PREFIX + name, parameters);
+
+                var funcName = Constant.FUNCTION_PREFIX + name.Identifiers.Last();
+                return Expr.Lambda(bodyExpr, funcName, parameters);
             }
             finally
             {
@@ -197,16 +217,14 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Function statement)
         {
-            // Rewrite AST to its desugared state
-            // function a:b (params) body end -> function a.b (self, params) body end
-            if (statement.Name.Table != null)
+            var bodyExpr = Visit(statement.Name, statement.Body);
+
+            if (statement.IsLocal)
             {
-                statement.Body.Parameters.Insert(0, "self");
-                statement.Name.Identifiers.Add(statement.Name.Table);
-                statement.Name.Table = null;
+                var localExpr = scope.AddLocal(statement.Name.Identifiers.Last());
+                return Expr.Assign(localExpr, bodyExpr);
             }
 
-            var bodyExpr = Visit(statement.Name.Identifiers.Last(), statement.Body);
             return AssignToIdentifierList(statement.Name.Identifiers, bodyExpr);
         }
 
@@ -253,7 +271,9 @@ namespace IronLua.Compiler
 
         Expr IStatementVisitor<Expr>.Visit(Statement.LocalFunction statement)
         {
-            return Expr.Assign(scope.AddLocal(statement.Identifier), Visit(statement.Identifier, statement.Body));
+            var bodyExpr = Visit(statement.Name, statement.Body);
+            var localExpr = scope.AddLocal(statement.Name.Identifiers.Last());
+            return Expr.Assign(localExpr, bodyExpr);
         }
 
         Expr IStatementVisitor<Expr>.Visit(Statement.Repeat statement)
@@ -263,7 +283,10 @@ namespace IronLua.Compiler
             // Temporarily rewrite the AST so that the test expression 
             // can be evaluated in the same scope as the body.
             stats.Add(new Statement.If(statement.Test, 
-                new Block(new LastStatement.Break())));
+                new Block(new LastStatement.Break() { Span = statement.Test.Span }))
+            {
+                Span = statement.Test.Span
+            });
 
             var breakLabel = scope.BreakLabel();
             var expr = Expr.Loop(
@@ -358,7 +381,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Function expression)
         {
-            return Visit("lambda", expression.Body);
+            return Visit(new FunctionName("lambda"), expression.Body);
         }
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Nil expression)
@@ -517,7 +540,7 @@ namespace IronLua.Compiler
             var tableVar = Expr.Variable(typeof(object));
             var assignExpr = Expr.Assign(tableVar, tableExpr);
 
-            var tableGetMember = Expr.Dynamic(context.CreateGetMemberBinder(functionCall.Name, false),
+            var tableGetMember = Expr.Dynamic(context.CreateGetMemberBinder(functionCall.MethodName, false),
                                               typeof(object), tableVar);
 
             var argExprs = functionCall.Arguments.Visit(this);
