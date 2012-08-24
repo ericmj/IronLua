@@ -76,6 +76,8 @@ namespace IronLua.Runtime
             {
                 if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
                 {
+                    if (entries[i].Locked)
+                        throw new LuaRuntimeException("Cannot change the value of the constant {0}", key);
                     entries[i].Value = value;
                     return value;
                 }
@@ -103,6 +105,60 @@ namespace IronLua.Runtime
             entries[free].Next = buckets[modHashCode];
             entries[free].Key = key;
             entries[free].Value = value;
+            buckets[modHashCode] = free;
+            return value;
+        }
+
+        internal object SetConstant(object key, object value)
+        {
+            if (value == null)
+            {
+                Remove(key);
+                return null;
+            }
+
+            var hashCode = key.GetHashCode() & Int32.MaxValue;
+            var modHashCode = hashCode % buckets.Length;
+
+            for (var i = buckets[modHashCode]; i >= 0; i = entries[i].Next)
+            {
+                if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
+                {
+                    if(entries[i].Locked)
+                        throw new LuaRuntimeException("The constant {0} is already set to {1} and cannot be modified", key, value);
+                    else
+                    {
+                        //TODO: Decide whether or not we should allow a variable to be converted into a constant
+                        entries[i].Value = value;
+                        entries[i].Locked = true;
+                        return value;
+                    }
+                }
+            }
+
+            int free;
+            if (freeCount > 0)
+            {
+                free = freeList;
+                freeList = entries[free].Next;
+                freeCount--;
+            }
+            else
+            {
+                if (count == entries.Length)
+                {
+                    Resize();
+                    modHashCode = hashCode % buckets.Length;
+                }
+                free = count;
+                count++;
+            }
+
+            entries[free].HashCode = hashCode;
+            entries[free].Next = buckets[modHashCode];
+            entries[free].Key = key;
+            entries[free].Value = value;
+            entries[free].Locked = true;
             buckets[modHashCode] = free;
             return value;
         }
@@ -198,6 +254,7 @@ namespace IronLua.Runtime
             public object Key;
             public object Value;
             public int Next;
+            public bool Locked;
         }
 
         class MetaTable : DynamicMetaObject
