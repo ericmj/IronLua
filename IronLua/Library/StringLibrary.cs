@@ -72,14 +72,14 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("len", (Func<string, double>) (s => s.Length));
-            table.SetValue("upper", (Func<string, string>) (s => s.ToUpperInvariant()));
-            table.SetValue("lower", (Func<string, string>)(s => s.ToLowerInvariant()));
-            table.SetValue("rep", (Func<string, double, string>) ((s, r) => s.Repeat((int)Math.Round(r, MidpointRounding.ToEven))));
+            table.SetConstant("len", (Func<string, double>) (s => s.Length));
+            table.SetConstant("upper", (Func<string, string>) (s => s.ToUpperInvariant()));
+            table.SetConstant("lower", (Func<string, string>)(s => s.ToLowerInvariant()));
+            table.SetConstant("rep", (Func<string, double, string>) ((s, r) => s.Repeat((int)Math.Round(r, MidpointRounding.ToEven))));
 
-            table.SetValue("sub", (Func<string, double, double, string>)Subst); // TODO: varargs
-            table.SetValue("char", (Func<double[], string>) Char); // TODO: varargs
-            table.SetValue("byte", (Func<string, double, double, double[]>) Byte); // TODO: varargs
+            table.SetConstant("sub", (Func<string, double, double, string>)Subst); // TODO: varargs
+            table.SetConstant("char", (Func<double[], string>) Char); // TODO: varargs
+            table.SetConstant("byte", (Func<string, double, double, double[]>) Byte); // TODO: varargs
         }
     }
 

@@ -214,7 +214,7 @@ namespace IronLua.Library
 
         public static LuaTable RawSet(LuaTable table, object index, object value)
         {
-            table.SetValue(index, value);
+            table.SetConstant(index, value);
             return table;
         }
 
@@ -288,10 +288,20 @@ namespace IronLua.Library
             // TODO: check if metatable exist and if __tostring entry is set
 
             if (v is LuaTable)
-                return String.Format("table: {0}", "00000000"); // FIXME
+                return String.Format("table: {0} entries", (v as LuaTable).Length());
             
             if (v is Delegate)
-                return String.Format("function: {0}", "00000000"); // FIXME
+            {
+                string functionFormat = "";
+                var fn = v as Delegate;
+
+                foreach (var p in fn.Method.GetParameters())
+                    functionFormat += (p.Name ?? p.ParameterType.Name) + ",";
+                functionFormat = functionFormat.Remove(functionFormat.Length - 1);
+                functionFormat = string.Format("({0}) => {1}", functionFormat, fn.Method.ReturnType.Name);
+
+                return String.Format("function: {0}", functionFormat);
+            }
             
             return v.ToString();
         }
@@ -444,33 +454,33 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("assert", (Func<bool, object, object[], Varargs>)Assert);
-            table.SetValue("collectgarbage", (Action<string, string>)CollectGarbage);
-            table.SetValue("dofile", (Func<string, object>)DoFile);
-            table.SetValue("error", (Action<string, object>)Error);
-            table.SetValue("_G", table);
-            table.SetValue("getfenv", (Func<object, object>)GetFEnv);
-            table.SetValue("getmetatable", (Func<object, object>)GetMetatable);
-            table.SetValue("ipairs", (Func<LuaTable, Varargs>)IPairs);
-            table.SetValue("load", (Func<Delegate, string, Varargs>)Load);
-            table.SetValue("loadfile", (Func<string, Varargs>)LoadFile);
-            table.SetValue("loadstring", (Func<string, string, Varargs>)LoadString);
-            table.SetValue("next", (Func<LuaTable, object, Varargs>)Next);
-            table.SetValue("pairs", (Func<LuaTable, Varargs>)Pairs);
-            table.SetValue("pcall", (Func<Delegate, object[], Varargs>)PCall);
-            table.SetValue("print", (Action<object[]>)Print);
-            table.SetValue("rawequal", (Func<object, object, bool>)RawEqual);
-            table.SetValue("rawget", (Func<LuaTable, object, object>)RawGet);
-            table.SetValue("rawset", (Func<LuaTable, object, object, object>)RawSet);
-            table.SetValue("select", (Func<object, object[], Varargs>)Select);
-            table.SetValue("setfenv", (Func<object, LuaTable, object>)SetFEnv);
-            table.SetValue("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
-            table.SetValue("tonumber", (Func<string, object, object>)ToNumber);
-            table.SetValue("tostring", (Func<object, object>)ToString);
-            table.SetValue("type", (Func<object, string>)Type);
-            table.SetValue("unpack", (Func<LuaTable, object, object, Varargs>)Unpack);
-            table.SetValue("_VERSION", Constant.LUA_VERSION);
-            table.SetValue("xpcall", (Func<Delegate, Delegate, Varargs>)XPCall);
+            table.SetConstant("assert", (Func<bool, object, object[], Varargs>)Assert);
+            table.SetConstant("collectgarbage", (Action<string, string>)CollectGarbage);
+            table.SetConstant("dofile", (Func<string, object>)DoFile);
+            table.SetConstant("error", (Action<string, object>)Error);
+            table.SetConstant("_G", table);
+            table.SetConstant("getfenv", (Func<object, object>)GetFEnv);
+            table.SetConstant("getmetatable", (Func<object, object>)GetMetatable);
+            table.SetConstant("ipairs", (Func<LuaTable, Varargs>)IPairs);
+            table.SetConstant("load", (Func<Delegate, string, Varargs>)Load);
+            table.SetConstant("loadfile", (Func<string, Varargs>)LoadFile);
+            table.SetConstant("loadstring", (Func<string, string, Varargs>)LoadString);
+            table.SetConstant("next", (Func<LuaTable, object, Varargs>)Next);
+            table.SetConstant("pairs", (Func<LuaTable, Varargs>)Pairs);
+            table.SetConstant("pcall", (Func<Delegate, object[], Varargs>)PCall);
+            table.SetConstant("print", (Action<object[]>)Print);
+            table.SetConstant("rawequal", (Func<object, object, bool>)RawEqual);
+            table.SetConstant("rawget", (Func<LuaTable, object, object>)RawGet);
+            table.SetConstant("rawset", (Func<LuaTable, object, object, object>)RawSet);
+            table.SetConstant("select", (Func<object, object[], Varargs>)Select);
+            table.SetConstant("setfenv", (Func<object, LuaTable, object>)SetFEnv);
+            table.SetConstant("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
+            table.SetConstant("tonumber", (Func<string, object, object>)ToNumber);
+            table.SetConstant("tostring", (Func<object, object>)ToString);
+            table.SetConstant("type", (Func<object, string>)Type);
+            table.SetConstant("unpack", (Func<LuaTable, object, object, Varargs>)Unpack);
+            table.SetConstant("_VERSION", Constant.LUA_VERSION);
+            table.SetConstant("xpcall", (Func<Delegate, Delegate, Varargs>)XPCall);
         }
     }
 }

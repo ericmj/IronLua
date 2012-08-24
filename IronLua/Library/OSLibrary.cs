@@ -51,16 +51,16 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("time", (Func<LuaTable, double>)Time );
-            table.SetValue("difftime", (Func<double, double, double>) ((t2, t1) => t2 - t1));
+            table.SetConstant("time", (Func<LuaTable, double>)Time );
+            table.SetConstant("difftime", (Func<double, double, double>) ((t2, t1) => t2 - t1));
 
-            //table.SetValue("date", (Func<object, object>)Date); // TODO
+            //table.SetConstant("date", (Func<object, object>)Date); // TODO
 
-            table.SetValue("exit", (Action<double>)(e => Environment.Exit((int)e)));
-            table.SetValue("getenv", (Func<string, string>) Environment.GetEnvironmentVariable);
+            table.SetConstant("exit", (Action<double>)(e => Environment.Exit((int)e)));
+            table.SetConstant("getenv", (Func<string, string>) Environment.GetEnvironmentVariable);
 
-            table.SetValue("remove", (Func<string, object>) Delete);
-            table.SetValue("rename", (Func<string, string, object>) Rename);
+            table.SetConstant("remove", (Func<string, object>) Delete);
+            table.SetConstant("rename", (Func<string, string, object>) Rename);
         }
     }
 }

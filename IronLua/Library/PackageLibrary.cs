@@ -31,9 +31,9 @@ namespace IronLua.Library
 
         public override void Setup(LuaTable table)
         {
-            table.SetValue("config", ConfigStr);
+            table.SetConstant("config", ConfigStr);
 
-            table.SetValue("cpath", 
+            table.SetConstant("cpath", 
                 Environment.GetEnvironmentVariable("LUA_CPATH_5_2") ??
                     Environment.GetEnvironmentVariable("LUA_CPATH") ??
                         String.Join(";", new[]
@@ -43,7 +43,7 @@ namespace IronLua.Library
                             ".\\?.dll"
                         }));
 
-            table.SetValue("path",
+            table.SetConstant("path",
                 Environment.GetEnvironmentVariable("LUA_PATH_5_2") ??
                     Environment.GetEnvironmentVariable("LUA_PATH") ??
                         String.Join(";", new[] 
@@ -55,12 +55,12 @@ namespace IronLua.Library
                             ".\\?.lua"
                         }));
 
-            table.SetValue("loaded", new LuaTable());
-            table.SetValue("preload", new LuaTable());
-            table.SetValue("searchers", new LuaTable()); // TODO: fill with searchers
+            table.SetConstant("loaded", new LuaTable());
+            table.SetConstant("preload", new LuaTable());
+            table.SetConstant("searchers", new LuaTable()); // TODO: fill with searchers
 
-            table.SetValue("loadlib", (Func<string, string, object>)Loadlib);
-            table.SetValue("searchpath", (Func<string, string, string, string, object>) SearchPath);
+            table.SetConstant("loadlib", (Func<string, string, object>)Loadlib);
+            table.SetConstant("searchpath", (Func<string, string, string, string, object>) SearchPath);
         }
     }
 }
