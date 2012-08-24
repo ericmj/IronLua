@@ -101,7 +101,13 @@ namespace IronLua.Hosting
             return runtime.GetEngineByTypeName(typeof(LuaContext).AssemblyQualifiedName);
         }
 
-        internal static LuaContext GetLuaContext(ScriptEngine engine)
+        /// <summary>
+        /// Gets the <see cref="LuaContext"/> associated with an instance of a
+        /// <see cref="ScriptEngine"/>
+        /// </summary>
+        /// <param name="engine">The <see cref="ScriptEngine"/> to which this <see cref="LuaContext"/> is associated</param>
+        /// <returns></returns>
+        public static LuaContext GetLuaContext(this ScriptEngine engine)
         {
             return HostingHelpers.GetLanguageContext(engine) as LuaContext;
         }
