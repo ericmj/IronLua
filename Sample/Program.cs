@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using IronLua.Hosting;
+using System.Dynamic;
+using System.Collections.Generic;
 
 namespace Sample
 {
@@ -8,7 +10,14 @@ namespace Sample
     {
         static void Main(string[] args)
         {
-            Lua.CreateEngine().Execute("print('hello world')");
+            var engine = Lua.CreateEngine();
+
+            var context = engine.GetLuaContext();
+            context.SetGlobalVariable("a", 10);
+            
+            engine.Execute("a = a * 10; print('a='..a)");
+
+            Console.WriteLine("Resulting a=" + context.FormatObject(context.GetGlobalVariable("a")));
 
             if (Debugger.IsAttached)
             {
