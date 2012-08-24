@@ -153,6 +153,69 @@ namespace IronLua.Runtime
 
         #endregion
 
+        #region Public API
+
+        private static object ToLuaObject(object obj)
+        {
+            if (obj is Delegate)
+                return obj;
+
+            if (obj is double)
+                return obj;
+
+            if (obj is string)
+                return obj;
+
+            double d_temp = 0;
+            if (double.TryParse(obj.ToString(), out d_temp))
+                return d_temp;
+
+            return obj;
+        }
+
+        /// <summary>
+        /// Sets a globally accessible variable for this scope
+        /// </summary>
+        /// <param name="key">The key identifying the variable to set</param>
+        /// <param name="value">The value to assign to the variable by default</param>
+        public void SetGlobalVariable(string key, object value)
+        {
+            Globals.SetValue(key, ToLuaObject(value));
+        }
+
+        /// <summary>
+        /// Sets a globally accessible constant variable for this scope
+        /// </summary>
+        /// <param name="key">The key by which the constant is identified</param>
+        /// <param name="value">The value to assign to the constant</param>
+        public void SetGlobalConstant(string key, object value)
+        {
+            Globals.SetConstant(key, ToLuaObject(value));
+        }
+
+        /// <summary>
+        /// Gets a global variable from this scope
+        /// </summary>
+        /// <param name="key">The key identifying the variable or constant</param>
+        /// <returns>Returns the value of the variable or constant with the given identifier</returns>
+        public dynamic GetGlobalVariable(string key)
+        {
+            return Globals.GetValue(key);
+        }
+
+        /// <summary>
+        /// Gets a global variable from this scope and casts it to the specified type
+        /// </summary>
+        /// <typeparam name="T">The type which the variable should be cast to</typeparam>
+        /// <param name="key">The key identifying the variable or constant</param>
+        /// <returns>Returns the value of the variable or constant cast to the specified type</returns>
+        public T GetGlobalVariable<T>(string key)
+        {
+            return (T)Convert.ChangeType(Globals.GetValue(key), typeof(T));
+        }
+
+        #endregion
+
         public override ScriptCode CompileSourceCode(SourceUnit sourceUnit, CompilerOptions options, ErrorSink errorSink)
         {
             ContractUtils.RequiresNotNull(sourceUnit, "sourceUnit");
@@ -260,6 +323,16 @@ namespace IronLua.Runtime
             get { return _binder; }
         }
 
+        /// <summary>
+        /// Attempts to retrieve a string representation of the given object
+        /// </summary>
+        /// <param name="obj">The object to retrieve the string value for</param>
+        /// <returns>Returns a string representing the object</returns>
+        public string FormatObject(object obj)
+        {
+            return FormatObject(null, obj);
+        }
+
         public override string FormatObject(DynamicOperations operations, object obj)
         {
             if (obj == null) 
@@ -269,10 +342,20 @@ namespace IronLua.Runtime
                 return (bool) obj ? "true" : "false";
 
             if (obj is LuaTable)
-                return "table: 00000000";
+                return String.Format("table: {0} entries", (obj as LuaTable).Length());
 
             if (obj is Delegate)
-                return "function: 00000000";
+            {
+                string functionFormat = "";
+                var fn = obj as Delegate;
+
+                foreach (var p in fn.Method.GetParameters())
+                    functionFormat += (p.Name ?? p.ParameterType.Name) + ",";
+                functionFormat = functionFormat.Remove(functionFormat.Length - 1);
+                functionFormat = string.Format("({0}) => {1}", functionFormat, fn.Method.ReturnType.Name);
+
+                return String.Format("function: {0}", functionFormat);
+            }
             
             return obj.ToString();
         }
