@@ -64,11 +64,28 @@ namespace IronLua.Runtime.Binder
                         var returnType = this.ReturnType;
                         var left = target;
                         var right = arg;
-                        var mo = context.Binder.DoOperation(Operation, left, right);
-                        if (mo.Expression.Type != returnType)
+                        DynamicMetaObject mo = null;
+                        try
+                        {
+                            mo = context.Binder.DoOperation(Operation, left, right);
+                        }
+                        catch
+                        {
+
+                        }
+                         
+                        if(mo == null || mo.Expression.Type == typeof(void))
+                        {
+                            var ex = new LuaRuntimeException("attempt to compare {0} with {1}", 
+                                IronLua.Library.BaseLibrary.TypeName(left.LimitType),
+                                IronLua.Library.BaseLibrary.TypeName(right.LimitType));
+                            mo =  new DynamicMetaObject(Expr.Throw(Expr.Constant(ex), typeof(LuaRuntimeException)), BindingRestrictions.Empty, ex);
+                        }
+                        else if (mo.Expression.Type != returnType)
                         {
                             mo = mo.Clone(Expr.Convert(mo.Expression, returnType));
                         }
+                        
                         return mo;
                     }
                     //expression = Relational(target, arg);
