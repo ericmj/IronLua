@@ -495,13 +495,27 @@ namespace IronLua.Compiler
 
         Expr CreateGlobalGetMember(string identifier, LuaTable globals, LuaScope scope)
         {
+            var temp = Expr.Parameter(typeof(object));
+
             if (globals.HasValue(identifier))
-                return Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
-                                    typeof(object), Expr.Constant(globals));
+                return Expr.Block(
+                    typeof(object),
+                    scope.AllLocals().Add(temp),
+                    Expr.Assign(temp, Expr.Constant(null)),
+                    Expr.TryCatch(Expr.Assign(temp, Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
+                                    typeof(object), Expr.Constant(globals))),
+                                    Expr.Catch(Expr.Parameter(typeof(Exception)), Expr.Constant(null))),
+                    temp);
 
 
-            return Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
-                                    typeof(object), scope.GetDlrGlobals());
+            return Expr.Block(
+                    typeof(object),
+                    scope.AllLocals().Add(temp),
+                    Expr.Assign(temp, Expr.Constant(null)),
+                    Expr.TryCatch(Expr.Assign(temp, Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
+                                    typeof(object), scope.GetDlrGlobals())),
+                                    Expr.Catch(Expr.Parameter(typeof(Exception)), Expr.Constant(null))),
+                    temp);
         }
 
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Variable prefixExpr)
@@ -625,8 +639,8 @@ namespace IronLua.Compiler
             var scopeAssign = Expr.Dynamic(context.CreateSetMemberBinder(identifier, false),
                                     typeof(object), scope.GetDlrGlobals(), value);
 
-            var scopeDelete = Expr.Dynamic(context.CreateDeleteMemberBinder(identifier, false),
-                                    typeof(void), scope.GetDlrGlobals());
+            var scopeDelete = Expr.TryCatch(Expr.Dynamic(context.CreateDeleteMemberBinder(identifier, false),
+                                    typeof(void), scope.GetDlrGlobals()), Expr.Catch(Expr.Parameter(typeof(Exception)), Expr.Empty()));
 
             return Expr.Condition(Expr.Equal(value, Expr.Constant(null)), Expr.Block(scopeDelete, Expr.Constant(null)), scopeAssign);
         }
