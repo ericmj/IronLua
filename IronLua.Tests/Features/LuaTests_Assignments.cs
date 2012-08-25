@@ -26,7 +26,7 @@ namespace IronLua.Tests.Features
             var scope = engine.CreateScope();
 
             string output, error;
-            dynamic result = engine.ExecuteTestCode(code, out output, out error);
+            dynamic result = engine.ExecuteTestCode(code, scope, out output, out error);
 
             Assert.That((object)result, Is.Null);
             Assert.That(output, Is.EqualTo(expect.ToString()));
@@ -40,7 +40,7 @@ namespace IronLua.Tests.Features
             var scope = engine.CreateScope();
 
             string output, error;
-            dynamic result = engine.ExecuteTestCode(code, out output, out error);
+            dynamic result = engine.ExecuteTestCode(code, scope, out output, out error);
 
             Assert.That((object)result, Is.Null);
             Assert.That(output, Is.Empty);
@@ -106,7 +106,7 @@ namespace IronLua.Tests.Features
         [Test]
         public void TestAssign_DestroyVariableByAssigningAnil()
         {
-            string code = @"a = nil";
+            string code = @"a = nil"; // destroy a
 
             var scope = PerformVariableTest(code);
 
@@ -131,7 +131,7 @@ return b
         [Test]
         public void TestAssign_AssignNonExistingVariableAssignsNil()
         {
-            string code = @"a = xxx"; // destroy a
+            string code = @"a = xxx";
 
             var scope = PerformVariableTest(code);
 

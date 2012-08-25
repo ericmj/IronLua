@@ -127,7 +127,7 @@ namespace IronLua.Tests
 
             scope.SetVariable("a", 42);
             //engine.Execute("assert(a == 42)");
-            object la = engine.Execute("return a"); 
+            object la = engine.Execute("return a", scope); 
             Assert.That(la, Is.EqualTo(42));
         }
     }
