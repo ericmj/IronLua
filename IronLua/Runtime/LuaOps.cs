@@ -217,8 +217,6 @@ namespace IronLua.Runtime
 
         public static object GetMetamethod(LuaContext context, object obj, string methodName)
         {
-            ContractUtils.RequiresNotNull(context, "context");
-
             LuaTable table;
 
             if ((table = obj as LuaTable) != null)

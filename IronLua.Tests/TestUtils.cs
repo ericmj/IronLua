@@ -4,13 +4,26 @@ using System.Text;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
+using System.Linq;
 
 namespace IronLua.Tests
 {
     public static class TestUtils
     {
-        public static readonly string ProjectBasePath = @"F:\workspace\DLR\IronLua-github";
+        //public static readonly string ProjectBasePath = @"F:\workspace\DLR\IronLua-github";
         //public static readonly string ProjectBasePath = @"W:\dlr\IronLua-github";
+
+        public static string ProjectBasePath
+        {
+            get
+            {
+                var temp = Environment.CurrentDirectory.Split('\\').Reverse().Skip(3).Reverse();
+                string o = "";
+                foreach (var t in temp)
+                    o += t + "\\";
+                return o.Remove(o.Length - 1);
+            }
+        }
 
         public static string GetTestPath(string path)
         {

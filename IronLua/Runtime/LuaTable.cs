@@ -273,7 +273,7 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindBinaryOperation(BinaryOperationBinder binder, DynamicMetaObject arg)
             {
                 if (!LuaBinaryOperationBinder.BinaryExprTypes.ContainsKey(binder.Operation))
-                    throw new Exception(); // TODO
+                    throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
 
                 var expression = MetamethodFallbacks.BinaryOp(null, binder.Operation, this, arg);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
@@ -282,7 +282,7 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindUnaryOperation(UnaryOperationBinder binder)
             {
                 if (binder.Operation != ExprType.Negate)
-                    throw new Exception(); // TODO
+                    throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
 
                 var expression = MetamethodFallbacks.UnaryMinus(null, this);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
