@@ -1,6 +1,8 @@
+using Microsoft.Scripting;
 using System;
 using System.Diagnostics.Contracts;
 using System.Dynamic;
+using System.Linq.Expressions;
 
 namespace IronLua.Runtime.Binder
 {
@@ -20,6 +22,12 @@ namespace IronLua.Runtime.Binder
             get { return _context; }
         }
 
+        DynamicMetaObject MakeScriptScopeGetMember(DynamicMetaObject target, string name)
+        {
+            var getMemberExpression = Expression.PropertyOrField(Expression.Convert(target.Expression, target.LimitType), name);
+            return new DynamicMetaObject(getMemberExpression, BindingRestrictions.Empty);
+        }
+
         public override DynamicMetaObject FallbackGetMember(
             DynamicMetaObject target, 
             DynamicMetaObject errorSuggestion)
@@ -29,9 +37,11 @@ namespace IronLua.Runtime.Binder
             if (!target.HasValue) 
                 return Defer(target);
 
-            _context.Binder.GetMember("__get", target);
 
-            throw new NotImplementedException();
+            if (target.LimitType == typeof(IDynamicMetaObjectProvider))
+                return base.FallbackGetMember(target);
+
+            return _context.Binder.GetMember(Name, target);            
         }
     }
 }
