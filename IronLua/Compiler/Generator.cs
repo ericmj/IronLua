@@ -492,6 +492,18 @@ namespace IronLua.Compiler
             return prefixExpr.Call.Visit(this);
         }
 
+
+        Expr CreateGlobalGetMember(string identifier, LuaTable globals, LuaScope scope)
+        {
+            if (globals.HasValue(identifier))
+                return Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
+                                    typeof(object), Expr.Constant(globals));
+
+
+            return Expr.Dynamic(context.CreateGetMemberBinder(identifier, false),
+                                    typeof(object), scope.GetDlrGlobals());
+        }
+
         Expr IPrefixExpressionVisitor<Expr>.Visit(PrefixExpression.Variable prefixExpr)
         {
             var variable = prefixExpr.Var.Visit(this);
@@ -502,8 +514,10 @@ namespace IronLua.Compiler
                     if (scope.TryGetLocal(variable.Identifier, out local))
                         return local;
 
-                    return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
-                                        typeof(object), Expr.Constant(context.Globals));
+                    return CreateGlobalGetMember(variable.Identifier, context.Globals, scope);
+                    
+                    //return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
+                    //                    typeof(object), Expr.Constant(context.Globals));
 
                     //return Expr.Dynamic(context.CreateGetMemberBinder(variable.Identifier, false),
                     //                    typeof(object), scope.GetDlrGlobals());
@@ -606,6 +620,17 @@ namespace IronLua.Compiler
             return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
+        Expr CreateGlobalSetMember(string identifier, Expr globals, LuaScope scope, Expr value)
+        {
+            var scopeAssign = Expr.Dynamic(context.CreateSetMemberBinder(identifier, false),
+                                    typeof(object), scope.GetDlrGlobals(), value);
+
+            var scopeDelete = Expr.Dynamic(context.CreateDeleteMemberBinder(identifier, false),
+                                    typeof(void), scope.GetDlrGlobals());
+
+            return Expr.Condition(Expr.Equal(value, Expr.Constant(null)), Expr.Block(scopeDelete, Expr.Constant(null)), scopeAssign);
+        }
+
         Expr Assign(VariableVisit variable, Expr value)
         {
             switch (variable.Type)
@@ -615,8 +640,11 @@ namespace IronLua.Compiler
                     if (scope.TryGetLocal(variable.Identifier, out local))
                         return Expr.Assign(local, value);
 
-                    return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
-                                        typeof(object), Expr.Constant(context.Globals), value);
+
+                    return CreateGlobalSetMember(variable.Identifier, Expr.Constant(context.Globals), scope, value);
+
+                    //return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
+                    //                    typeof(object), Expr.Constant(context.Globals), value);
 
                     //return Expr.Dynamic(context.CreateSetMemberBinder(variable.Identifier, false),
                     //                    typeof(object), scope.GetDlrGlobals(), value);
@@ -647,19 +675,22 @@ namespace IronLua.Compiler
             {
                 if (isLocal)
                     return Expr.Assign(local, value);
-                return Expr.Dynamic(context.CreateSetMemberBinder(firstId, false),
-                                            typeof(object),
-                                            Expr.Constant(context.Globals),
-                                            value);
+
+                return CreateGlobalSetMember(firstId, Expr.Constant(context.Globals), scope, value);
+                //return Expr.Dynamic(context.CreateSetMemberBinder(firstId, false),
+                //                            typeof(object),
+                //                            Expr.Constant(context.Globals),
+                //                            value);
             }
 
             // First element can be either a local or global variable
             if (isLocal)
                 expr = local;
             else
-                expr = Expr.Dynamic(context.CreateGetMemberBinder(firstId, false),
-                                            typeof(object),
-                                            Expr.Constant(context.Globals));
+                expr = CreateGlobalGetMember(firstId, context.Globals, scope);
+                    //Expr.Dynamic(context.CreateGetMemberBinder(firstId, false),
+                    //                        typeof(object),
+                    //                        Expr.Constant(context.Globals));
 
             // Loop over all elements except the first and the last and perform get member on them
             expr = identifiers
