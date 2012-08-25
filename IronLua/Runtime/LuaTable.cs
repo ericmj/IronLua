@@ -169,6 +169,12 @@ namespace IronLua.Runtime
             return pos < 0 ? null : entries[pos].Value;
         }
 
+        internal bool HasValue(object key)
+        {
+            var pos = FindEntry(key);
+            return pos >= 0;
+        }
+
         void Remove(object key)
         {
             var hashCode = key.GetHashCode() & Int32.MaxValue;
