@@ -45,6 +45,8 @@ namespace IronLua.Runtime
 
         public static object LengthMetamethod(LuaContext context, object obj)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, obj, Constant.LENGTH_METAMETHOD);
             if (metamethod != null)
                 return context.DynamicCache.GetDynamicCall1()(metamethod, obj);
@@ -54,6 +56,8 @@ namespace IronLua.Runtime
 
         public static object UnaryMinusMetamethod(LuaContext context, object obj)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, obj, Constant.UNARYMINUS_METAMETHOD);
             if (metamethod != null)
                 return context.DynamicCache.GetDynamicCall1()(metamethod, obj);
@@ -63,6 +67,8 @@ namespace IronLua.Runtime
 
         public static object IndexMetamethod(LuaContext context, object obj, object key)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, obj, Constant.INDEX_METAMETHOD);
 
             if (metamethod != null)
@@ -80,6 +86,8 @@ namespace IronLua.Runtime
 
         public static object NewIndexMetamethod(LuaContext context, object obj, object key, object value)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, obj, Constant.NEWINDEX_METAMETHOD);
 
             if (metamethod != null)
@@ -97,6 +105,8 @@ namespace IronLua.Runtime
 
         public static object CallMetamethod(LuaContext context, object obj, object[] args)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, obj, Constant.CALL_METAMETHOD);
             if (metamethod != null)
             {
@@ -111,6 +121,8 @@ namespace IronLua.Runtime
 
         public static object ConcatMetamethod(LuaContext context, object left, object right)
         {
+            ContractUtils.RequiresNotNull(context, "context");
+
             var metamethod = GetMetamethod(context, left, Constant.CONCAT_METAMETHOD) ??
                              GetMetamethod(context, right, Constant.CONCAT_METAMETHOD);
             if (metamethod != null)
