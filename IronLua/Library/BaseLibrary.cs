@@ -458,6 +458,7 @@ namespace IronLua.Library
             table.SetConstant("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetConstant("dofile", (Func<string, object>)DoFile);
             table.SetConstant("error", (Action<string, object>)Error);
+            table.SetValue("_ENV", table);
             table.SetConstant("_G", table);
             table.SetConstant("getfenv", (Func<object, object>)GetFEnv);
             table.SetConstant("getmetatable", (Func<object, object>)GetMetatable);
