@@ -11,6 +11,8 @@ namespace IronLua.Library
 
         }
 
+        private Random rand = new Random();
+
         public override void Setup(LuaTable table)
         {
             const double Math_Tau = 2.0 * Math.PI; // http://tauday.com
@@ -56,8 +58,8 @@ namespace IronLua.Library
             //table.SetConstant("ldexp", (Func<double, double, double>) Math.??);
 
             // Pseudo-random numbers
-            //table.SetConstant("randomseed", (Func<double, double>) Math.??);
-            //table.SetConstant("random", (Func<double, double, double>) Math.??); // overloaded
+            table.SetConstant("randomseed", (Func<double, double>)(x => { rand = new Random((int)x); return rand.NextDouble(); }));
+            table.SetConstant("random", (Func<double, double, double>)((min,max) => { return (double)rand.Next((int)min,(int)max); })); // overloaded
         }
     }
 }
