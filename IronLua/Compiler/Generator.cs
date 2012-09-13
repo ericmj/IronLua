@@ -406,7 +406,7 @@ namespace IronLua.Compiler
 
         Expr IExpressionVisitor<Expr>.Visit(Expression.Table expression)
         {
-            var newTableExpr = Expr.New(MemberInfos.NewLuaTable);
+            var newTableExpr = Expr.New(MemberInfos.NewLuaTable, Expr.Constant(context, typeof(LuaContext)));
             var tableVar = Expr.Variable(typeof(LuaTable));
             var tableAssign = Expr.Assign(tableVar, newTableExpr);
 

@@ -11,7 +11,7 @@ namespace IronLua
             typeof(Varargs).GetConstructor(new[] {typeof(object[])});
 
         public static readonly ConstructorInfo NewLuaTable =
-            typeof(LuaTable).GetConstructor(new Type[0]);
+            typeof(LuaTable).GetConstructor(new Type[] { typeof(LuaContext) });
 
         public static readonly MethodInfo LuaTableSetValue =
             typeof(LuaTable).GetMethod("SetValue", BindingFlags.NonPublic | BindingFlags.Instance);
