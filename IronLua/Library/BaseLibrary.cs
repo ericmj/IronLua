@@ -288,7 +288,13 @@ namespace IronLua.Library
             // TODO: check if metatable exist and if __tostring entry is set
 
             if (v is LuaTable)
-                return String.Format("table: {0} entries", (v as LuaTable).Length());
+            {
+                var table = v as LuaTable;
+                if (table.Metatable != null && table.Metatable.HasValue(Constant.TOSTRING_METAFIELD))                
+                    return (table.Metatable.GetValue(Constant.TOSTRING_METAFIELD) as Func<LuaTable, string>)(table);                
+
+                return String.Format("table [{0} entries]", (v as LuaTable).Count());
+            }
             
             if (v is Delegate)
             {
