@@ -5,3 +5,4 @@ obj/
 *.csproj.user
 TestResults/*
 *lua-*-tests*
+*.ncrunchproject
