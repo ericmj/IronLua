@@ -175,9 +175,12 @@ namespace IronLua.Runtime
         public static object RelationalMetamethod(LuaContext context, ExprType op, object left, object right)
         {
             ContractUtils.RequiresNotNull(context, "context");
+            
+            var leftTypeName = BaseLibrary.Type(left);
+            var rightTypeName = BaseLibrary.Type(right);
 
             if (left.GetType() != right.GetType())
-                return false;
+                throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_WITH_ERROR, "compare", leftTypeName, rightTypeName);
 
             // There are no metamethods for 'a > b' and 'a >= b' so they are translated to 'b < a' and 'b <= a' respectively
             var invert = op == ExprType.GreaterThan || op == ExprType.GreaterThanOrEqual;
@@ -194,7 +197,7 @@ namespace IronLua.Runtime
 
             // In the absence of a '<=' metamethod, try '<', 'a <= b' is translated to 'not (b < a)'
             if (op != ExprType.LessThanOrEqual && op != ExprType.GreaterThanOrEqual)
-                return false;
+                throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_WITH_ERROR, "compare", leftTypeName, rightTypeName);
 
             metamethod = GetRelationalMetamethod(context, ExprType.LessThan, left, right);
             if (metamethod != null)
@@ -204,9 +207,6 @@ namespace IronLua.Runtime
                 else
                     Not(context.DynamicCache.GetDynamicCall2()(metamethod, left, right));
             }
-
-            var leftTypeName = BaseLibrary.Type(left);
-            var rightTypeName = BaseLibrary.Type(right);
 
             if (leftTypeName == rightTypeName)
                 throw new LuaRuntimeException(ExceptionMessage.OP_TYPE_TWO_ERROR, "compare", leftTypeName);
