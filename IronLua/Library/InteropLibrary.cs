@@ -18,7 +18,7 @@ namespace IronLua.Library
         
         public override void Setup(Runtime.LuaTable table)
         {
-            table.SetConstant("import", (Func<string, LuaTable>)ImportType);
+            table.SetConstant("import", (Func<string, Varargs, LuaTable>)ImportType);
             table.SetConstant("method", (Func<object, string, object>)InteropGetMethod);
             table.SetConstant("call", (Func<object, string, Varargs, object>)InteropCallMethod);
             table.SetConstant("setvalue", (Func<object, string, object, object>)InteropSetValue);
@@ -27,10 +27,21 @@ namespace IronLua.Library
             table.SetConstant("unsubscribe", (Action<object, string, Delegate>)InteropUnsubscribeEvent);
         }
 
-        private LuaTable ImportType(string typeName)
+        private LuaTable ImportType(string typeName, Varargs args = null)
         {
             var type = Type.GetType(typeName, false);
-            if(type != null)
+
+            bool genNamespaces = false;
+
+            if (args != null && args.Count == 1 && args[0] is bool)
+                genNamespaces = (bool)args[0];
+
+            return ImportType(type, genNamespaces);
+        }
+
+        private LuaTable GetTypeTable(Type type)
+        {
+            if (type != null)
             {
                 var table = new LuaTable(Context);
                 table.SetConstant("__clrtype", type);
@@ -43,9 +54,54 @@ namespace IronLua.Library
             return null;
         }
 
-        public void ImportType(Type type)
+        public LuaTable ImportType(Type type, bool generateNamespaces)
         {
-            Context.SetTypeMetatable(type, GenerateMetatable());
+            if (generateNamespaces)
+            {
+                string[] typeNameParts = type.FullName.Split('.');
+                string rootNamespace = typeNameParts.First();
+                string typeName = typeNameParts.Last();
+                typeNameParts = typeNameParts.Skip(1).Reverse().Skip(1).Reverse().ToArray();
+
+                LuaTable current = null;
+
+                if (Context.Globals.HasValue(rootNamespace))
+                    current = Context.Globals.GetValue(rootNamespace) as LuaTable;
+                else
+                {
+                    current = new LuaTable(Context);
+                    Context.Globals.SetConstant(rootNamespace, current);
+                }
+
+                if (current == null)
+                    throw new LuaRuntimeException("Another variable is obscuring the type's required namespace name ({0})", rootNamespace);
+
+
+                string soFar = rootNamespace;
+
+                foreach (var part in typeNameParts)
+                {
+                    if (current == null)
+                        throw new LuaRuntimeException("Another variable is obscuring the type's required namespace name ({0}.{1})", soFar, part);
+
+                    else if (!current.HasValue(part))
+                    {
+                        LuaTable newTable = new LuaTable(Context);
+                        current.SetConstant(part, newTable);
+                        current = newTable;
+                    }
+                    else
+                        current = current.GetValue(part) as LuaTable;
+
+                    soFar += "." + part;
+                }
+
+                var typeTable = GetTypeTable(type);
+                current.SetConstant(typeName, typeTable);
+                return typeTable;
+            }
+
+            return GetTypeTable(type);
         }
 
         internal LuaTable GenerateMetatable()
@@ -163,10 +219,10 @@ namespace IronLua.Library
                 var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
                     .Where(x => x.Name.Equals(methodName))
                     .Where(x => ParamsMatch(x, paramTypes)).ToArray();
-                if (methods.Length != 1)
+                if (methods.Length < 1)
                     throw new LuaRuntimeException("Could not find a method with the given parameters");
 
-                return methods[0].Invoke(null, parameters == null ? new object[0] : parameters.ToArray());
+                return methods.First().Invoke(null, parameters == null ? new object[0] : parameters.ToArray());
             }
             else
             {
@@ -176,10 +232,10 @@ namespace IronLua.Library
                 var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
                     .Where(x => x.Name.Equals(methodName))
                     .Where(x => ParamsMatch(x, paramTypes)).ToArray();
-                if (methods.Length != 1)
+                if (methods.Length < 1)
                     throw new LuaRuntimeException("Could not find a method with the given parameters");
 
-                return methods[0].Invoke(target, parameters == null ? new object[0] : parameters.ToArray());
+                return methods.First().Invoke(target, parameters == null ? new object[0] : parameters.ToArray());
             }
         }
 
@@ -245,7 +301,7 @@ namespace IronLua.Library
 
             //If we have checked everything, then it's fine
             if (!hasParams)
-                return true;
+                return parameters.Count() == paramTypes.Length;
 
             //Check if we have any params args...
             var paramsType = parameters.Last().ParameterType;
