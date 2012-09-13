@@ -11,6 +11,7 @@ using IronLua.Library;
 using IronLua.Util;
 using Microsoft.Scripting.Utils;
 using Expr = System.Linq.Expressions.Expression;
+using Microsoft.Scripting.Actions;
 
 namespace IronLua.Runtime.Binder
 {
@@ -32,21 +33,44 @@ namespace IronLua.Runtime.Binder
 
             var restrictions = RuntimeHelpers.MergeTypeRestrictions(target);
 
+            //if(target.LimitType == typeof(InteropLibrary.MethodIndex))
+            //{
+            //    var methodIndex = target.Value as InteropLibrary.MethodIndex;
+
+            //    var callDelegate = methodIndex.CLRType.GetDeclaredMethods(methodIndex.MethodName).Select(x => x.GetParameters().Length == args.Length);
+
+            //    return new DynamicMetaObject(Expr.Constant(callDelegate), restrictions)
+            //        .BindInvoke(new LuaInvokeBinder(context, new CallInfo(args.Length)), args);
+            //}
+
             if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
                 return new DynamicMetaObject(MetamethodFallbacks.Call(context, target, args), restrictions);
-
+            
             restrictions = restrictions.Merge(
                 RuntimeHelpers.MergeTypeRestrictions(args).Merge(
                     RuntimeHelpers.MergeInstanceRestrictions(target)));
+                        
 
-            List<Expr> sideEffects;
-            Expr failExpr;
+
             var function = (Delegate)target.Value;
             var methodInfo = function.Method;
+
+            bool toss = false;
+            return GetInvoker(target, args, methodInfo, out toss, ref restrictions);
+        }
+
+        private DynamicMetaObject GetInvoker(DynamicMetaObject target, DynamicMetaObject[] args, MethodInfo methodInfo, out bool success, ref BindingRestrictions restrictions)
+        {
+            Expr failExpr;
+            List<Expr> sideEffects;
+
             var mappedArgs = MapArguments(args, methodInfo, ref restrictions, out sideEffects, out failExpr);
 
-            if (failExpr != null)
+            success = failExpr == null;
+
+            if (!success)
                 return new DynamicMetaObject(Expr.Block(failExpr, Expr.Default(typeof(object))), restrictions);
+
 
             var invokeExpr = InvokeExpression(target, mappedArgs, methodInfo);
 
@@ -62,7 +86,7 @@ namespace IronLua.Runtime.Binder
                 var assign = Expr.Assign(tempVar, invokeExpr);
                 sideEffects.Insert(0, assign);
                 sideEffects.Add(tempVar);
-                expr = Expr.Block(new[] {tempVar}, sideEffects);
+                expr = Expr.Block(new[] { tempVar }, sideEffects);
             }
 
             return new DynamicMetaObject(expr, restrictions);
