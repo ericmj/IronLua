@@ -63,6 +63,7 @@
     <Compile Include="Hosting\LuaConsoleHost.cs" />
     <Compile Include="Hosting\LuaConsoleOptions.cs" />
     <Compile Include="Hosting\LuaService.cs" />
+    <Compile Include="Library\InteropLibrary.cs" />
     <Compile Include="Library\MathLibrary.cs" />
     <Compile Include="Library\OSLibrary.cs" />
     <Compile Include="Library\PackageLibrary.cs" />
