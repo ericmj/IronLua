@@ -21,8 +21,13 @@ namespace IronLua.Runtime
         int freeCount;
         int count;
 
-        public LuaTable()
+        LuaContext Context
+        { get; set; }
+
+        public LuaTable(LuaContext context)
         {
+            Context = context;
+
             const int prime = 3;
 
             buckets = new int[prime];
@@ -37,7 +42,7 @@ namespace IronLua.Runtime
 
         public DynamicMetaObject GetMetaObject(Expr parameter)
         {
-            return new MetaTable(parameter, BindingRestrictions.Empty, this);
+            return new MetaTable(Context, parameter, BindingRestrictions.Empty, this);
         }
 
         internal Varargs Next(object index = null)
@@ -237,6 +242,10 @@ namespace IronLua.Runtime
             entries = newEntries;
         }
 
+        /// <summary>
+        /// Gets the total number of sequentially indexed values in the table (ignoring non-integer keys)
+        /// </summary>
+        /// <returns>Returns the number of sequentially indexed values in the table</returns>
         internal int Length()
         {
             var lastNum = 0;
@@ -254,6 +263,14 @@ namespace IronLua.Runtime
             return lastNum;
         }
 
+        /// <summary>
+        /// Gets the total number of elements in the table
+        /// </summary>
+        internal int Count()
+        {
+            return entries.Count(x => x.Key != null);
+        }
+
         struct Entry
         {
             public int HashCode;
@@ -265,17 +282,21 @@ namespace IronLua.Runtime
 
         class MetaTable : DynamicMetaObject
         {
-            public MetaTable(Expr expression, BindingRestrictions restrictions, LuaTable value)
+            public MetaTable(LuaContext context, Expr expression, BindingRestrictions restrictions, LuaTable value)
                 : base(expression, restrictions, value)
             {
+                Context = context;
             }
+
+            private LuaContext Context
+            { get; set; }
 
             public override DynamicMetaObject BindBinaryOperation(BinaryOperationBinder binder, DynamicMetaObject arg)
             {
                 if (!LuaBinaryOperationBinder.BinaryExprTypes.ContainsKey(binder.Operation))
                     throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
 
-                var expression = MetamethodFallbacks.BinaryOp(null, binder.Operation, this, arg);
+                var expression = MetamethodFallbacks.BinaryOp(Context, binder.Operation, this, arg);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
@@ -284,19 +305,19 @@ namespace IronLua.Runtime
                 if (binder.Operation != ExprType.Negate)
                     throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
 
-                var expression = MetamethodFallbacks.UnaryMinus(null, this);
+                var expression = MetamethodFallbacks.UnaryMinus(Context, this);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindInvoke(InvokeBinder binder, DynamicMetaObject[] args)
             {
-                var expression = MetamethodFallbacks.Call(null, this, args);
+                var expression = MetamethodFallbacks.Call(Context, this, args);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindInvokeMember(InvokeMemberBinder binder, DynamicMetaObject[] args)
             {
-                var expression = Expr.Dynamic(new LuaGetMemberBinder(null, binder.Name), typeof(object), Expression);
+                var expression = Expr.Dynamic(new LuaGetMemberBinder(Context, binder.Name), typeof(object), Expression);
                 return binder.FallbackInvoke(new DynamicMetaObject(expression, Restrictions), args, null);
             }
 
@@ -335,7 +356,7 @@ namespace IronLua.Runtime
                     valueVar,
                     Expr.Condition(
                         Expr.Equal(valueVar, Expr.Constant(null)),
-                        MetamethodFallbacks.Index(null, this, indexes),
+                        MetamethodFallbacks.Index(Context, this, indexes),
                         valueVar));
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
@@ -356,7 +377,7 @@ namespace IronLua.Runtime
 
                 var expression = Expr.Condition(
                     Expr.Equal(getValue, Expr.Constant(null)),
-                    MetamethodFallbacks.NewIndex(null, this, indexes, value),
+                    MetamethodFallbacks.NewIndex(Context, this, indexes, value),
                     setValue);
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
@@ -384,6 +405,14 @@ namespace IronLua.Runtime
                     }
 
                     return pairs;
+                }
+            }
+
+            public LuaContext Context
+            {
+                get
+                {
+                    return table.Context;
                 }
             }
 
