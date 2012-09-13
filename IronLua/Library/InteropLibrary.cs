@@ -18,6 +18,10 @@ namespace IronLua.Library
         public override void Setup(Runtime.LuaTable table)
         {
             table.SetConstant("import", (Func<string, LuaTable>)ImportType);
+            table.SetConstant("method", (Func<LuaTable, string, object>)InteropGetMethod);
+            table.SetConstant("call", (Func<LuaTable, string, Varargs, object>)InteropCallMethod);
+            table.SetConstant("setvalue", (Func<object, string, object, object>)InteropSetValue);
+            table.SetConstant("getvalue", (Func<object, string, object>)InteropGetValue);
         }
 
         private LuaTable ImportType(string typeName)
@@ -25,8 +29,10 @@ namespace IronLua.Library
             var type = Type.GetType(typeName, false);
             if(type != null)
             {
-                var table = GenerateMetatable(type);
-                Context.SetTypeMetatable(type, table);
+                var table = new LuaTable(Context);
+                table.SetConstant("__clrtype", type);
+                table.Metatable = GenerateMetatable();
+
                 return table;
             }
             return null;
@@ -34,18 +40,29 @@ namespace IronLua.Library
 
         public void ImportType(Type type)
         {
-            Context.SetTypeMetatable(type, GenerateMetatable(type));
+            Context.SetTypeMetatable(type, GenerateMetatable());
         }
 
-        internal LuaTable GenerateMetatable(Type type)
+        internal LuaTable GenerateMetatable()
         {
-            LuaTable table = new LuaTable();
-            table.SetValue("__clrtype", type);
-            table.SetValue(Constant.INDEX_METAMETHOD, (Func<object, object, object>)InteropIndex);
-            table.SetValue(Constant.NEWINDEX_METAMETHOD, (Func<object, object, object, object>)InteropNewIndex);
-            table.SetValue(Constant.CALL_METAMETHOD, (Func<object, Varargs, object>)InteropCall);
+            LuaTable table = new LuaTable(Context);
+            table.SetConstant(Constant.INDEX_METAMETHOD, (Func<object, object, object>)InteropIndex);
+            table.SetConstant(Constant.NEWINDEX_METAMETHOD, (Func<object, object, object, object>)InteropNewIndex);
+            table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, Varargs, object>)InteropCall);
+            table.SetConstant(Constant.CONCAT_METAMETHOD, (Func<string, LuaTable, string>)Concat);
+            table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<LuaTable, string>)ToString);
 
             return table;
+        }
+
+        private static string Concat(string str, LuaTable table)
+        {
+            return str + (table.GetValue("__clrtype") as Type).FullName;
+        }
+
+        private static string ToString(LuaTable table)
+        {
+            return (table.GetValue("__clrtype") as Type).FullName;
         }
 
         private static object InteropIndex(object target, object index)
@@ -63,11 +80,11 @@ namespace IronLua.Library
             if (property != default(PropertyInfo))
                 return property.GetValue(target, null);
             
-            //Check if we have any methods with the given name
-            var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
-                .Where(x => x.Name.Equals(indexKey)).ToArray();
-            if (methods.Length > 0)
-                return new MethodIndex(indexKey, target is LuaTable ? null : target, type);
+            ////Check if we have any methods with the given name
+            //var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+            //    .Where(x => x.Name.Equals(indexKey)).ToArray();
+            //if (methods.Length > 0)
+            //    return new MethodIndex(indexKey, target is LuaTable ? null : target, type);
 
             //Then check if there are any indexers on the object and try them
             property = properties.FirstOrDefault(x => x.GetIndexParameters().Length == 1);
@@ -120,13 +137,53 @@ namespace IronLua.Library
             var args = parameters.Skip(1).ToArray();
             var argsTypes = args.Select(x => x.GetType()).ToArray();
 
-            
-            var constructor = type.GetConstructor(argsTypes);
 
-            if (constructor == null)
-                throw new LuaRuntimeException("Cannot create instance of '" + type.FullName + "' with the given parameters");
+            return Activator.CreateInstance(type, args);
 
-            return constructor.Invoke(args);
+            //var constructor = type.GetConstructor(argsTypes);
+
+            //if (constructor == null)
+            //    throw new LuaRuntimeException("Cannot create instance of '" + type.FullName + "' with the given parameters");
+
+            //return constructor.Invoke(args);
+        }
+
+
+
+        #region Method Calls
+
+        private object InteropCallMethod(LuaTable target, string methodName, Varargs parameters)
+        {
+            var type = (target as LuaTable).GetValue("__clrtype") as Type;
+            var paramTypes = parameters.Select(x => x.GetType()).ToArray();
+
+            var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                .Where(x => x.Name.Equals(methodName))
+                .Where(x => ParamsMatch(x, paramTypes)).ToArray();
+            if (methods.Length != 1)
+                throw new LuaRuntimeException("Could not find a method with the given parameters");
+
+            return methods[0].Invoke(target, parameters.ToArray());
+        }
+
+        private object InteropGetMethod(LuaTable target, string methodName)
+        {
+            var type = (target as LuaTable).GetValue("__clrtype") as Type;
+            var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                .Where(x => x.Name.Equals(methodName)).ToArray();
+            if (methods.Length > 0)
+            {
+                var methodTable = new LuaTable(Context);
+                methodTable.SetConstant("__target", target);
+                methodTable.SetConstant("__method", methodName);
+                foreach (var method in methods)
+                    methodTable.SetConstant(method, method);
+                methodTable.Metatable = GenerateMethodMetaTable(Context);
+
+                return methodTable;
+            }
+
+            return null;
         }
 
         private static bool ParamsMatch(MethodInfo method, Type[] paramTypes)
@@ -152,7 +209,7 @@ namespace IronLua.Library
 
             //Check if we have any params args...
             var paramsType = parameters.Last().ParameterType;
-            if(!paramsType.IsArray)           
+            if (!paramsType.IsArray)
                 return false;
 
             var paramItemsType = paramsType.GetElementType();
@@ -165,23 +222,127 @@ namespace IronLua.Library
             return true;
         }
 
-        public class MethodIndex
+        private static LuaTable GenerateMethodMetaTable(LuaContext context)
         {
-            internal MethodIndex(string methodName, object target, Type clrType)
+            var table = new LuaTable(context);
+            table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, Varargs, object>)MethodInteropCall);
+            table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<LuaTable, string>)MethodTableToString);
+            return table;
+        }
+
+        private static string MethodTableToString(LuaTable table)
+        {
+            return string.Format("{0}.{1}(...)", ((table.GetValue("__target") as LuaTable).GetValue("__clrtype") as Type).FullName, table.GetValue("__method"));
+        }
+
+        private static object MethodInteropCall(object target, Varargs parameters)
+        {
+            var table = target as LuaTable;
+
+            var paramTypes = parameters.Skip(1).Select(x => x.GetType()).ToArray();
+
+            Varargs pair = table.Next();
+            do
             {
-                MethodName = methodName;
-                Target = target;
-                CLRType = clrType;
+                var methodInfo = pair[0] as MethodInfo;
+                if (methodInfo == null)
+                    continue;
+
+                if (ParamsMatch(methodInfo, paramTypes))
+                    return methodInfo.Invoke(table.GetValue("__target"), parameters.Skip(1).ToArray());
+
+            } while ((pair = table.Next(pair[0])) != null);
+
+            throw new LuaRuntimeException("Could not find a method with the given parameters");
+        }
+
+        #endregion
+
+        #region Get Value
+
+        private static object InteropGetValue(object table, string propertyName)
+        {
+            //Static calls
+            if (table is LuaTable)
+            {
+                var type = (table as LuaTable).GetValue("__clrtype") as Type;
+
+                var property = type.GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public);
+                if (property != null)
+                    return property.GetValue(null, null);
+
+                var field = type.GetField(propertyName, BindingFlags.Static | BindingFlags.Public);
+                if (field != null)
+                    return field.GetValue(null);
+
+                throw new LuaRuntimeException("The static field or property '{0}' was not found", propertyName);
             }
 
-            public string MethodName
-            { get; private set; }
+            //Instance calls
+            else
+            {
+                var type = table.GetType();
 
-            public Type CLRType
-            { get; private set; }
+                var property = type.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+                if (property != null)
+                    return property.GetValue(table, null);
 
-            public object Target
-            { get; private set; }
+                var field = type.GetField(propertyName, BindingFlags.Instance | BindingFlags.Public);
+                if (field != null)
+                    return field.GetValue(table);
+
+                throw new LuaRuntimeException("The instance field or property '{0}' was not found", propertyName);
+            }
         }
+        
+        private static object InteropSetValue(object table, string propertyName, object value)
+        {
+            //Static calls
+            if (table is LuaTable)
+            {
+                var type = (table as LuaTable).GetValue("__clrtype") as Type;
+
+                var property = type.GetProperty(propertyName, BindingFlags.Static | BindingFlags.Public);
+                if (property != null)
+                {
+                    property.SetValue(null, value, null);
+                    return value;
+                }
+
+                var field = type.GetField(propertyName, BindingFlags.Static | BindingFlags.Public);
+                if (field != null)
+                {
+                    field.SetValue(null, value);
+                    return value;
+                }
+
+                throw new LuaRuntimeException("The static field or property '{0}' was not found", propertyName);
+            }
+
+            //Instance calls
+            else
+            {
+                var type = table.GetType();
+
+                var property = type.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+                if (property != null)
+                {
+                    property.SetValue(table, value, null);
+                    return value;
+                }
+
+                var field = type.GetField(propertyName, BindingFlags.Instance | BindingFlags.Public);
+                if (field != null)
+                {
+                    field.SetValue(table, value);
+                    return value;
+                }
+
+                throw new LuaRuntimeException("The static field or property '{0}' was not found", propertyName);
+            }
+        }
+        
+        #endregion
+
     }
 }
