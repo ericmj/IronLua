@@ -52,6 +52,7 @@
     <Compile Include="Features\LuaTests_BinaryOps.cs" />
     <Compile Include="Features\LuaTests_local.cs" />
     <Compile Include="Libraries\BaseLibTests.cs" />
+    <Compile Include="Libraries\InteropLibTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BasicTests.cs" />
     <Compile Include="Compiler\GeneratorTests.cs" />
@@ -71,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Scripts\Lexer01_XXX.lua" />
     <None Include="Scripts\literals.lua" />
     <None Include="Scripts\MathLibTests.lua" />
     <None Include="Scripts\OslibTests.lua" />

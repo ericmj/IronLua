@@ -13,6 +13,8 @@ namespace IronLua
                     {ExprType.GreaterThan,        "__lt"},
                     {ExprType.GreaterThanOrEqual, "__le"},
 
+                    {ExprType.DebugInfo,          "__doc"},
+
                     {ExprType.Equal,              "__eq"},
                     {ExprType.LessThan,           "__lt"},
                     {ExprType.LessThanOrEqual,    "__le"},
@@ -34,6 +36,11 @@ namespace IronLua
         public const string CALL_METAMETHOD = "__call";
         public const string METATABLE_METAFIELD = "__metatable";
         public const string TOSTRING_METAFIELD = "__tostring";
+
+        /// <summary>
+        /// Non-standard metafield providing inline documentation access for tables/types
+        /// </summary>
+        public const string DOC_METAFIELD = "__doc";
 
         public const string VARARGS = "$varargs$";
         public const string FUNCTION_PREFIX = "lua$";

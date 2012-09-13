@@ -131,7 +131,7 @@ namespace IronLua.Runtime.Binder
                     Expr.Constant(null));
 
             Expr leftExpr = tempLeft;
-            Expr rightExpr = right.Expression;
+            Expr rightExpr = Expr.Convert(right.Expression, right.LimitType);
 
             if (left.LimitType != right.LimitType)
             {
@@ -159,7 +159,7 @@ namespace IronLua.Runtime.Binder
             return
                 Expr.Block(
                     new[] { tempLeft },
-                    Expr.Assign(tempLeft, left.Expression),
+                    Expr.Assign(tempLeft, Expr.Convert(left.Expression, left.LimitType)),
                     ifExpr);
         }
 
