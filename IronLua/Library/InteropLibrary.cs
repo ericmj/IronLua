@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Microsoft.Scripting.Actions;
 
 namespace IronLua.Library
 {
@@ -18,10 +19,12 @@ namespace IronLua.Library
         public override void Setup(Runtime.LuaTable table)
         {
             table.SetConstant("import", (Func<string, LuaTable>)ImportType);
-            table.SetConstant("method", (Func<LuaTable, string, object>)InteropGetMethod);
-            table.SetConstant("call", (Func<LuaTable, string, Varargs, object>)InteropCallMethod);
+            table.SetConstant("method", (Func<object, string, object>)InteropGetMethod);
+            table.SetConstant("call", (Func<object, string, Varargs, object>)InteropCallMethod);
             table.SetConstant("setvalue", (Func<object, string, object, object>)InteropSetValue);
             table.SetConstant("getvalue", (Func<object, string, object>)InteropGetValue);
+            table.SetConstant("subscribe", (Action<object, string, Delegate>)InteropSubscribeEvent);
+            table.SetConstant("unsubscribe", (Action<object, string, Delegate>)InteropUnsubscribeEvent);
         }
 
         private LuaTable ImportType(string typeName)
@@ -32,6 +35,8 @@ namespace IronLua.Library
                 var table = new LuaTable(Context);
                 table.SetConstant("__clrtype", type);
                 table.Metatable = GenerateMetatable();
+
+                Context.SetTypeMetatable(type, table.Metatable);
 
                 return table;
             }
@@ -62,36 +67,16 @@ namespace IronLua.Library
 
         private static string ToString(LuaTable table)
         {
-            return (table.GetValue("__clrtype") as Type).FullName;
+            return "[CLASS] " + (table.GetValue("__clrtype") as Type).FullName;
         }
 
         private static object InteropIndex(object target, object index)
         {
-            var type = (target as LuaTable).GetValue("__clrtype") as Type;
-            var properties = type.GetProperties(
-                BindingFlags.GetProperty |
-                BindingFlags.GetField |
-                BindingFlags.Public |
-                BindingFlags.Static);
+            var type = target.GetType();
 
-            //First check if there are any properties/fields with the specified name
-            string indexKey = index.ToString();
-            var property = properties.FirstOrDefault(x => x.Name.Equals(indexKey));
-            if (property != default(PropertyInfo))
-                return property.GetValue(target, null);
             
-            ////Check if we have any methods with the given name
-            //var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
-            //    .Where(x => x.Name.Equals(indexKey)).ToArray();
-            //if (methods.Length > 0)
-            //    return new MethodIndex(indexKey, target is LuaTable ? null : target, type);
 
-            //Then check if there are any indexers on the object and try them
-            property = properties.FirstOrDefault(x => x.GetIndexParameters().Length == 1);
-            if (property != default(PropertyInfo))
-                return property.GetValue(target, new[] { index });
-
-            throw new LuaRuntimeException("Undefined field or property '{0}' on {1}", indexKey, type.FullName);
+            return null;
         }
 
         private static object InteropNewIndex(object target, object index, object value)
@@ -131,58 +116,113 @@ namespace IronLua.Library
         /// <returns>Returns the new instance of the interop type</returns>
         private static object InteropCall(object target, Varargs parameters)
         {
-            var type = (target as LuaTable).GetValue("__clrtype") as Type;
+            //CLR class reference (static references)
+            if (target is LuaTable)
+            {
+                var type = (target as LuaTable).GetValue("__clrtype") as Type;
 
-            var methodName = parameters[0].ToString();
-            var args = parameters.Skip(1).ToArray();
-            var argsTypes = args.Select(x => x.GetType()).ToArray();
+                var args = parameters.ToArray();
+                var argsTypes = args.Select(x => x.GetType()).ToArray();
 
+                return Activator.CreateInstance(type, args);
+            }
 
-            return Activator.CreateInstance(type, args);
+            //CLR instance reference
+            else if (target is BoundMemberTracker)
+            {
+                var tracker = target as BoundMemberTracker;
 
-            //var constructor = type.GetConstructor(argsTypes);
+                var type = tracker.ObjectInstance.GetType();
 
-            //if (constructor == null)
-            //    throw new LuaRuntimeException("Cannot create instance of '" + type.FullName + "' with the given parameters");
+                var methodName = tracker.Name;
+                var argsTypes = parameters.Select(x => x.GetType()).ToArray();
 
-            //return constructor.Invoke(args);
+                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                                .Where(x => x.Name.Equals(methodName) && ParamsMatch(x, argsTypes));
+
+                if (methods.Count() != 1)
+                    throw new LuaRuntimeException("Could not find a unique method '{0}' on {1}", methodName, type.FullName);
+
+                return methods.First().Invoke(tracker.ObjectInstance, parameters.Skip(1).ToArray());
+            }
+
+            throw new LuaRuntimeException("Attempting to execute an anonymous function on the given type, this is not possible");
         }
 
 
 
         #region Method Calls
 
-        private object InteropCallMethod(LuaTable target, string methodName, Varargs parameters)
+        private object InteropCallMethod(object target, string methodName, Varargs parameters = null)
         {
-            var type = (target as LuaTable).GetValue("__clrtype") as Type;
-            var paramTypes = parameters.Select(x => x.GetType()).ToArray();
+            if (target is LuaTable)
+            {
+                var type = (target as LuaTable).GetValue("__clrtype") as Type;
+                var paramTypes = parameters == null ? new Type[0] : parameters.Select(x => x.GetType()).ToArray();
 
-            var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
-                .Where(x => x.Name.Equals(methodName))
-                .Where(x => ParamsMatch(x, paramTypes)).ToArray();
-            if (methods.Length != 1)
-                throw new LuaRuntimeException("Could not find a method with the given parameters");
+                var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                    .Where(x => x.Name.Equals(methodName))
+                    .Where(x => ParamsMatch(x, paramTypes)).ToArray();
+                if (methods.Length != 1)
+                    throw new LuaRuntimeException("Could not find a method with the given parameters");
 
-            return methods[0].Invoke(target, parameters.ToArray());
+                return methods[0].Invoke(null, parameters == null ? new object[0] : parameters.ToArray());
+            }
+            else
+            {
+                var type = target.GetType();
+                var paramTypes = parameters == null ? new Type[0] : parameters.Select(x => x.GetType()).ToArray();
+
+                var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                    .Where(x => x.Name.Equals(methodName))
+                    .Where(x => ParamsMatch(x, paramTypes)).ToArray();
+                if (methods.Length != 1)
+                    throw new LuaRuntimeException("Could not find a method with the given parameters");
+
+                return methods[0].Invoke(target, parameters == null ? new object[0] : parameters.ToArray());
+            }
         }
 
-        private object InteropGetMethod(LuaTable target, string methodName)
+        private object InteropGetMethod(object target, string methodName)
         {
-            var type = (target as LuaTable).GetValue("__clrtype") as Type;
-            var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
-                .Where(x => x.Name.Equals(methodName)).ToArray();
-            if (methods.Length > 0)
+            if (target is LuaTable)
             {
-                var methodTable = new LuaTable(Context);
-                methodTable.SetConstant("__target", target);
-                methodTable.SetConstant("__method", methodName);
-                foreach (var method in methods)
-                    methodTable.SetConstant(method, method);
-                methodTable.Metatable = GenerateMethodMetaTable(Context);
+                var type = (target as LuaTable).GetValue("__clrtype") as Type;
+                var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                    .Where(x => x.Name.Equals(methodName)).ToArray();
+                if (methods.Length > 0)
+                {
+                    var methodTable = new LuaTable(Context);
+                    methodTable.SetConstant("__target", null);
+                    methodTable.SetConstant("__clrtype", type);
+                    methodTable.SetConstant("__method", methodName);
+                    foreach (var method in methods)
+                        methodTable.SetConstant(method, method);
+                    methodTable.Metatable = GenerateMethodMetaTable(Context);
 
-                return methodTable;
+                    return methodTable;
+                }
+
             }
+            else
+            {
+                var type = target.GetType();
 
+                var methods = type.GetMethods(BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)
+                    .Where(x => x.Name.Equals(methodName)).ToArray();
+                if (methods.Length > 0)
+                {
+                    var methodTable = new LuaTable(Context);
+                    methodTable.SetConstant("__target", target);
+                    methodTable.SetConstant("__clrtype", type);
+                    methodTable.SetConstant("__method", methodName);
+                    foreach (var method in methods)
+                        methodTable.SetConstant(method, method);
+                    methodTable.Metatable = GenerateMethodMetaTable(Context);
+
+                    return methodTable;
+                }
+            }
             return null;
         }
 
@@ -232,14 +272,14 @@ namespace IronLua.Library
 
         private static string MethodTableToString(LuaTable table)
         {
-            return string.Format("{0}.{1}(...)", ((table.GetValue("__target") as LuaTable).GetValue("__clrtype") as Type).FullName, table.GetValue("__method"));
+            return string.Format("{0}.{1}(...)", (table.GetValue("__clrtype") as Type).FullName, table.GetValue("__method"));
         }
 
         private static object MethodInteropCall(object target, Varargs parameters)
         {
             var table = target as LuaTable;
 
-            var paramTypes = parameters.Skip(1).Select(x => x.GetType()).ToArray();
+            var paramTypes = parameters.Select(x => x.GetType()).ToArray();
 
             Varargs pair = table.Next();
             do
@@ -249,7 +289,7 @@ namespace IronLua.Library
                     continue;
 
                 if (ParamsMatch(methodInfo, paramTypes))
-                    return methodInfo.Invoke(table.GetValue("__target"), parameters.Skip(1).ToArray());
+                    return methodInfo.Invoke(table.GetValue("__target"), parameters.ToArray());
 
             } while ((pair = table.Next(pair[0])) != null);
 
@@ -258,7 +298,7 @@ namespace IronLua.Library
 
         #endregion
 
-        #region Get Value
+        #region Get/Set Value
 
         private static object InteropGetValue(object table, string propertyName)
         {
@@ -342,6 +382,87 @@ namespace IronLua.Library
             }
         }
         
+        #endregion
+
+        #region Event Handlers
+
+        private static void InteropSubscribeEvent(object target, string eventName, Delegate handler)
+        {
+            
+            //Static events
+            if (target is LuaTable)
+            {
+                var type = (target as LuaTable).GetValue("__clrtype") as Type;
+
+                var eventSource = type.GetEvent(eventName, BindingFlags.Static | BindingFlags.Public);
+                if (eventSource != null)
+                {
+                    Delegate safeHandler = GetEventHandlerDelegate(eventSource.EventHandlerType, handler);
+                    eventSource.AddEventHandler(null, safeHandler);
+                    return;
+                }
+
+                throw new LuaRuntimeException("The static event '{0}' was not found", eventName);
+            }
+
+            //Instance events
+            else
+            {
+                var type = target.GetType();
+
+                var eventSource = type.GetEvent(eventName, BindingFlags.Instance | BindingFlags.Public);
+                if (eventSource != null)
+                {
+                    Delegate safeHandler = GetEventHandlerDelegate(eventSource.EventHandlerType, handler);
+                    eventSource.AddEventHandler(target, safeHandler);
+                    return;
+                }
+
+                throw new LuaRuntimeException("The instance event '{0}' was not found", eventName);
+            }
+        }
+
+        private static void InteropUnsubscribeEvent(object target, string eventName, Delegate handler)
+        {
+            //Static events
+            if (target is LuaTable)
+            {
+                var type = (target as LuaTable).GetValue("__clrtype") as Type;
+
+                var eventSource = type.GetEvent(eventName, BindingFlags.Static | BindingFlags.Public);
+                if (eventSource != null)
+                {
+                    Delegate safeHandler = GetEventHandlerDelegate(eventSource.EventHandlerType, handler);
+                    eventSource.AddEventHandler(null, safeHandler);
+                    return;
+                }
+
+                throw new LuaRuntimeException("The static event '{0}' was not found", eventName);
+            }
+
+            //Instance events
+            else
+            {
+                var type = target.GetType();
+
+                var eventSource = type.GetEvent(eventName, BindingFlags.Instance | BindingFlags.Public);
+                if (eventSource != null)
+                {
+                    Delegate safeHandler = GetEventHandlerDelegate(eventSource.EventHandlerType, handler);
+                    eventSource.AddEventHandler(target, safeHandler);
+                    return;
+                }
+
+                throw new LuaRuntimeException("The instance event '{0}' was not found", eventName);
+            }
+        }
+
+        private static Delegate GetEventHandlerDelegate(Type eventType, Delegate handler)
+        {
+            return handler;
+            //return Delegate.CreateDelegate(eventType, handler.Target, handler.Method);
+        }
+
         #endregion
 
     }
