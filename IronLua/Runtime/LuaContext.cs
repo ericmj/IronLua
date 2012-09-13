@@ -16,6 +16,7 @@ using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
 using Microsoft.Scripting.Actions;
+using System.Linq;
 
 namespace IronLua.Runtime
 {
@@ -201,7 +202,7 @@ namespace IronLua.Runtime
         /// <param name="type">The type to import into this engine's type definition tables</param>
         public void ImportType(Type type)
         {
-
+            InteropLibrary.ImportType(type, true);
         }
 
         /// <summary>
