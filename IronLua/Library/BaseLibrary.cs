@@ -306,7 +306,7 @@ namespace IronLua.Library
                 functionFormat = functionFormat.Remove(functionFormat.Length - 1);
                 functionFormat = string.Format("({0}) => {1}", functionFormat, fn.Method.ReturnType.Name);
 
-                return String.Format("function: {0}", functionFormat);
+                return String.Format("function {0}", functionFormat);
             }
             
             return v.ToString();
