@@ -55,9 +55,9 @@ namespace IronLua.Library
                             ".\\?.lua"
                         }));
 
-            table.SetConstant("loaded", new LuaTable());
-            table.SetConstant("preload", new LuaTable());
-            table.SetConstant("searchers", new LuaTable()); // TODO: fill with searchers
+            table.SetConstant("loaded", new LuaTable(Context));
+            table.SetConstant("preload", new LuaTable(Context));
+            table.SetConstant("searchers", new LuaTable(Context)); // TODO: fill with searchers
 
             table.SetConstant("loadlib", (Func<string, string, object>)Loadlib);
             table.SetConstant("searchpath", (Func<string, string, string, string, object>) SearchPath);
