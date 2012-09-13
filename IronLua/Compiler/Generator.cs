@@ -631,7 +631,7 @@ namespace IronLua.Compiler
 
             // Assign temporaries to globals
             var realAssigns = variables.Zip(tempVariablesResized, assigner);
-            return Expr.Block(tempVariables, Microsoft.Scripting.Utils.CollectionUtils.Concat(tempAssigns, realAssigns));
+            return Expr.Block(tempVariables, tempAssigns.Concat(realAssigns));
         }
 
         Expr CreateGlobalSetMember(string identifier, Expr globals, LuaScope scope, Expr value)
