@@ -7,6 +7,7 @@ using IronLua.Runtime.Binder;
 using IronLua.Util;
 using Expr = System.Linq.Expressions.Expression;
 using ExprType = System.Linq.Expressions.ExpressionType;
+using IronLua.Hosting;
 
 namespace IronLua.Runtime
 {
@@ -23,6 +24,13 @@ namespace IronLua.Runtime
 
         LuaContext Context
         { get; set; }
+
+        [Obsolete("This constructor is not safe when making use of metatables and metamethods")]
+        public LuaTable()
+            : this(null)
+        {
+
+        }
 
         public LuaTable(LuaContext context)
         {
