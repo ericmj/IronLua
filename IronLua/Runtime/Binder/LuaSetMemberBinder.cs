@@ -21,6 +21,15 @@ namespace IronLua.Runtime.Binder
             get { return _context; }
         }
 
+
+        DynamicMetaObject MakeScriptScopeSetMember(DynamicMetaObject target, string name, Expression value)
+        {
+            var setMemberExpression = Expression.Block(typeof(object),
+                Expression.Assign(Expression.PropertyOrField(Expression.Convert(target.Expression, target.LimitType), name), value),
+                Expression.Convert(value, typeof(object)));
+            return new DynamicMetaObject(setMemberExpression, BindingRestrictions.Empty);
+        }
+
         public override DynamicMetaObject FallbackSetMember(
             DynamicMetaObject target, 
             DynamicMetaObject value, 
@@ -32,7 +41,17 @@ namespace IronLua.Runtime.Binder
             //    return Defer(target);
             //throw new NotImplementedException();
 
-            return ErrorMetaObject(ReturnType, target, new DynamicMetaObject[] { value }, errorSuggestion);
+            if (!target.HasValue || !value.HasValue)
+                return Defer(target, value);
+
+            if (target.LimitType == typeof(IDynamicMetaObjectProvider))
+                return base.FallbackSetMember(target, value);
+
+            return _context.Binder.SetMember(Name, target, value);
+
+            //return MakeScriptScopeSetMember(target, Name, Expression.Convert(value.Expression, value.LimitType));
+
+            //return ErrorMetaObject(ReturnType, target, new DynamicMetaObject[] { value }, errorSuggestion);
         }
 
         static DynamicMetaObject ErrorMetaObject(Type resultType, DynamicMetaObject target, DynamicMetaObject[] args, DynamicMetaObject errorSuggestion)
