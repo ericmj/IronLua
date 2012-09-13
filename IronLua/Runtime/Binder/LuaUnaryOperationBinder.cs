@@ -58,7 +58,7 @@ namespace IronLua.Runtime.Binder
         Expr NotOp(DynamicMetaObject target)
         {
             if (target.LimitType == typeof(bool))
-                return Expr.MakeUnary(Operation, target.Expression, null);
+                return Expr.MakeUnary(Operation, Expr.Convert(target.Expression, target.LimitType), null);
             return Expr.Equal(target.Expression, Expr.Constant(null));
         }
 
