@@ -15,6 +15,7 @@ using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
+using Microsoft.Scripting.Actions;
 
 namespace IronLua.Runtime
 {
@@ -143,8 +144,16 @@ namespace IronLua.Runtime
         {
             if (obj == null)
                 return null;
-
+            
             LuaTable table;
+
+            if (obj is BoundMemberTracker)
+            {
+                var tracker = obj as BoundMemberTracker;
+                if (_metatables.TryGetValue(tracker.ObjectInstance.GetType(), out table))
+                    return table;
+            }
+
             if (_metatables.TryGetValue(obj.GetType(), out table))
                 return table;
 
