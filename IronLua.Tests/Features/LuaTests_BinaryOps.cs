@@ -470,7 +470,7 @@ namespace IronLua.Tests.Features
         }
 
         [Test, ExpectedException(typeof(LuaRuntimeException),
-            ExpectedMessage = "attempt to compare table with number")]
+            ExpectedMessage = "Attempt to compare table with number")]
         public void TestBinary_LessThan_TableWithNumber()
         {
             engine.Execute("return {} < 6");

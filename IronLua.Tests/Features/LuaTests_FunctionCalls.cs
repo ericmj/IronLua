@@ -105,7 +105,7 @@ namespace IronLua.Tests.Features
         {
             string code = "print {}";
 
-            PerformStartingTest(code, "table: ");
+            PerformStartingTest(code, "table ");
         }
 
         [Test]
@@ -113,7 +113,7 @@ namespace IronLua.Tests.Features
         {
             string code = "print { x = 5, y = 10 }";
 
-            PerformStartingTest(code, "table: ");
+            PerformStartingTest(code, "table ");
         }
 
         [Test]
@@ -122,7 +122,7 @@ namespace IronLua.Tests.Features
             string code = @"
 x = { x = 5, y = 10 }
 print(x)";
-            PerformStartingTest(code, "table: ");
+            PerformStartingTest(code, "table ");
         }
 
         [Test]
@@ -131,7 +131,7 @@ print(x)";
             string code = @"
 x = function() end
 print(x)";
-            PerformStartingTest(code, "function: ");
+            PerformStartingTest(code, "function ");
         }
 
         [Test]
@@ -167,7 +167,7 @@ print(x)";
         {
             string code = "print(_G)";
 
-            PerformStartingTest(code, "table: ");
+            PerformStartingTest(code, "table ");
         }
        
         [Test]
