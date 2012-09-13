@@ -87,11 +87,11 @@ namespace IronLua.Library
         public Varargs IPairs(LuaTable t)
         {
             var length = t.Length();
-            Func<double, object> func =
-                index =>
+            Func<LuaTable, double, object> func =
+                (table, index) =>
                     {
                         index++;
-                        return index > length ? null : new Varargs(index, t.GetValue(index));
+                        return index > length ? null : new Varargs(index, table.GetValue(index));
                     };
 
             return new Varargs(func, t, 0.0);
