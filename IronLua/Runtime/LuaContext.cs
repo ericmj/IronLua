@@ -30,7 +30,7 @@ namespace IronLua.Runtime
 
             _binder = new LuaBinder(this);
             _dynamicCache = new DynamicCache(this);
-            _globals = SetupLibraries(new LuaTable());
+            _globals = SetupLibraries(new LuaTable(this));
             _metatables = SetupMetatables();
         }
 
@@ -132,10 +132,10 @@ namespace IronLua.Runtime
         {
             return new Dictionary<Type, LuaTable>()
             {
-                {typeof(bool), new LuaTable()},
-                {typeof(double), new LuaTable()},
-                {typeof(string), new LuaTable()},
-                {typeof(Delegate), new LuaTable()},
+                {typeof(bool), new LuaTable(this)},
+                {typeof(double), new LuaTable(this)},
+                {typeof(string), new LuaTable(this)},
+                {typeof(Delegate), new LuaTable(this)},
             };
         }
 
@@ -357,29 +357,7 @@ namespace IronLua.Runtime
 
         public override string FormatObject(DynamicOperations operations, object obj)
         {
-            if (obj == null) 
-                return "nil";
-
-            if (obj is bool)
-                return (bool) obj ? "true" : "false";
-
-            if (obj is LuaTable)
-                return String.Format("table: {0} entries", (obj as LuaTable).Length());
-
-            if (obj is Delegate)
-            {
-                string functionFormat = "";
-                var fn = obj as Delegate;
-
-                foreach (var p in fn.Method.GetParameters())
-                    functionFormat += (p.Name ?? p.ParameterType.Name) + ",";
-                functionFormat = functionFormat.Remove(functionFormat.Length - 1);
-                functionFormat = string.Format("({0}) => {1}", functionFormat, fn.Method.ReturnType.Name);
-
-                return String.Format("function: {0}", functionFormat);
-            }
-            
-            return obj.ToString();
+            return BaseLibrary.ToStringEx(obj);
         }
 
         #region Lua base library management
@@ -392,43 +370,43 @@ namespace IronLua.Runtime
             BaseLibrary.Setup(globals);
 
             PackageLibrary = new PackageLibrary(this);
-            var packagelibTable = new LuaTable();
+            var packagelibTable = new LuaTable(this);
             PackageLibrary.Setup(packagelibTable);
             globals.SetConstant("package", packagelibTable);
 
             //TableLibrary = new TableLibrary();
-            var tablelibTable = new LuaTable();
+            var tablelibTable = new LuaTable(this);
             //TableLibrary.Setup(tablelibTable);
             globals.SetConstant("table", tablelibTable);
 
             MathLibrary = new MathLibrary(this);
-            var mathlibTable = new LuaTable();
+            var mathlibTable = new LuaTable(this);
             MathLibrary.Setup(mathlibTable);
             globals.SetConstant("math", mathlibTable);
 
             StringLibrary = new StringLibrary(this);
-            var strlibTable = new LuaTable();
+            var strlibTable = new LuaTable(this);
             StringLibrary.Setup(strlibTable);
             globals.SetConstant("string", strlibTable);
 
             //IoLibrary = new IoLibrary(this);
-            var iolibTable = new LuaTable();
+            var iolibTable = new LuaTable(this);
             //IoLibrary.Setup(iolibTable);
             globals.SetConstant("io", iolibTable);
 
             OSLibrary = new OSLibrary(this);
-            var oslibTable = new LuaTable();
+            var oslibTable = new LuaTable(this);
             OSLibrary.Setup(oslibTable);
             globals.SetConstant("os", oslibTable);
 
             //DebugLibrary = new DebugLibrary(this);
-            var debuglibTable = new LuaTable();
+            var debuglibTable = new LuaTable(this);
             //DebugLibrary.Setup(debuglibTable);
             globals.SetConstant("debug", debuglibTable);
 
 
             InteropLibrary = new InteropLibrary(this);
-            var interopTable = new LuaTable();
+            var interopTable = new LuaTable(this);
             InteropLibrary.Setup(interopTable);
             globals.SetConstant("clr", interopTable);
 
