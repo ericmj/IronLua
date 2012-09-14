@@ -18,22 +18,22 @@ namespace IronLua.Library
         
         public override void Setup(Runtime.LuaTable table)
         {
-            table.SetConstant("import", (Func<string, Varargs, LuaTable>)ImportType);
+            table.SetConstant("import", (Func<string,object[], LuaTable>)ImportType);
             table.SetConstant("method", (Func<object, string, object>)InteropGetMethod);
-            table.SetConstant("call", (Func<object, string, Varargs, object>)InteropCallMethod);
+            table.SetConstant("call", (Func<object, string, object[], object>)InteropCallMethod);
             table.SetConstant("setvalue", (Func<object, string, object, object>)InteropSetValue);
             table.SetConstant("getvalue", (Func<object, string, object>)InteropGetValue);
             table.SetConstant("subscribe", (Action<object, string, Delegate>)InteropSubscribeEvent);
             table.SetConstant("unsubscribe", (Action<object, string, Delegate>)InteropUnsubscribeEvent);
         }
 
-        private LuaTable ImportType(string typeName, Varargs args = null)
+        private LuaTable ImportType(string typeName, params object[] args)
         {
             var type = Type.GetType(typeName, false);
 
             bool genNamespaces = false;
 
-            if (args != null && args.Count == 1 && args[0] is bool)
+            if (args != null && args.Length == 1 && args[0] is bool)
                 genNamespaces = (bool)args[0];
 
             return ImportType(type, genNamespaces);
@@ -127,9 +127,7 @@ namespace IronLua.Library
         }
 
         private object InteropIndex(object target, object index)
-        {
-            
-
+        {       
             if (target is LuaTable)
             {
                 var type = (target as LuaTable).GetValue("__clrtype") as Type;
@@ -140,7 +138,7 @@ namespace IronLua.Library
                 else if (members.All(x => x.MemberType == MemberTypes.Property))
                     return (members.First() as PropertyInfo).GetValue(null, null);
                 else if (members.All(x => x.MemberType == MemberTypes.Method))
-                    return new BoundMemberTracker(MemberTracker.FromMemberInfo(members.First()), null);
+                    return new BoundMemberTracker(MemberTracker.FromMemberInfo(members.First()), target as LuaTable);
             }
             else
             {
@@ -244,7 +242,7 @@ namespace IronLua.Library
 
         #region Method Calls
 
-        private object InteropCallMethod(object target, string methodName, Varargs parameters = null)
+        private object InteropCallMethod(object target, string methodName, params object[] parameters)
         {
             if (target is LuaTable)
             {
