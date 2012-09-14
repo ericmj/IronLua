@@ -4,6 +4,7 @@ using System.Dynamic;
 using Microsoft.Scripting.Actions;
 using Microsoft.Scripting.Actions.Calls;
 using Microsoft.Scripting.Runtime;
+using IronLua.Library;
 
 namespace IronLua.Runtime.Binder
 {
@@ -20,6 +21,27 @@ namespace IronLua.Runtime.Binder
         public LuaBinder(LuaBinder binder)
         {
             _context = binder._context;
+        }
+
+        public override bool CanConvertFrom(System.Type fromType, System.Type toType, bool toNotNullable, NarrowingLevel level)
+        {
+            if (fromType == typeof(double) && toType == typeof(string))
+                return true;
+            else if (fromType == typeof(string) && toType == typeof(double))
+                return !toNotNullable;
+            
+            return base.CanConvertFrom(fromType, toType, toNotNullable, level);
+        }
+
+        public override object Convert(object obj, System.Type toType)
+        {
+            if (obj is double && toType == typeof(string))
+                return BaseLibrary.ToStringEx(obj);
+
+            else if (obj is string && toType == typeof(double))
+                return BaseLibrary.ToNumber(obj, 10);
+
+            return base.Convert(obj, toType);
         }
     }
 
