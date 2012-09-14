@@ -106,8 +106,7 @@ printChildren(_ENV,0)
 
             engine.Execute(code);
         }
-
-
+        
         [Test]
         public void TestStructAccess()
         {           
@@ -165,8 +164,27 @@ assert(methodResult == 'this is a string:12')
             var scope = engine.CreateScope();
 
             engine.Execute(code, scope);
+        }
 
-            Assert.That(scope.GetVariable("testclass") == null, Is.False, "Failed to import TestClass");
+        [Test]
+        public void TestEvents()
+        {
+            string code =
+"testclassNS='" + typeof(TestEventsClass).AssemblyQualifiedName + "'" +
+@"testclass=clr.import(testclassNS)
+assert(type(testclass) == 'table','Failed to import TestEventsClass')
+
+host = testclass()
+handler = function (arg) print('Event Triggered: '..tostring(arg)) end
+handler2 = function (arg,e) print('EventHandler Triggered: '..tostring(arg)) end
+
+clr.subscribe(host,'Event',handler)
+clr.subscribe(host,'EventHandlerEvent',handler2)
+clr.subscribe(host,'EventHandlerEvent2',handler2)
+host.Trigger('Argument')
+";
+
+            engine.Execute(code);
         }
 
         public struct TestStruct
@@ -200,6 +218,27 @@ assert(methodResult == 'this is a string:12')
             public object Method()
             {
                 return Field + ":" + Property;
+            }
+        }
+
+        public class TestEventsClass
+        {
+            public event Func<object, object> Event = null;
+
+            public event EventHandler EventHandlerEvent = null;
+
+            public event EventHandler<EventArgs> EventHandlerEvent2 = null;
+
+            public void Trigger(object arg)
+            {
+                if (Event != null)
+                    Event(arg);
+
+                if (EventHandlerEvent != null)
+                    EventHandlerEvent(arg, new EventArgs());
+
+                if (EventHandlerEvent2 != null)
+                    EventHandlerEvent2(arg, new EventArgs());
             }
         }
     }
