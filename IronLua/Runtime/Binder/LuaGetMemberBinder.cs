@@ -41,6 +41,9 @@ namespace IronLua.Runtime.Binder
             if (target.LimitType == typeof(IDynamicMetaObjectProvider))
                 return base.FallbackGetMember(target);
 
+            else if (target.LimitType == typeof(LuaTable))
+                return base.FallbackGetMember(target);
+
             return _context.Binder.GetMember(Name, target);            
         }
     }
