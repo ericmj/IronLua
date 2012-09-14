@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Microsoft.Scripting.Actions;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace IronLua.Library
 {
@@ -598,8 +600,33 @@ namespace IronLua.Library
 
         private Delegate GetEventHandlerDelegate(Type eventType, Delegate handler)
         {
-            return handler;
-            //return Delegate.CreateDelegate(eventType, handler.Target, handler.Method);
+            if (eventType.IsInstanceOfType(handler))
+                return handler;
+            
+            if (typeof(EventHandler).IsAssignableFrom(eventType))
+                return new EventHandler((sender, e) => handler.DynamicInvoke(new[] { sender, e }));
+            else if(eventType.IsGenericType && typeof(EventHandler<EventArgs>).GetGenericTypeDefinition().IsAssignableFrom(eventType.GetGenericTypeDefinition()))
+                return Delegate.CreateDelegate(typeof(EventHandler<EventArgs>).GetGenericTypeDefinition()
+                    .MakeGenericType(eventType.GetGenericArguments()), handler, 
+                        this.GetType().GetMethod("InvokeEventHandler", BindingFlags.Static | BindingFlags.NonPublic));
+            
+            //Is this necessary? Maybe the above method can just be tweaked to work with other implementations as well?
+            var parameters = handler.Method.GetParameters().Skip(1).Select(x => Expression.Parameter(x.ParameterType, x.Name)).ToArray();
+            var newArray = Expression.NewArrayInit(typeof(object), parameters.Select(x => Expression.Convert(x, typeof(object))));
+            var lambda = Expression.Lambda(Expression.GetActionType(parameters.Select(x => x.Type).ToArray()),
+                    Expression.Block(parameters,
+                    Expression.Call(Expression.Constant(handler), handler.GetType().GetMethod("DynamicInvoke",BindingFlags.Instance | BindingFlags.Public),
+                        newArray
+                    )
+                    ), parameters
+                ).Compile();
+
+            return lambda;
+        }
+
+        private static void InvokeEventHandler(Delegate target, object sender, EventArgs e)
+        {
+            target.DynamicInvoke(new[] { sender, e });
         }
 
         #endregion
