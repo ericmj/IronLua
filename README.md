@@ -33,10 +33,7 @@ Also, if you have knowledge on implementing stack tracing, then I'd appreciate a
 
 <a id="current-branch-goals"></a>
 ## Current Branch Goals
-
-* **Event Handler Translation** 
-  Current implementation doesn't work too well, since Lua methods all return a value (they behave like Func<...>) while most C# event handlers are expected to be void (Action<...>). It is necessary to get some kind of wrapper sorted out to ensure that Lua methods can be used for standard C# event handlers.
-
+Looks like I have got most of the stuff I wanted to get working done. I'll add stuff here as I come across things that need to be added or fixed. Please note that just because there isn't anything here doesn't mean that this is a finished project or that it is production ready.
 
 <a id="possible-goals"></a>
 ## Possible Goals
@@ -74,6 +71,9 @@ These are goals which were set, and have been achieved. Some of them are small i
 
 * **Fix Get/Set Member implementation**
   The current implementation is somewhat buggy, and does not allow you to set a field on a table using index notation if the value has not been set before, and there is no metatable handling the method. There are also a few other bugs in the implementation which need to be ironed out.
+
+* **Event Handler Translation** 
+  Current implementation doesn't work too well, since Lua methods all return a value (they behave like Func<...>) while most C# event handlers are expected to be void (Action<...>). It is necessary to get some kind of wrapper sorted out to ensure that Lua methods can be used for standard C# event handlers.
 
 <a id="clr-interop-library"></a>
 ## CLR Interop Library
