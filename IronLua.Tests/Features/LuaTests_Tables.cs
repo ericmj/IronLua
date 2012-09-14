@@ -37,7 +37,7 @@ namespace IronLua.Tests.Features
             Assert.That(error, Is.Empty);
         }
 
-        public void PerformTableTest(string code)
+        public object PerformTableTest(string code)
         {
             var scope = engine.CreateScope();
 
@@ -48,7 +48,9 @@ namespace IronLua.Tests.Features
             Assert.That(output, Is.Empty);
             Assert.That(error, Is.Empty);
 
-            //Assert.That(scope.ContainsVariable("t"), Is.True); // TODO: get scope to work
+            Assert.That(scope.ContainsVariable("t"), Is.True);
+
+            return scope.GetVariable("t");
         }
 
         [Test]
