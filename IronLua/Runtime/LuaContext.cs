@@ -151,6 +151,13 @@ namespace IronLua.Runtime
             if (obj is BoundMemberTracker)
             {
                 var tracker = obj as BoundMemberTracker;
+
+                if (tracker.ObjectInstance is LuaTable)
+                {
+                    if ((tracker.ObjectInstance as LuaTable).Metatable != null)
+                        return (tracker.ObjectInstance as LuaTable).Metatable;
+                }
+
                 if (_metatables.TryGetValue(tracker.ObjectInstance.GetType(), out table))
                     return table;
             }
