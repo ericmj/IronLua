@@ -123,7 +123,11 @@ namespace IronLua.Tests.Features
         {
             string code = @"t = {x=5, y = 10; 'yes', 'no' }";
 
-            PerformTableTest(code);
+            dynamic table = PerformTableTest(code);
+            Assert.That(table.x == 5, Is.True);
+            Assert.That(table["y"] == 10, Is.True);
+            Assert.That(table[1.0] == "yes", Is.True);
+            Assert.That(table[2.0] == "no", Is.True);
         }
 
         [Test]
@@ -131,7 +135,13 @@ namespace IronLua.Tests.Features
         {
             string code = @"t = { msg='choice', {'yes','no','maybe'} }";
 
-            PerformTableTest(code);
+            dynamic table = PerformTableTest(code);
+            Assert.That(table.msg, Is.EqualTo("choice"));
+
+            dynamic table2 = table[1.0];
+            Assert.That((object)table2 != null, Is.True, "Sub-table was nil");
+
+            Assert.That(table2[1.0] == "yes", Is.True);
         }
 
         [Test]
@@ -148,6 +158,22 @@ end";
             expect.AppendLine("2\tC\tnumber");
             expect.Append    ("4\tE\tnumber");
             PerformTest(code, expect.ToString());
+        }
+
+        [Test]
+        public void TestTables_IndexInstantiation()
+        {
+            string code = 
+@"t = {}
+t.x = 5
+t['y'] = 10
+t['z'] = t.y";
+
+            dynamic table = PerformTableTest(code);
+
+            Assert.That(table.x == 5, Is.True);
+            Assert.That(table.y == 10, Is.True);
+            Assert.That(table.z == 10, Is.True);
         }
 
         #region Syntax Exception tests
@@ -402,6 +428,35 @@ end";
             Assert.That(lt.GetValue("y"), Is.EqualTo("gh"));
             Assert.That(lt.GetValue(5.0), Is.EqualTo("ab"));
         }
+
+        #endregion
+
+        #region Metamethod Tests
+
+        [Test]
+        public void TestTables_IndexMetamethod()
+        {
+            string code =
+@"
+t = { a = 10, b = 'hello' }
+mt = { }
+mt.__index =    function (table,index)
+                    if index == 'string' then return table.b else return table.a end
+                end
+setmetatable(t,mt)
+assert(t['string'] == 'hello')
+out2 = t.double
+";
+
+            dynamic table = PerformTableTest(code);
+            var out1 = table["string"];
+            var out2 = table.dbl;
+            Assert.That(out1 == "hello", Is.True);
+            Assert.That(out2 == 10.0, Is.True);
+        }
+        
+
+       
 
         #endregion
     }
