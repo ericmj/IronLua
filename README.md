@@ -33,7 +33,10 @@ Also, if you have knowledge on implementing stack tracing, then I'd appreciate a
 
 <a id="current-branch-goals"></a>
 ## Current Branch Goals
-Looks like I have got most of the stuff I wanted to get working done. I'll add stuff here as I come across things that need to be added or fixed. Please note that just because there isn't anything here doesn't mean that this is a finished project or that it is production ready.
+
+* **CLR Indexed Properties** 
+  Ensure that CLR based indexed properties (for example, array indices or list accessors) are available from within Lua in the same way. 
+  And ensure that Lua gracefully falls back on its standard behaviour (treating it like a member lookup) if no indexing method is found.
 
 <a id="possible-goals"></a>
 ## Possible Goals
@@ -98,13 +101,13 @@ Gets a reference to a CLR method, which can then be treated like a function from
 `clrpow = clr.method(math,'Pow')`
 
 ###clr.setvalue
-Sets the value of a property or field on either a static or instance CLR object. This is required if you want to set a value on a static object, however you can make use of the standard Lua member accessors to do this on an instance object.
+Sets the value of a property or field on either a static or instance CLR object. This is simply the backing method behind how IronLua handles setting index and member values on CLR types. You can also use the standard Lua syntax to set values on these objects.
 
 **Example**
 `clr.setvalue(obj,'Field',value)`
 
 ###clr.getvalue
-Gets the value of a property or field on either a static or instance CLR object. This is required if you want to get a value on a static object, however you can make use of the standard Lua member accessors to do this on an instance object.
+Gets the value of a property or field on either a static or instance CLR object. This is simply the backing method behind how IronLua handles getting index and member values on CLR types. You can also use the standard Lua syntax to get values on these objects.
 
 **Example**
 `clr.getvalue(obj,'Field')`
