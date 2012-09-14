@@ -165,7 +165,7 @@ namespace IronLua.Library
         public Varargs Next(LuaTable table, object index = null)
         {
             if (table == null)
-                throw new LuaRuntimeException("bad argument #1 to 'next' (table expected, got nil)");
+                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, "next", "table", "nil");
 
             return table.Next(index);
         }
@@ -214,7 +214,7 @@ namespace IronLua.Library
 
         public static LuaTable RawSet(LuaTable table, object index, object value)
         {
-            table.SetConstant(index, value);
+            table.SetValue(index, value);
             return table;
         }
 
@@ -280,7 +280,7 @@ namespace IronLua.Library
             return Context.DynamicCache.GetDynamicCall1()(metaToString, e);
         }
 
-        public string ToStringEx(object v)
+        public static string ToStringEx(object v)
         {
             if (ReferenceEquals(v, null))
                 return "nil";
