@@ -33,15 +33,8 @@ namespace IronLua.Runtime.Binder
 
             var restrictions = RuntimeHelpers.MergeTypeRestrictions(target);
 
-            //if(target.LimitType == typeof(InteropLibrary.MethodIndex))
-            //{
-            //    var methodIndex = target.Value as InteropLibrary.MethodIndex;
-
-            //    var callDelegate = methodIndex.CLRType.GetDeclaredMethods(methodIndex.MethodName).Select(x => x.GetParameters().Length == args.Length);
-
-            //    return new DynamicMetaObject(Expr.Constant(callDelegate), restrictions)
-            //        .BindInvoke(new LuaInvokeBinder(context, new CallInfo(args.Length)), args);
-            //}
+            if (target.Value == null)
+                throw new LuaRuntimeException("Attempt to invoke a nil object");
 
             if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
                 return new DynamicMetaObject(MetamethodFallbacks.Call(context, target, args), restrictions);
