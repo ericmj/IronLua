@@ -482,7 +482,7 @@ namespace IronLua.Library
             table.SetConstant("select", (Func<object, object[], Varargs>)Select);
             table.SetConstant("setfenv", (Func<object, LuaTable, object>)SetFEnv);
             table.SetConstant("setmetatable", (Func<LuaTable, LuaTable, LuaTable>)SetMetatable);
-            table.SetConstant("tonumber", (Func<string, object, object>)ToNumber);
+            table.SetConstant("tonumber", (Func<object, object, object>)ToNumber);
             table.SetConstant("tostring", (Func<object, object>)ToStringEx);
             table.SetConstant("type", (Func<object, string>)Type);
             table.SetConstant("unpack", (Func<LuaTable, object, object, Varargs>)Unpack);
