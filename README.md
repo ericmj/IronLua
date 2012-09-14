@@ -3,24 +3,43 @@
 This is a heavily modified branch of IronLua by fgretief. By "heavily modified" I mean that I am not attempting to follow any coding styles or paradigms used by the original author, rather attempting to get this branch to a usable state as quickly and efficiently as possible.
 
 ##Index
-**[Current Branch Goals](#currentbranchgoals)**
+**[Current State](#current-state)**
 
-**[Possible Goals](#possiblegoals)**
+**[Helping Out](#helping-out)**
 
-**[Completed Goals](#completedgoals)**
+**[Current Branch Goals](#current-branch-goals)**
 
-**[CLR Interop Library](#clrlibrary)**
+**[Possible Goals](#possible-goals)**
+
+**[Completed Goals](#completed-goals)**
+
+**[CLR Interop Library](#clr-interop-library)**
 
 **[IronLua](#ironlua)**
 
-## <a id="currentbranchgoals"></a>Current Branch Goals
-* **Syntax Sugar** The current implementation allows for nice, Lua-esque access to CLR object instances, however static types still need a bit of work. They currently are accessibly through the clr.* methods the same way that instanced objects are.
+<a id="current-state"></a>
+## Current State
+The current state of the branch is somewhat usable, though there may well be bugs and exception generating code paths which I have not checked or fixed. Feel free to poke about and let me know if you find a problem and I'll try and get it fixed when I next have time in my schedule.
 
-* **Event Handler Translation** Current implementation doesn't work too well, since Lua methods all return a value (they behave like Func<...>) while most C# event handlers are expected to be void (Action<...>). It is necessary to get some kind of wrapper sorted out to ensure that Lua methods can be used for standard C# event handlers.
+Currently it is possible to interact with a large portion of the CLR from within Lua, including accessing and writing values on both classes and structures. It is also possible to import CLR types directly from within Lua through the use of the clr namespace, from which they can then be instantiated. A number of bugs and niggles that were previously present in IronLua have also been ironed out, making it possible to do a lot more than was previously possible.
 
-* **CLR Get/Set Member** Current implementation works fine provided index form is not used (`obj['index']`), which currently breaks. This needs to be fixed before we can claim to have a nicely organized CLR implementation.
+<a id="helping-out"></a>
+## Helping Out
+Unfortunately I don't have unlimited reserves of time to throw at this project, and it is very much a side-hobby - something I picked up because I needed a scripting language for another one of my projects and didn't feel like learning Ruby (obviously, learning the DLR was a much better option...).
 
-## <a id="possiblegoals"></a>Possible Goals
+If you would like to help this project out, then assistance with implementing a number of Lua's standard libraries would be appreciated. I am currently more focused on implementing the IronLua runtime and any Interop packages that are necessary than I am on getting things like Lua's debug library working.
+
+Also, if you have knowledge on implementing stack tracing, then I'd appreciate any help you can give me there (as this would be my first attempt at doing anything of the sort).
+
+<a id="current-branch-goals"></a>
+## Current Branch Goals
+
+* **Event Handler Translation** 
+  Current implementation doesn't work too well, since Lua methods all return a value (they behave like Func<...>) while most C# event handlers are expected to be void (Action<...>). It is necessary to get some kind of wrapper sorted out to ensure that Lua methods can be used for standard C# event handlers.
+
+
+<a id="possible-goals"></a>
+## Possible Goals
 These are things I'd like to implement eventually, however they are not at the top of my priorities list at the moment.
 
 * **Integration into Master branch**
@@ -28,7 +47,10 @@ These are things I'd like to implement eventually, however they are not at the t
   This won't be a priority if the original author starts making more updates which break anything I've fixed here, but if there are no changes by the time I am done
   then I'll issue a pull request.
 
-## <a id="completedgoals"></a>Completed Goals
+<a id="completed-goals"></a>
+## Completed Goals
+These are goals which were set, and have been achieved. Some of them are small issues which needed to be fixed, while others required major rewrites of the DLR code backing IronLua. If you notice a problem with any of the issues which should have been addressed here, please put together a test method to demonstrate the issue and let me know so I can fix it.
+
 * **Invariable Support**
   This branch should provide support for invariable values to be placed in the engine's global table which should be immutable.
 
@@ -44,8 +66,17 @@ These are things I'd like to implement eventually, however they are not at the t
 * **Event Support**
   Provide event handlers within Lua for C# events generated by classes (static) or by objects which are set either on the engine or scope level (instance).
 
+* **Syntax Sugar** 
+  The current implementation allows for nice, Lua-esque access to CLR object instances, however static types still need a bit of work. They currently are accessibly through the clr.* methods the same way that instanced objects are.
 
-## <a id="clrlibrary"></a>CLR Interop Library
+* **CLR Get/Set Member** 
+  Current implementation works fine provided index form is not used (`obj['index']`), which currently breaks. This needs to be fixed before we can claim to have a nicely organized CLR implementation.
+
+* **Fix Get/Set Member implementation**
+  The current implementation is somewhat buggy, and does not allow you to set a field on a table using index notation if the value has not been set before, and there is no metatable handling the method. There are also a few other bugs in the implementation which need to be ironed out.
+
+<a id="clr-interop-library"></a>
+## CLR Interop Library
 This implementation of Lua makes use of a library which generates Metatables for CLR objects (in a very generic way, allowing one metatable to apply to many different types at once). This has the advantage of minimizing the number of changes that need to be made to the actual Lua implementation to allow CLR interop to be possible.
 
 ###clr.import
@@ -92,8 +123,8 @@ Unsubscribes from a CLR event that was previously subscribed to. It is necessary
 
 
 
-
-# <a id="ironlua"></a>IronLua
+<a id="ironlua"></a>
+# IronLua
 
 IronLua is intended to be a full implementation of Lua targeting .NET. Allowing easy embedding into applications and friction-less integration with .NET are key goals.
 
