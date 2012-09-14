@@ -6,3 +6,4 @@ obj/
 TestResults/*
 *lua-*-tests*
 *.ncrunch*
+_NCrunch_IronLua/*
