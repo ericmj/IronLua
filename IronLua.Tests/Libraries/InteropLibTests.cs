@@ -4,7 +4,7 @@ using IronLua.Runtime;
 using Microsoft.Scripting.Hosting;
 using NUnit.Framework;
 
-namespace IronLua.Tests.Libraries
+namespace IronLua.Tests
 {
     [TestFixture]
     public class InteropLibTests
@@ -127,9 +127,46 @@ ts1['z'] = '15'
 assert(clr.getvalue(ts1,'x') == 10,'Failed ts1.x == 10')
 assert(ts1.y == 5,'Failed ts1.y == 5')
 assert(ts1['z'] == '15','Failed ts1.z == tostring(15)')
+
+ts2=teststruct(10,2)
+assert(ts2.x == 10)
+assert(ts2.y == 2)
+assert(ts2.z == nil)
+
+ts3=teststruct('test')
+assert(ts3.x == 0)
+assert(ts3.y == 0)
+assert(ts3.z == 'test')
 ";
 
             engine.Execute(code);
+        }
+
+        [Test]
+        public void TestClassAccess()
+        {
+            string code =
+"testclassNS='" + typeof(TestClass).AssemblyQualifiedName + "'" +
+@"testclass=clr.import(testclassNS)
+assert(type(testclass) == 'table','Failed to import TestClass')
+
+tc1 = testclass()
+assert(type(tc1) == 'IronLua.Tests.InteropLibTests+TestClass', 'Failed to instantiate TestClass')
+
+tc1.Field = 'this is a string'
+tc1.Property = 12.0
+methodResult = tc1.Method()
+
+assert(tc1.Field == 'this is a string')
+assert(tc1.Property == 12)
+assert(methodResult == 'this is a string:12')
+";
+
+            var scope = engine.CreateScope();
+
+            engine.Execute(code, scope);
+
+            Assert.That(scope.GetVariable("testclass") == null, Is.False, "Failed to import TestClass");
         }
 
         public struct TestStruct
@@ -152,6 +189,18 @@ assert(ts1['z'] == '15','Failed ts1.z == tostring(15)')
             private string __z;
             public string z
             { get { return __z; } set{ __z = value; } }
+        }
+
+        public class TestClass
+        {
+            public string Field = "";
+            public double Property
+            { get; set; }
+
+            public object Method()
+            {
+                return Field + ":" + Property;
+            }
         }
     }
 }
