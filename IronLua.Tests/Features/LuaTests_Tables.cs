@@ -179,8 +179,8 @@ t['z'] = t.y";
         #region Syntax Exception tests
 
         [Test]
-        [ExpectedException(typeof(SyntaxErrorException), 
-            ExpectedMessage = "unexpected symbol near ';'")]
+        [ExpectedException(typeof(SyntaxErrorException),
+            ExpectedMessage = "unexpected symbol near ';' (line 1, column 7)")]
         public void TestTables_ParserMsg1a()
         {
             engine.Execute("t = { ; }");
@@ -188,7 +188,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near ','")]
+            ExpectedMessage = "unexpected symbol near ',' (line 1, column 7)")]
         public void TestTables_ParserMsg1b()
         {
             engine.Execute("t = { , }");
@@ -196,7 +196,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException), 
-            ExpectedMessage = "'}' expected near '2'")]
+            ExpectedMessage = "'}' expected near '2' (line 1, column 9)")]
         public void TestTables_ParserMsg2()
         {
             engine.Execute("t = { 1 2 }");
@@ -204,7 +204,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "'}' expected (to close '{' at line 1) near '2'")]
+            ExpectedMessage = "'}' expected (to close '{' at line 1) near '2' (line 2, column 1)")]
         public void TestTables_ParserMsg3()
         {
             engine.Execute("t = { 1\r\n2 }");
@@ -212,7 +212,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near '='")]
+            ExpectedMessage = "unexpected symbol near '=' (line 1, column 9)")]
         public void TestTables_ParserMsg4a()
         {
             engine.Execute("t = { [ = 2 }");
@@ -220,7 +220,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "']' expected near '='")]
+            ExpectedMessage = "']' expected near '=' (line 1, column 10)")]
         public void TestTables_ParserMsg4b()
         {
             engine.Execute("t = { [1 = 2 }");
@@ -228,7 +228,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "'=' expected near '2'")]
+            ExpectedMessage = "'=' expected near '2' (line 1, column 11)")]
         public void TestTables_ParserMsg4c()
         {
             engine.Execute("t = { [1] 2 }");
@@ -236,7 +236,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near '}'")]
+            ExpectedMessage = "unexpected symbol near '}' (line 1, column 13)")]
         public void TestTables_ParserMsg4d()
         {
             engine.Execute("t = { [1] = }");
@@ -244,7 +244,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near ','")]
+            ExpectedMessage = "unexpected symbol near ',' (line 1, column 13)")]
         public void TestTables_ParserMsg4e()
         {
             engine.Execute("t = { [1] = , }");
@@ -252,7 +252,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near '}'")]
+            ExpectedMessage = "unexpected symbol near '}' (line 1, column 11)")]
         public void TestTables_ParserMsg5b()
         {
             engine.Execute("t = { a = }");
@@ -260,7 +260,7 @@ t['z'] = t.y";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "'}' expected near '='")]
+            ExpectedMessage = "'}' expected near '=' (line 1, column 11)")]
         public void TestTables_ParserMsg6()
         {
             engine.Execute("t = { f() = 3, 2, 1 }");

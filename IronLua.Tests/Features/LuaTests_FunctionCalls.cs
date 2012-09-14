@@ -194,7 +194,7 @@ print(x)";
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "function arguments expected near '42'")]
+            ExpectedMessage = "function arguments expected near '42' (line 1, column 5)")]
         public void TestFunction_ArgumentsExpected1()
         {
             engine.Execute("p:f 42");

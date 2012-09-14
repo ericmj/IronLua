@@ -222,7 +222,7 @@ namespace IronLua.Compiler.Parsing
         {
             var t = Current;
             var s = String.Format(format, args);
-            s += String.Format(" near '{0}'", t.Lexeme ?? t.Symbol.ToTokenString());
+            s += String.Format(" near '{0}' (line {1}, column {2})", t.Lexeme ?? t.Symbol.ToTokenString(), t.Line, t.Column);
             return ReportError(2, s);
         }
 

@@ -280,7 +280,7 @@ t = { [f('a')] = f(1), [f('b')] = f(2), [f('c')] = f(3) }
 
         [Test]
         [ExpectedException(typeof(SyntaxErrorException),
-            ExpectedMessage = "unexpected symbol near '='")]
+            ExpectedMessage = "unexpected symbol near '=' (line 1, column 4)")]
         public void TestTables_AssignmentErrorMsg1()
         {
             engine.Execute("a, = 1,2");
