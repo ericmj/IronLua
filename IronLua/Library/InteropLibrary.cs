@@ -366,7 +366,7 @@ namespace IronLua.Library
 
             //If we have checked everything, then it's fine
             if (!hasParams)
-                return parameters.Count() == paramTypes.Length ? value : 0;
+                return parameters.Count() == paramTypes.Length ? value + 1 : 0;
 
             //Check if we have any params args...
             var paramsType = parameters.Last().ParameterType;
