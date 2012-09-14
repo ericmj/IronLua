@@ -15,7 +15,7 @@ assert(type(t) == 'table')
 assert(type(_G) == 'table')
 
 -- tonumber
---assert(tonumber("1.25") == 1.25)
+assert(tonumber("1.25") == 1.25)
 
 -- tostring
 assert(tostring(1.25) == "1.25")
@@ -25,5 +25,5 @@ t = { a = 1, b = 2, c = 3 }
 for k,v in pairs(t) do print(k,v) end
 
 -- ipairs
---t = { 4, 5, 6 }
---for i,v in ipairs(t) do print(i,v) end
+t = { 4, 5, 6 }
+for i,v in ipairs(t) do print(i,v) end
