@@ -234,7 +234,7 @@ namespace IronLua.Runtime.Binder
                 }
                 else if (param.ParameterType == typeof(string) && arg.Type != typeof(string))
                 {
-                    arg.Expression = Expr.Call(arg.Expression, MemberInfos.ObjectToString, arg.Expression);
+                    arg.Expression = Expr.Call(arg.Expression, MemberInfos.ObjectToString);
                 }
                 else
                 {
