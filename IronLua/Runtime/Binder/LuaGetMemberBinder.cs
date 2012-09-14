@@ -28,6 +28,13 @@ namespace IronLua.Runtime.Binder
             return new DynamicMetaObject(getMemberExpression, BindingRestrictions.Empty);
         }
 
+        private DynamicMetaObject WrapToObject(DynamicMetaObject obj)
+        {
+            if (obj.LimitType != typeof(object))
+                return new DynamicMetaObject(Expression.Convert(obj.Expression, typeof(object)), obj.Restrictions, obj.Value as object);
+            return obj;
+        }
+
         public override DynamicMetaObject FallbackGetMember(
             DynamicMetaObject target, 
             DynamicMetaObject errorSuggestion)
@@ -39,12 +46,12 @@ namespace IronLua.Runtime.Binder
 
 
             if (target.LimitType == typeof(IDynamicMetaObjectProvider))
-                return base.FallbackGetMember(target);
+                return WrapToObject(base.FallbackGetMember(target));
 
             else if (target.LimitType == typeof(LuaTable))
-                return base.FallbackGetMember(target);
+                return WrapToObject(base.FallbackGetMember(target));
 
-            return _context.Binder.GetMember(Name, target);            
+            return WrapToObject(_context.Binder.GetMember(Name, target));            
         }
     }
 }
