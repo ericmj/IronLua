@@ -64,8 +64,10 @@ assert(tostring(strInstance) == 'This is a test string')
             string code =
 @"
 System={}
-System.Math=clr.import('System.Math',true)
+System.Math=clr.import('System.Math')
 assert(clr.call(System.Math,'Pow',10,2) == 100)
+assert(System.Math.Pow(10,2) == 100)
+assert(System.Math['Pow'](10,2) == 100)
 ";
 
             var scope = engine.CreateScope();
@@ -103,6 +105,53 @@ printChildren(_ENV,0)
 ";
 
             engine.Execute(code);
+        }
+
+
+        [Test]
+        public void TestStructAccess()
+        {           
+            string code =
+"teststruct=clr.import('" + typeof(TestStruct).AssemblyQualifiedName + "')" +
+@"
+assert(type(teststruct) == 'table','Failed to import TestStruct')
+
+ts1=teststruct()
+assert(clr.getvalue(ts1,'x') == 0, 'Failed ts1.x == 0')
+assert(clr.getvalue(ts1,'y') == 0, 'Failed ts1.y == 0')
+assert(clr.getvalue(ts1,'z') == nil, 'Failed ts1.z == nil')
+
+clr.setvalue(ts1,'x',10)
+ts1['y'] = 5
+ts1['z'] = '15'
+assert(clr.getvalue(ts1,'x') == 10,'Failed ts1.x == 10')
+assert(ts1.y == 5,'Failed ts1.y == 5')
+assert(ts1['z'] == '15','Failed ts1.z == tostring(15)')
+";
+
+            engine.Execute(code);
+        }
+
+        public struct TestStruct
+        {
+            public TestStruct(double _x, double _y)
+            {
+                x = _x;
+                y = _y;
+                __z = null;
+            }
+
+            public TestStruct(string _z)
+            {
+                x = y = 0;
+                __z = _z;
+            }
+
+            public double x, y;
+
+            private string __z;
+            public string z
+            { get { return __z; } set{ __z = value; } }
         }
     }
 }
