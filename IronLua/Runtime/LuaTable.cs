@@ -362,6 +362,7 @@ namespace IronLua.Runtime
 
                 var expression = Expr.Block(
                     valueVar,
+                    valueAssign,
                     Expr.Condition(
                         Expr.Equal(valueVar, Expr.Constant(null)),
                         MetamethodFallbacks.Index(Context, this, indexes),
