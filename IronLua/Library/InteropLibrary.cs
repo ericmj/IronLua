@@ -109,7 +109,7 @@ namespace IronLua.Library
             LuaTable table = new LuaTable(Context);
             table.SetConstant(Constant.INDEX_METAMETHOD, (Func<object, object, object>)InteropIndex);
             table.SetConstant(Constant.NEWINDEX_METAMETHOD, (Func<object, object, object, object>)InteropNewIndex);
-            table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, Varargs, object>)InteropCall);
+            table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, object[], object>)InteropCall);
             table.SetConstant(Constant.CONCAT_METAMETHOD, (Func<string, LuaTable, string>)Concat);
             table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<LuaTable, string>)ToString);
 
@@ -200,7 +200,7 @@ namespace IronLua.Library
         /// <param name="target">The interop type object being called</param>
         /// <param name="parameters">The parameters passed to the constructor</param>
         /// <returns>Returns the new instance of the interop type</returns>
-        private object InteropCall(object target, Varargs parameters)
+        private object InteropCall(object target, params object[] parameters)
         {
             //CLR class reference (static references)
             if (target is LuaTable)
@@ -218,21 +218,36 @@ namespace IronLua.Library
             {
                 var tracker = target as BoundMemberTracker;
 
-                var type = tracker.ObjectInstance.GetType();
+                Type type = null;
+                BindingFlags flags = BindingFlags.Public;
+                object targetObject = null;
+
+                if (tracker.ObjectInstance is LuaTable)
+                {
+                    type = (tracker.ObjectInstance as LuaTable).GetValue("__clrtype") as Type;
+                    flags |= BindingFlags.Static;
+                }
+                else
+                {
+                    type = tracker.ObjectInstance.GetType();
+                    targetObject = tracker.ObjectInstance;
+                    flags |= BindingFlags.Instance;
+                }
 
                 var methodName = tracker.Name;
                 var argsTypes = parameters.Select(x => x.GetType()).ToArray();
+                 
 
-                var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                var methods = type.GetMethods(flags)
                                 .Where(x => x.Name.Equals(methodName) && ParamsMatch(x, argsTypes) > 0)
-                                .OrderByDescending(x => ParamsMatch(x, argsTypes));
-
-                if (methods.Count() != 1)
-                    throw new LuaRuntimeException("Could not find a unique method '{0}' on {1}", methodName, type.FullName);
+                                .OrderByDescending(x => ParamsMatch(x, argsTypes)).ToArray();
+                
+                if (methods.Length < 1)
+                    throw new LuaRuntimeException("Could not find the method '{0}' on {1}", methodName, type.FullName);
 
                 var method = methods.First();
 
-                return method.Invoke(tracker.ObjectInstance, ParamsConvert(method, parameters.Skip(1).ToArray()));
+                return method.Invoke(targetObject, ParamsConvert(method, parameters.ToArray()));
             }
 
             throw new LuaRuntimeException("Attempting to execute an anonymous function on the given type, this is not possible");
