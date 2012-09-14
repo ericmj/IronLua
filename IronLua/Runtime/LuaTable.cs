@@ -331,28 +331,64 @@ namespace IronLua.Runtime
 
             public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
             {
-                var expression = Expr.Call(
+                //var expression = Expr.Call(
+                //    Expr.Convert(Expression, typeof(LuaTable)),
+                //    MemberInfos.LuaTableGetValue,
+                //    Expr.Constant(binder.Name));
+
+                //return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
+
+                var valueVar = Expr.Variable(typeof(object), "$bindgetindex_valueVar$");
+
+                var getValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
                     MemberInfos.LuaTableGetValue,
-                    Expr.Constant(binder.Name));
+                    Expr.Convert(Expr.Constant(binder.Name), typeof(object)));
+                var valueAssign = Expr.Assign(valueVar, getValue);
+
+                var expression = Expr.Block(
+                    new[] { valueVar },
+                    valueAssign,
+                    Expr.Condition(
+                        Expr.Equal(valueVar, Expr.Constant(null)),
+                        MetamethodFallbacks.Index(Context, this, new []{ new DynamicMetaObject(Expr.Constant(binder.Name), BindingRestrictions.Empty, binder.Name) }),
+                        valueVar));
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindSetMember(SetMemberBinder binder, DynamicMetaObject value)
             {
-                var expression = Expr.Call(
+                //var expression = Expr.Call(
+                //    Expr.Convert(Expression, typeof(LuaTable)),
+                //    MemberInfos.LuaTableSetValue,
+                //    Expr.Constant(binder.Name),
+                //    Expr.Convert(value.Expression, typeof(object)));
+
+                //return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
+
+                var getValue = Expr.Call(
+                    Expr.Convert(Expression, typeof(LuaTable)),
+                    MemberInfos.LuaTableGetValue,
+                    Expr.Convert(Expr.Constant(binder.Name), typeof(object)));
+
+                var setValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
                     MemberInfos.LuaTableSetValue,
-                    Expr.Constant(binder.Name),
+                    Expr.Convert(Expr.Constant(binder.Name), typeof(object)),
                     Expr.Convert(value.Expression, typeof(object)));
+
+                var expression = Expr.Condition(
+                    Expr.Equal(getValue, Expr.Constant(null)),
+                    MetamethodFallbacks.NewIndex(Context, this, new[] { new DynamicMetaObject(Expr.Constant(binder.Name), BindingRestrictions.Empty, binder.Name) }, value),
+                    setValue);
 
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
             }
 
             public override DynamicMetaObject BindGetIndex(GetIndexBinder binder, DynamicMetaObject[] indexes)
             {
-                var valueVar = Expr.Variable(typeof(object));
+                var valueVar = Expr.Variable(typeof(object),"$bindgetindex_valueVar$");
 
                 var getValue = Expr.Call(
                     Expr.Convert(Expression, typeof(LuaTable)),
@@ -361,7 +397,7 @@ namespace IronLua.Runtime
                 var valueAssign = Expr.Assign(valueVar, getValue);
 
                 var expression = Expr.Block(
-                    valueVar,
+                    new[] { valueVar },
                     valueAssign,
                     Expr.Condition(
                         Expr.Equal(valueVar, Expr.Constant(null)),
@@ -417,6 +453,7 @@ namespace IronLua.Runtime
                 }
             }
 
+            [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
             public LuaContext Context
             {
                 get
