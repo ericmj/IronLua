@@ -4,6 +4,7 @@ using IronLua.Hosting;
 using System.Dynamic;
 using System.Collections.Generic;
 using System.Threading;
+using IronLua;
 
 namespace Sample
 {
@@ -54,8 +55,8 @@ namespace Sample
 
             WriteLine("Begining Execution", ConsoleColor.Green);
 
-            engine.Execute(
-@"
+            string code = 
+                @"
 print('Testing Basic Scope/Context Variable Access')
 a = 20
 assert(a == 10)
@@ -104,8 +105,23 @@ print('clr namespace (clr.*)')
 for k in pairs(clr) do
     print('    '..k)
 end
-",
-scope);
+
+assert(false)
+";
+
+            try
+            {
+                engine.Execute(code, scope);
+            }
+            catch (LuaRuntimeException ex)
+            {
+                var line = ex.GetCurrentCode(code);
+                WriteLine("Exception at", ConsoleColor.Red);
+                Console.WriteLine(line);
+                line = ex.GetStackTrace(code);
+                WriteLine("Stack Trace", ConsoleColor.Red);
+                Console.WriteLine(line);
+            }
 
 
             Console.WriteLine();
