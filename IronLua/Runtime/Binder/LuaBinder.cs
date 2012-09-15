@@ -5,6 +5,8 @@ using Microsoft.Scripting.Actions;
 using Microsoft.Scripting.Actions.Calls;
 using Microsoft.Scripting.Runtime;
 using IronLua.Library;
+using System;
+using System.Linq;
 
 namespace IronLua.Runtime.Binder
 {
@@ -30,6 +32,9 @@ namespace IronLua.Runtime.Binder
             else if (fromType == typeof(string) && toType == typeof(double))
                 return !toNotNullable;
             
+            else if(fromType.GetInterfaces().Any(x => x == typeof(IConvertible)))
+                return true;
+
             return base.CanConvertFrom(fromType, toType, toNotNullable, level);
         }
 
@@ -40,6 +45,9 @@ namespace IronLua.Runtime.Binder
 
             else if (obj is string && toType == typeof(double))
                 return BaseLibrary.ToNumber(_context, obj, 10.0);
+
+            else if (obj.GetType().GetInterfaces().Any(x => x == typeof(IConvertible)))
+                return System.Convert.ChangeType(obj, toType);
 
             return base.Convert(obj, toType);
         }

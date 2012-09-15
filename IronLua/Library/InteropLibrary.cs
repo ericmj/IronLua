@@ -372,14 +372,18 @@ namespace IronLua.Library
 
                 //Is exactly what we're looking for
                 if(paramTypes[i] == parameters[i].ParameterType)
-                { value += 4; continue; }
+                { value += 8; continue; }
 
                 //Can be cast to what we're looking for
                 if(parameters[i].ParameterType.IsAssignableFrom(paramTypes[i]))
+                { value += 4; continue; }
+
+                //We can convert it to what we're looking for
+                if (Context.Binder.CanConvertFrom(paramTypes[i], parameters[i].ParameterType, true, Microsoft.Scripting.Actions.Calls.NarrowingLevel.All))
                 { value += 2; continue; }
 
                 //We can convert it to what we're looking for
-                if(Context.Binder.CanConvertFrom(parameters[i].ParameterType, paramTypes[i], true, Microsoft.Scripting.Actions.Calls.NarrowingLevel.All))
+                if (Context.Binder.CanConvertFrom(paramTypes[i], parameters[i].ParameterType, false, Microsoft.Scripting.Actions.Calls.NarrowingLevel.All))
                 { value += 1; continue; }
 
                 //Test if the parameter's types match or not
