@@ -1,5 +1,7 @@
-﻿
+﻿thread=clr.import('System.Threading.Thread')
+
 a = os.time({})
+thread.Sleep(5)
 b = os.time({})
 assert(b > a, 'Time difference was zero between calls to os.time') 
 
