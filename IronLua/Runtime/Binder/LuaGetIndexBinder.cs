@@ -48,18 +48,6 @@ namespace IronLua.Runtime.Binder
 
                 return WrapToObject(Context.Binder.MakeCallExpression(DefaultOverloadResolver.Factory, method, args));
             }
-            else if (target.LimitType.IsArray)
-            {
-                DynamicMetaObject[] args = new DynamicMetaObject[indexes.Length + 1];
-                args[0] = target;
-                Array.Copy(indexes, 0, args, 1, indexes.Length);
-
-                var method = target.LimitType.GetMethods()
-                                    .Where(x => x.Name.Equals("GetValue") && 
-                                        (x.GetParameters().Length == indexes.Length || x.GetParameters().Last().ParameterType == typeof(object[]))).First();
-
-                return WrapToObject(Context.Binder.MakeCallExpression(DefaultOverloadResolver.Factory, method, args));
-            }
 
             var expression = MetamethodFallbacks.Index(_context, target, indexes);
 
