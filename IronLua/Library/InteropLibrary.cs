@@ -249,7 +249,14 @@ namespace IronLua.Library
 
                 var method = methods.First();
 
-                return method.Invoke(targetObject, ParamsConvert(method, parameters.ToArray()));
+                try
+                {
+                    return method.Invoke(targetObject, ParamsConvert(method, parameters.ToArray()));
+                }
+                catch (Exception ex)
+                {
+                    throw new LuaRuntimeException(Context, ex.Message, ex);
+                }
             }
 
             throw new LuaRuntimeException(Context, "Attempting to execute an anonymous function on the given type, this is not possible");
@@ -275,7 +282,14 @@ namespace IronLua.Library
                 
                 var method = methods.First();
 
-                return method.Invoke(null, parameters == null ? new object[0] : ParamsConvert(method, parameters.ToArray()));
+                try
+                {
+                    return method.Invoke(null, parameters == null ? new object[0] : ParamsConvert(method, parameters.ToArray()));
+                }
+                catch (Exception ex)
+                {
+                    throw new LuaRuntimeException(Context, ex.Message, ex);
+                }
             }
             else
             {
@@ -290,7 +304,14 @@ namespace IronLua.Library
                     throw new LuaRuntimeException(Context, "Could not find a method with the given parameters");
 
                 var method = methods.First();
-                return method.Invoke(target, parameters == null ? new object[0] : ParamsConvert(method, parameters.ToArray()));
+                try
+                { 
+                    return method.Invoke(target, parameters == null ? new object[0] : ParamsConvert(method, parameters.ToArray()));
+                }
+                catch (Exception ex)
+                {
+                    throw new LuaRuntimeException(Context, ex.Message, ex);
+                }
             }
         }
 
@@ -430,7 +451,14 @@ namespace IronLua.Library
                     continue;
 
                 if (ParamsMatch(methodInfo, paramTypes) > 0)
-                    return methodInfo.Invoke(table.GetValue("__target"), parameters.ToArray());
+                    try
+                    {
+                        return methodInfo.Invoke(table.GetValue("__target"), parameters.ToArray());
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new LuaRuntimeException(Context, ex.Message, ex);
+                    }
 
             } while ((pair = table.Next(pair[0])) != null);
 
