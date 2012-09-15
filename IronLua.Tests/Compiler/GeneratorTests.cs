@@ -31,7 +31,7 @@ namespace IronLua.Tests.Compiler
                 var ast = parser.Parse();
                 Assert.That(ast, Is.Not.Null);
                 var gen = new Generator((LuaContext)sourceUnit.LanguageContext);
-                var expr = gen.Compile(ast);
+                var expr = gen.Compile(ast, sourceUnit);
                 Assert.That(expr, Is.Not.Null);
             });
         }
