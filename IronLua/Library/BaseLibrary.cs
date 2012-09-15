@@ -58,10 +58,9 @@ namespace IronLua.Library
             }
         }
 
-        public void Error(object message, object level)
+        public void Error(object message, object level = null)
         {
-            // TODO: Use level when call stacks are implemented
-            throw new LuaErrorException(Context, message);
+            throw new LuaErrorException(Context, message, Convert.ToInt32(level ?? (object)1));
         }
 
         public object GetFEnv(object f = null)
@@ -319,7 +318,10 @@ namespace IronLua.Library
                 functionFormat = functionFormat.Remove(functionFormat.Length - 1);
                 functionFormat = string.Format("({0}) => {1}", functionFormat, fn.Method.ReturnType.Name);
 
-                return String.Format("function {0}", functionFormat);
+                string functionName = fn.Method.Name;
+                functionName = functionName.StartsWith(Constant.FUNCTION_PREFIX) ? "function " + functionName.Remove(0, Constant.FUNCTION_PREFIX.Length) : functionName;
+
+                return String.Format("{0} {1}", functionName, functionFormat);
             }
             
             return v.ToString();
@@ -481,7 +483,7 @@ namespace IronLua.Library
             table.SetConstant("assert", (Func<object, object, object[], Varargs>)Assert);
             table.SetConstant("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetConstant("dofile", (Func<string, object>)DoFile);
-            table.SetConstant("error", (Action<string, object>)Error);
+            table.SetConstant("error", (Action<object, object>)Error);
             table.SetValue("_ENV", table);
             table.SetConstant("_G", table);
             table.SetConstant("getfenv", (Func<object, object>)GetFEnv);
