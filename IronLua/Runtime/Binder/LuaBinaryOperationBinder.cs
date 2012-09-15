@@ -76,7 +76,7 @@ namespace IronLua.Runtime.Binder
                          
                         if(mo == null || mo.Expression.Type == typeof(void))
                         {
-                            var ex = new LuaRuntimeException("attempt to compare {0} with {1}", 
+                            var ex = new LuaRuntimeException(context, "attempt to compare {0} with {1}", 
                                 IronLua.Library.BaseLibrary.TypeName(left.LimitType),
                                 IronLua.Library.BaseLibrary.TypeName(right.LimitType));
                             mo =  new DynamicMetaObject(Expr.Throw(Expr.Constant(ex), typeof(LuaRuntimeException)), BindingRestrictions.Empty, ex);

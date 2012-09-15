@@ -9,6 +9,7 @@ using IronLua.Runtime;
 using Microsoft.Scripting;
 using Microsoft.Scripting.Runtime;
 using Microsoft.Scripting.Utils;
+using System.Runtime.CompilerServices;
 
 namespace IronLua.Library
 {
@@ -31,13 +32,13 @@ namespace IronLua.Library
             }
 
             if (message == null)
-                throw new LuaRuntimeException("Assertion failed");
-            throw new LuaRuntimeException(message.ToString());
+                throw new LuaRuntimeException(Context, "Assertion failed");
+            throw new LuaRuntimeException(Context, message.ToString());
         }
 
         public void CollectGarbage(string opt, string arg = null)
         {
-            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+            throw new LuaRuntimeException(Context, ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
         public object DoFile(string filename = null)
@@ -50,23 +51,23 @@ namespace IronLua.Library
             }
             catch (SyntaxErrorException ex)
             {
-                throw new LuaRuntimeException(ex.Message, ex);
+                throw new LuaRuntimeException(Context, ex.Message, ex);
             }
             catch (LuaSyntaxException e)
             {
-                throw new LuaRuntimeException(e.Message, e);
+                throw new LuaRuntimeException(Context, e.Message, e);
             }
         }
 
         public void Error(string message, object level)
         {
             // TODO: Use level when call stacks are implemented
-            throw new LuaRuntimeException(message);
+            throw new LuaRuntimeException(Context, message);
         }
 
         public object GetFEnv(object f = null)
         {
-            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+            throw new LuaRuntimeException(Context, ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
         public object GetMetatable(object obj)
@@ -165,7 +166,7 @@ namespace IronLua.Library
         public Varargs Next(LuaTable table, object index = null)
         {
             if (table == null)
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, "next", "table", "nil");
+                throw new LuaRuntimeException(Context, ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, "next", "table", "nil");
 
             return table.Next(index);
         }
@@ -202,23 +203,23 @@ namespace IronLua.Library
             writer.WriteLine();
         }
 
-        public static bool RawEqual(object v1, object v2)
+        public bool RawEqual(object v1, object v2)
         {
             return v1.Equals(v2);
         }
 
-        public static object RawGet(LuaTable table, object index)
+        public object RawGet(LuaTable table, object index)
         {
             return table.GetValue(index);
         }
 
-        public static LuaTable RawSet(LuaTable table, object index, object value)
+        public LuaTable RawSet(LuaTable table, object index, object value)
         {
             table.SetValue(index, value);
             return table;
         }
 
-        public static Varargs Select(object index, params object[] args)
+        public Varargs Select(object index, params object[] args)
         {
             if (index.Equals("#"))
                 return new Varargs(args.Length);
@@ -227,7 +228,7 @@ namespace IronLua.Library
 
             var numIndex = (int)Math.Round(num) - 1;
             if (numIndex >= args.Length || numIndex < 0)
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 1, "index out of range");
+                throw new LuaRuntimeException(Context, ExceptionMessage.INVOKE_BAD_ARGUMENT, 1, "index out of range");
 
             var returnArgs = new object[args.Length - numIndex];
             Array.Copy(args, numIndex, returnArgs, 0, args.Length - numIndex);
@@ -236,21 +237,26 @@ namespace IronLua.Library
 
         public object SetFEnv(object f, LuaTable table)
         {
-            throw new LuaRuntimeException(ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
+            throw new LuaRuntimeException(Context, ExceptionMessage.FUNCTION_NOT_IMPLEMENTED);
         }
 
-        public static LuaTable SetMetatable(LuaTable table, LuaTable metatable)
+        public LuaTable SetMetatable(LuaTable table, LuaTable metatable)
         {
             if (table.Metatable != null && table.Metatable.GetValue(Constant.METATABLE_METAFIELD) != null)
-                throw new LuaRuntimeException(ExceptionMessage.PROTECTED_METATABLE);
+                throw new LuaRuntimeException(Context, ExceptionMessage.PROTECTED_METATABLE);
 
             table.Metatable = metatable;
             return table;
         }
 
-        public static object ToNumber(object obj, object @base = null)
+        public object ToNumber(object obj, object @base = null)
         {
-            var numBase = ConvertToNumber(@base, 2, 10.0);
+            return ToNumber(Context, obj, @base);
+        }
+
+        public static object ToNumber(LuaContext context, object obj, object @base = null)
+        {
+            var numBase = ConvertToNumber(context, @base, 2, 10.0);
 
             if (numBase == 10.0)
             {
@@ -259,7 +265,7 @@ namespace IronLua.Library
             }
             else if (numBase < 2.0 || numBase > 36.0)
             {
-                throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT, 2, "base out of range");
+                throw new LuaRuntimeException(context, ExceptionMessage.INVOKE_BAD_ARGUMENT, 2, "base out of range");
             }
 
             string stringStr;
@@ -337,7 +343,7 @@ namespace IronLua.Library
             return t.FullName;
         }
 
-        public static Varargs Unpack(LuaTable list, object i = null, object j = null)
+        public Varargs Unpack(LuaTable list, object i = null, object j = null)
         {
             var listLength = list.Length();
 
@@ -406,7 +412,12 @@ namespace IronLua.Library
             return result;
         }
 
-        static double ConvertToNumber(object obj, int argumentIndex, double @default = Double.NaN)
+        double ConvertToNumber(object obj, int argumentIndex, double @default = Double.NaN)
+        {
+            return ConvertToNumber(Context, obj, argumentIndex, @default);
+        }
+
+        static double ConvertToNumber(LuaContext context, object obj, int argumentIndex, double @default = Double.NaN)
         {
             string tempString;
 
@@ -422,7 +433,7 @@ namespace IronLua.Library
                     return num;
             }
 
-            throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT,
+            throw new LuaRuntimeException(context, ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT,
                                           argumentIndex, "number", Type(obj));
         }
 
@@ -454,7 +465,7 @@ namespace IronLua.Library
             var parser = new Parser(lexer, lexer.ErrorSink);
             var ast = parser.Parse();
             var gen = new Generator(context);
-            var expr = gen.Compile(ast);
+            var expr = gen.Compile(ast, sourceUnit);
             return expr.Compile();
         }
 

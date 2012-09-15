@@ -34,7 +34,7 @@ namespace IronLua.Runtime.Binder
             var restrictions = RuntimeHelpers.MergeTypeRestrictions(target);
 
             if (target.Value == null)
-                throw new LuaRuntimeException("Attempt to invoke a nil object");
+                throw new LuaRuntimeException(context, "Attempt to invoke a nil object");
 
             if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
                 return new DynamicMetaObject(MetamethodFallbacks.Call(context, target, args), restrictions);

@@ -39,7 +39,7 @@ namespace IronLua.Runtime.Binder
                 return BaseLibrary.ToStringEx(obj);
 
             else if (obj is string && toType == typeof(double))
-                return BaseLibrary.ToNumber(obj, 10.0);
+                return BaseLibrary.ToNumber(_context, obj, 10.0);
 
             return base.Convert(obj, toType);
         }

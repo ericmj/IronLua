@@ -138,7 +138,7 @@ namespace IronLua.Library
         {
             FormatSpecifier specifier;
             if (!formatSpecifiers.TryGetValue(format[i], out specifier))
-                throw new LuaRuntimeException(ExceptionMessage.STRING_FORMAT_INVALID_OPTION, format);
+                throw new LuaRuntimeException(null, ExceptionMessage.STRING_FORMAT_INVALID_OPTION, format);
 
             tag.Specifier = specifier;
             i++;
@@ -222,7 +222,7 @@ namespace IronLua.Library
             {
                 sb.Clear();
                 if (Specifier != FormatSpecifier.String)
-                    throw new LuaRuntimeException(ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, Count + 1, "number", "string");
+                    throw new LuaRuntimeException(null, ExceptionMessage.INVOKE_BAD_ARGUMENT_GOT, Count + 1, "number", "string");
                 FormatString(value);
                 return sb.ToString();
             }

@@ -24,6 +24,7 @@ namespace IronLua.Runtime
     {
         private readonly DynamicCache _dynamicCache;
         private readonly LuaTable _globals;
+        private readonly LuaTrace _trace;
 
         public LuaContext(ScriptDomainManager manager, IDictionary<string, object> options = null)
             : base(manager)
@@ -33,6 +34,7 @@ namespace IronLua.Runtime
             _binder = new LuaBinder(this);
             _dynamicCache = new DynamicCache(this);
             _globals = SetupLibraries(new LuaTable(this));
+            _trace = new LuaTrace(this);
             _metatables = SetupMetatables();
         }
 
@@ -255,6 +257,13 @@ namespace IronLua.Runtime
 
         #endregion
 
+        #region Trace/Debug
+
+        internal LuaTrace Trace
+        { get { return _trace; } }
+
+        #endregion
+
         public override ScriptCode CompileSourceCode(SourceUnit sourceUnit, CompilerOptions options, ErrorSink errorSink)
         {
             ContractUtils.RequiresNotNull(sourceUnit, "sourceUnit");
@@ -287,7 +296,7 @@ namespace IronLua.Runtime
                 var parser = new Parser(lexer, errorSink);
                 var ast = parser.Parse();
                 var gen = new Generator(this);
-                var exprLambda = gen.Compile(ast);
+                var exprLambda = gen.Compile(ast, sourceUnit);
                 //sourceUnit.CodeProperties = ScriptCodeParseResult.Complete;
                 return new LuaScriptCode(sourceUnit, exprLambda);
             }

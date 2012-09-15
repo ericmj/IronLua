@@ -90,7 +90,7 @@ namespace IronLua.Runtime
                 if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
                 {
                     if (entries[i].Locked)
-                        throw new LuaRuntimeException("Cannot change the value of the constant {0}", key);
+                        throw new LuaRuntimeException(Context, "Cannot change the value of the constant {0}", key);
                     entries[i].Value = value;
                     return value;
                 }
@@ -138,7 +138,7 @@ namespace IronLua.Runtime
                 if (entries[i].HashCode == hashCode && entries[i].Key.Equals(key))
                 {
                     if(entries[i].Locked)
-                        throw new LuaRuntimeException("The constant {0} is already set to {1} and cannot be modified", key, value);
+                        throw new LuaRuntimeException(Context, "The constant {0} is already set to {1} and cannot be modified", key, value);
                     else
                     {
                         //TODO: Decide whether or not we should allow a variable to be converted into a constant
@@ -302,7 +302,7 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindBinaryOperation(BinaryOperationBinder binder, DynamicMetaObject arg)
             {
                 if (!LuaBinaryOperationBinder.BinaryExprTypes.ContainsKey(binder.Operation))
-                    throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
+                    throw new LuaRuntimeException(Context, "operation {0} not defined for table", binder.Operation.ToString());
 
                 var expression = MetamethodFallbacks.BinaryOp(Context, binder.Operation, this, arg);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));
@@ -311,7 +311,7 @@ namespace IronLua.Runtime
             public override DynamicMetaObject BindUnaryOperation(UnaryOperationBinder binder)
             {
                 if (binder.Operation != ExprType.Negate)
-                    throw new LuaRuntimeException("operation {0} not defined for table", binder.Operation.ToString());
+                    throw new LuaRuntimeException(Context, "operation {0} not defined for table", binder.Operation.ToString());
 
                 var expression = MetamethodFallbacks.UnaryMinus(Context, this);
                 return new DynamicMetaObject(expression, RuntimeHelpers.MergeTypeRestrictions(this));

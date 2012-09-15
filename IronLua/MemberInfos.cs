@@ -26,7 +26,7 @@ namespace IronLua
             typeof(object).GetMethod("ToString");
 
         public static readonly ConstructorInfo NewRuntimeException =
-            typeof(LuaRuntimeException).GetConstructor(new[] { typeof(string), typeof(object[]) });
+            typeof(LuaRuntimeException).GetConstructor(new[] { typeof(LuaContext), typeof(string), typeof(object[]) });
 
         public static readonly FieldInfo LuaTableMetatable =
             typeof(LuaTable).GetField("Metatable");
