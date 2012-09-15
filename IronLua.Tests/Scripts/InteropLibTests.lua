@@ -25,3 +25,12 @@ array[0]=10
 print("array[0] = "..array[0])
 assert(array[0] == system.convert.ToInt32(10),'Array value was not set correctly')
 assert(array[0] == 10,'Implicit conversion between Int32 and double failed')
+
+for i=1,#array - 1 do
+	array[i] = 10 - i
+end
+
+for i = 1, #array - 1 do
+	assert(array[i] == 10 - i, 'Filling of array failed')
+	print('array['..i..'] = ' .. array[i])
+end

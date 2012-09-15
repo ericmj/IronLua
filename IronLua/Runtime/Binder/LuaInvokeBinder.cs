@@ -43,8 +43,6 @@ namespace IronLua.Runtime.Binder
                 RuntimeHelpers.MergeTypeRestrictions(args).Merge(
                     RuntimeHelpers.MergeInstanceRestrictions(target)));
                         
-
-
             var function = (Delegate)target.Value;
             var methodInfo = function.Method;
 
