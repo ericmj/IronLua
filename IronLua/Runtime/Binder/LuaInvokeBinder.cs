@@ -36,18 +36,38 @@ namespace IronLua.Runtime.Binder
             if (target.Value == null)
                 throw new LuaRuntimeException(context, "Attempt to invoke a nil object");
 
-            if (!target.LimitType.IsSubclassOf(typeof(Delegate)))
+            if (!target.LimitType.IsSubclassOf(typeof(Delegate)) && target.LimitType != typeof(Varargs))
                 return new DynamicMetaObject(MetamethodFallbacks.Call(context, target, args), restrictions);
             
+
+
             restrictions = restrictions.Merge(
                 RuntimeHelpers.MergeTypeRestrictions(args).Merge(
                     RuntimeHelpers.MergeInstanceRestrictions(target)));
-                        
-            var function = (Delegate)target.Value;
+
+            Delegate function = null;
+            DynamicMetaObject actualTarget = null;
+            if (target.LimitType.IsSubclassOf(typeof(Delegate)))
+            {
+                function = (Delegate)target.Value;
+                actualTarget = target;
+            }
+            else if (target.LimitType == typeof(Varargs))
+            {
+                function = ((Varargs)target.Value).First() as Delegate;
+                actualTarget = new DynamicMetaObject(Expression.Constant(((Varargs)target.Value).First()), BindingRestrictions.Empty, ((Varargs)target.Value).First());
+            }
+
+            if (function == null)
+                return new DynamicMetaObject(MetamethodFallbacks.Call(context,
+                    actualTarget, 
+                    args),
+                    restrictions);
+
             var methodInfo = function.Method;
 
             bool toss = false;
-            return GetInvoker(target, args, methodInfo, out toss, ref restrictions);
+            return GetInvoker(actualTarget, args, methodInfo, out toss, ref restrictions);
         }
 
         private DynamicMetaObject GetInvoker(DynamicMetaObject target, DynamicMetaObject[] args, MethodInfo methodInfo, out bool success, ref BindingRestrictions restrictions)
@@ -136,7 +156,7 @@ namespace IronLua.Runtime.Binder
 
             var varargs = (Varargs)lastArg.Value;
             arguments.RemoveAt(arguments.Count - 1);
-            arguments.AddRange(varargs.Select(value => new Argument(Expr.Constant(value), value.GetType())));
+            arguments.AddRange(varargs.Select(value => new Argument(Expr.Constant(value), (value ?? new object()).GetType())));
         }
 
         void DefaultParamValues(List<Argument> arguments, ParameterInfo[] parameters)
