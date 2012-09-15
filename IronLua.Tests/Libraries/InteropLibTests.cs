@@ -155,6 +155,10 @@ assert(type(tc1) == 'IronLua.Tests.InteropLibTests+TestClass', 'Failed to instan
 tc1.Field = 'this is a string'
 tc1.Property = 12.0
 methodResult = tc1.Method()
+assert(type(tc1.IndexedField) == 'boolean','tc1.IndexedField is of incorrect type')
+assert(type(tc1['IndexedField']) == 'boolean', 'tc1[IndexedField] is of incorrect type')
+assert(not tc1.IndexedField, 'Accessed field indexer instead of field')
+assert(tc1['IndexedField'], 'Accessed field instead of field indexer')
 
 assert(tc1.Field == 'this is a string')
 assert(tc1.Property == 12)
@@ -214,6 +218,12 @@ host.Trigger('Argument')
             public string Field = "";
             public double Property
             { get; set; }
+
+            public bool IndexedField = false;
+            public bool this[object key]
+            {
+                get { return true; }
+            }
 
             public object Method()
             {
