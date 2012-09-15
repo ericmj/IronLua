@@ -64,9 +64,14 @@ namespace IronLua.Compiler
 
             ParameterExpression dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
             scope = LuaScope.CreateRoot(dlrGlobals);
-            
+
             var blockExpr = Visit(block);
-            var expr = Expr.Block(blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
+
+            var expr = Expr.Block(
+                LuaTrace.MakePushFunctionCall(context, new LuaTrace.FunctionCall(block.Span, LuaTrace.FunctionType.Chunk, "main chunk", _document)),
+                blockExpr,                 
+                LuaTrace.MakePopFunctionCall(context),
+                Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
             return Expr.Lambda<Func<IDynamicMetaObjectProvider, dynamic>>(expr, dlrGlobals);
         }
 
@@ -109,7 +114,7 @@ namespace IronLua.Compiler
                 statementExprs.Add(LuaTrace.MakeUpdateCurrentEvaluationScope(context, parentScope));
 
                 if (statementExprs.Count == 2)
-                    return Expr.Empty();
+                    return Expr.Constant(null);
                 else if (statementExprs.Count == 3 && scope.LocalsCount == 0)
                     // Don't output blocks if we don't declare any locals and it's a single statement
                     return statementExprs[1];
@@ -136,12 +141,22 @@ namespace IronLua.Compiler
                     function.Parameters.Select(p => scope.AddLocal(p)));
                 if (function.HasVarargs)
                     parameters.Add(scope.AddLocal(Constant.VARARGS, typeof(Varargs)));
-
+                
                 var bodyExpr = Expr.Block(Visit(function.Body),
                                 Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
 
                 var funcName = Constant.FUNCTION_PREFIX + name.Identifiers.Last();
-                return Expr.Lambda(bodyExpr, funcName, parameters);
+                var funcResult = Expr.Variable(typeof(object), "$function_result$");
+
+                return Expr.Lambda(
+                    Expr.Block(
+                    new[] { funcResult },
+                        LuaTrace.MakePushFunctionCall(context, new LuaTrace.FunctionCall(function.Span, LuaTrace.FunctionType.Lua, name.Identifiers, _document)),
+                        Expr.Assign(funcResult, bodyExpr),
+                        LuaTrace.MakePopFunctionCall(context),
+                        funcResult
+                    ),
+                    funcName, parameters);
             }
             finally
             {
@@ -633,24 +648,15 @@ namespace IronLua.Compiler
             var invokeArgs = new Expr[argExprs.Length + 1];
             invokeArgs[0] = funcExpr;
             Array.Copy(argExprs, 0, invokeArgs, 1, argExprs.Length);
-
-            var funcResult = Expr.Variable(typeof(object));
-            
-            var call = Expr.Dynamic(context.CreateInvokeBinder(new CallInfo(argExprs.Length)),
+                        
+            return Expr.Dynamic(context.CreateInvokeBinder(new CallInfo(argExprs.Length)),
                                 typeof(object), invokeArgs);
-
-            return Expr.Block(typeof(object), new[] { funcResult },
-                LuaTrace.MakePushFunctionCall(context, new LuaTrace.FunctionCall(functionCall.Prefix.Span, functionCall.Span)),
-                Expr.Assign(funcResult,call),
-                LuaTrace.MakePopFunctionCall(context),
-                funcResult);
         }
 
         Expr IFunctionCallVisitor<Expr>.Visit(FunctionCall.Table functionCall)
         {
             var tableExpr = functionCall.Prefix.Visit(this);
             var tableVar = Expr.Variable(typeof(object));
-            var resultVar = Expr.Variable(typeof(object));
             var assignExpr = Expr.Assign(tableVar, tableExpr);
 
             var tableGetMember = Expr.Dynamic(context.CreateGetMemberBinder(functionCall.MethodName, false),
@@ -667,12 +673,9 @@ namespace IronLua.Compiler
 
             return
                 Expr.Block(
-                    new[] {tableVar, resultVar},
+                    new[] {tableVar},
                     assignExpr,
-                    LuaTrace.MakePushFunctionCall(context, new LuaTrace.FunctionCall(functionCall.Prefix.Span, functionCall.MethodName, functionCall.Span)),
-                    Expr.Assign(resultVar, invokeExpr),
-                    LuaTrace.MakePopFunctionCall(context),
-                    resultVar);
+                    invokeExpr);
         }
 
         Expr[] IArgumentsVisitor<Expr[]>.Visit(Arguments.Normal arguments)

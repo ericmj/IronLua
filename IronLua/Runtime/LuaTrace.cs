@@ -42,20 +42,38 @@ namespace IronLua.Runtime
 
         public class FunctionCall
         {
-            public FunctionCall(SourceSpan prefixLocation, SourceSpan callLocation)
-                : this(prefixLocation, null, callLocation)
-            {   }
-
-            public FunctionCall(SourceSpan prefixLocation, string methodName, SourceSpan callLocation)
+            public FunctionCall(SourceSpan functionLocation, FunctionType type, string identifier, SymbolDocumentInfo document = null)
             {
-                NameLocation = prefixLocation;
-                MethodName = methodName;
-                CallLocation = callLocation;
+                FunctionLocation = functionLocation;
+                Type = type;
+                Document = document ?? Expression.SymbolDocument("[CLR]");
+                MethodName = identifier;
             }
 
+            public FunctionCall(SourceSpan functionLocation, FunctionType type, IEnumerable<string> identifiers, SymbolDocumentInfo document = null)
+            {
+                FunctionLocation = functionLocation;
+                Type = type;
+                Document = document ?? Expression.SymbolDocument("[CLR]");
+
+                string temp = identifiers.First();
+                foreach (var i in identifiers.Skip(1))
+                    temp += "." + i;
+
+                MethodName = temp;
+            }
+
+            public SymbolDocumentInfo Document { get; private set; }
             public string MethodName { get; private set; }
-            public SourceSpan NameLocation { get; private set; }
-            public SourceSpan CallLocation { get; private set; }
+            public SourceSpan FunctionLocation { get; private set; }
+            public FunctionType Type { get; private set; }
+        }
+
+        public enum FunctionType
+        {
+            Lua,
+            CLR,
+            Chunk
         }
 
         public Stack<FunctionCall> CallStack

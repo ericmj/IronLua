@@ -103,15 +103,25 @@ namespace IronLua.Runtime.Binder
             return new DynamicMetaObject(expr, restrictions);
         }
 
-        static Expr InvokeExpression(DynamicMetaObject target, IEnumerable<Expr> mappedArgs, MethodInfo methodInfo)
+        Expr InvokeExpression(DynamicMetaObject target, IEnumerable<Expr> mappedArgs, MethodInfo methodInfo)
         {
             var invokeExpr = Expr.Invoke(
                 Expr.Convert(target.Expression, target.LimitType),
                 mappedArgs);
 
+            Expr expr = null;
+
             if (methodInfo.ReturnType == typeof(void))
-                return Expr.Block(invokeExpr, Expr.Default(typeof(object)));
-            return Expr.Convert(invokeExpr, typeof(object));
+                expr = Expr.Block(invokeExpr, Expr.Default(typeof(object)));
+            else
+                expr = Expr.Convert(invokeExpr, typeof(object));
+
+            var tempVar = Expr.Variable(typeof(object), "$function_result$");
+            return Expr.Block(new [] {tempVar},
+                LuaTrace.MakePushFunctionCall(context, new LuaTrace.FunctionCall(context.Trace.CurrentSpan, LuaTrace.FunctionType.CLR, BaseLibrary.ToStringEx(target.Value))),
+                Expr.Assign(tempVar, expr),
+                LuaTrace.MakePopFunctionCall(context),
+                tempVar);
         }
 
         IEnumerable<Expr> MapArguments(DynamicMetaObject[] args, MethodInfo methodInfo, ref BindingRestrictions restrictions, out List<Expr> sideEffects, out Expr failExpr)
@@ -293,8 +303,9 @@ namespace IronLua.Runtime.Binder
                 failExpr = Expr.Throw(
                     Expr.New(
                         MemberInfos.NewRuntimeException,
+                        Expr.Constant(context),
                         Expr.Constant(ExceptionMessage.INVOKE_BAD_ARGUMENT_EXPECTED),
-                        Expr.Constant(new object[] {arguments.Count + 1, "value"})));
+                        Expr.Constant(new object[] { arguments.Count + 1, "value"})));
             }
         }
 
