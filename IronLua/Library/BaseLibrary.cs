@@ -58,10 +58,10 @@ namespace IronLua.Library
             }
         }
 
-        public void Error(string message, object level)
+        public void Error(object message, object level)
         {
             // TODO: Use level when call stacks are implemented
-            throw new LuaRuntimeException(Context, message);
+            throw new LuaErrorException(Context, message);
         }
 
         public object GetFEnv(object f = null)
@@ -186,7 +186,11 @@ namespace IronLua.Library
                 var result = Context.DynamicCache.GetDynamicCall1()(f, new Varargs(args));
                 return new Varargs(true, result);
             }
-            catch (LuaRuntimeException e)
+            catch (LuaErrorException e)
+            {
+                return new Varargs(false, e.Result);
+            }
+            catch (Exception e)
             {
                 return new Varargs(false, e.Message);
             }
@@ -372,7 +376,7 @@ namespace IronLua.Library
                 var result = Context.DynamicCache.GetDynamicCall0()(f);
                 return new Varargs(true, result);
             }
-            catch (LuaRuntimeException e)
+            catch (Exception e)
             {
                 var result = Context.DynamicCache.GetDynamicCall1()(err, e.Message);
                 return new Varargs(false, result);

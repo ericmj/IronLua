@@ -4,6 +4,7 @@ using IronLua.Runtime;
 using Microsoft.Scripting;
 using System.Collections;
 using System.Collections.Generic;
+using IronLua.Library;
 
 namespace IronLua
 {
@@ -189,5 +190,20 @@ namespace IronLua
         {
             return base.ToString();
         }
+    }
+
+    public class LuaErrorException : LuaRuntimeException
+    {
+        public LuaErrorException(LuaContext context, object errorObject, Exception innerException = null)
+            : base(context, BaseLibrary.ToStringEx(errorObject), innerException)
+        {
+            Result = errorObject;
+        }
+
+        /// <summary>
+        /// Gets the object associated with the error call in the message parameter
+        /// </summary>
+        public object Result
+        { get; private set; }
     }
 }
