@@ -28,6 +28,11 @@ namespace Sample
         {
             return string.Format("({0}, {1})", x, y);
         }
+
+        public void ThrowException()
+        {
+            throw new Exception("Test exception");
+        }
     }
 
     public class EventTest
@@ -106,7 +111,10 @@ for k in pairs(clr) do
     print('    '..k)
 end
 
-assert(false)
+f1 = function () p1.ThrowException() end
+f2 = function () f1() end
+
+f2()
 ";
 
             try
@@ -116,7 +124,8 @@ assert(false)
             catch (LuaRuntimeException ex)
             {
                 var line = ex.GetCurrentCode(code);
-                WriteLine("Exception at", ConsoleColor.Red);
+                WriteLine("Exception", ConsoleColor.Red);
+                Console.WriteLine(ex.Message);
                 Console.WriteLine(line);
                 line = ex.GetStackTrace(code);
                 WriteLine("Stack Trace", ConsoleColor.Red);
