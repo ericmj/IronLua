@@ -3,6 +3,7 @@ bin/
 obj/
 *ReSharper*
 *.csproj.user
+*.wixproj.user
 TestResults/*
 *lua-*-tests*
 *.ncrunch*

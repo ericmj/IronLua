@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Include Id="VersionNumberInclude">
+  <?define ProductShortName="IronLua" ?>
+  <?define Manufacturer="IronLua Team"?>
+  <!-- TODO: these variable should be automated via build scripts. -->
+  <?define ProductVersion="0.1.0" ?>
+  <?define ProductVersionText="0.1.0 alpha" ?>
+  <?define ReleaseSeries="0.1" ?>
+</Include>
