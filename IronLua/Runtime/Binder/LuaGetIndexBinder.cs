@@ -38,12 +38,15 @@ namespace IronLua.Runtime.Binder
 
         public override DynamicMetaObject FallbackGetIndex(DynamicMetaObject target, DynamicMetaObject[] indexes, DynamicMetaObject errorSuggestion)
         {
-            if (target.LimitType.GetProperties().Any(x => x.GetIndexParameters().Length == CallInfo.ArgumentCount))
+            if (target.LimitType.GetMethods().Any(x => x.Name == "get_Item" && x.GetParameters().Length == CallInfo.ArgumentCount))
             {
                 DynamicMetaObject[] args = new DynamicMetaObject[indexes.Length + 1];
                 args[0] = target;
                 Array.Copy(indexes, 0, args, 1, indexes.Length);
-                return WrapToObject(Context.Binder.MakeCallExpression(DefaultOverloadResolver.Factory, target.LimitType.GetMethod("get_Item"), args));
+
+                var method = target.LimitType.GetMethods().Where(x => x.Name.Equals("get_Item") && x.GetParameters().Length == CallInfo.ArgumentCount).First();
+
+                return WrapToObject(Context.Binder.MakeCallExpression(DefaultOverloadResolver.Factory, method, args));
             }
 
             var expression = MetamethodFallbacks.Index(_context, target, indexes);
