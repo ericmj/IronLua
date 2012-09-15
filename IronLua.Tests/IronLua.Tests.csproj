@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Scripts\InteropLibTests.lua" />
     <None Include="Scripts\Lexer01_XXX.lua" />
     <None Include="Scripts\literals.lua" />
     <None Include="Scripts\MathLibTests.lua" />

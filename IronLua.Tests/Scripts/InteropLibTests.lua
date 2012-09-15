@@ -34,3 +34,16 @@ for i = 1, #array - 1 do
 	assert(array[i] == 10 - i, 'Filling of array failed')
 	print('array['..i..'] = ' .. array[i])
 end
+
+print('Attempting to import List<string>')
+system.string = clr.import('System.String')
+assert(system.string,'Failed to import System.String')
+system.list_string = clr.import('System.Collections.Generic.List`1[System.String]')
+assert(system.list_string, 'Failed to import System.Collections.Generic.List<string>')
+print('List<string> imported successfully')
+
+print([[Testing List<string> access]])
+list = system.list_string()
+assert(list,'Failed to instantiate List<string>')
+list.Add('This is a test string')
+assert(list[0] == 'This is a test string','Failed to retreive value from list')
