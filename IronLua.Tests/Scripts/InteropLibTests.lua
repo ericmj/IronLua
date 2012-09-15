@@ -20,4 +20,6 @@ print("Attempting to create an array: Int32[10]")
 array = clr.makearray(system.int, 10)
 assert(array,'Failed to create array')
 assert(#array == 10,'Array length was not correct')
+print('Array created, testing access')
 array[0]=10
+assert(array[0] == system.convert.ToInt32(10),'Array value was not set correctly')
