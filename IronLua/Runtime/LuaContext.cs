@@ -164,10 +164,12 @@ namespace IronLua.Runtime
                     return table;
             }
 
-            if (_metatables.TryGetValue(obj.GetType(), out table))
+            var objType = obj.GetType();
+
+            if (_metatables.TryGetValue(objType, out table))
                 return table;
 
-            throw new ArgumentOutOfRangeException("obj", "Argument is of non-supported type");
+            throw new LuaRuntimeException(this, "Could not find metatable for '{0}'", objType.FullName);
         }
 
         internal LuaTable SetTypeMetatable(Type type, LuaTable metatable)
