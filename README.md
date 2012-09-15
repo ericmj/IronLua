@@ -34,9 +34,6 @@ Also, if you have knowledge on implementing stack tracing, then I'd appreciate a
 <a id="current-branch-goals"></a>
 ## Current Branch Goals
 
-* **CLR Indexed Properties** 
-  Ensure that CLR based indexed properties (for example, array indices or list accessors) are available from within Lua in the same way. 
-  And ensure that Lua gracefully falls back on its standard behaviour (treating it like a member lookup) if no indexing method is found.
 
 <a id="possible-goals"></a>
 ## Possible Goals
@@ -77,6 +74,10 @@ These are goals which were set, and have been achieved. Some of them are small i
 
 * **Event Handler Translation** 
   Current implementation doesn't work too well, since Lua methods all return a value (they behave like Func<...>) while most C# event handlers are expected to be void (Action<...>). It is necessary to get some kind of wrapper sorted out to ensure that Lua methods can be used for standard C# event handlers.
+
+* **CLR Indexed Properties** 
+  Ensure that CLR based indexed properties (for example, array indices or list accessors) are available from within Lua in the same way. 
+  And ensure that Lua gracefully falls back on its standard behaviour (treating it like a member lookup) if no indexing method is found.
 
 <a id="clr-interop-library"></a>
 ## CLR Interop Library
