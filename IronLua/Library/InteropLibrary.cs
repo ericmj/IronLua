@@ -135,11 +135,11 @@ namespace IronLua.Library
                 var type = (target as LuaTable).GetValue("__clrtype") as Type;
                 var members = type.GetMember(index.ToString(), BindingFlags.Static | BindingFlags.Public);
 
-                if (members.All(x => x.MemberType == MemberTypes.Field))
+                if (members.Any() && members.All(x => x.MemberType == MemberTypes.Field))
                     return (members.First() as FieldInfo).GetValue(null);
-                else if (members.All(x => x.MemberType == MemberTypes.Property))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Property))
                     return (members.First() as PropertyInfo).GetValue(null, null);
-                else if (members.All(x => x.MemberType == MemberTypes.Method))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Method))
                     return new BoundMemberTracker(MemberTracker.FromMemberInfo(members.First()), target as LuaTable);
             }
             else
@@ -147,11 +147,11 @@ namespace IronLua.Library
                 var type = target.GetType();
                 var members = type.GetMember(index.ToString(), BindingFlags.Instance | BindingFlags.Public);
 
-                if (members.All(x => x.MemberType == MemberTypes.Field))
+                if (members.Any() && members.All(x => x.MemberType == MemberTypes.Field))
                     return (members.First() as FieldInfo).GetValue(target);
-                else if (members.All(x => x.MemberType == MemberTypes.Property))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Property))
                     return (members.First() as PropertyInfo).GetValue(target, null);
-                else if (members.All(x => x.MemberType == MemberTypes.Method))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Method))
                     return new BoundMemberTracker(MemberTracker.FromMemberInfo(members.First()), target);
             }
 
@@ -165,12 +165,12 @@ namespace IronLua.Library
                 var type = (target as LuaTable).GetValue("__clrtype") as Type;
                 var members = type.GetMember(index.ToString(), BindingFlags.Static | BindingFlags.Public);
 
-                if (members.All(x => x.MemberType == MemberTypes.Field))
+                if (members.Any() && members.All(x => x.MemberType == MemberTypes.Field))
                 {
                     (members.First() as FieldInfo).SetValue(null, value);
                     return value;
                 }
-                else if (members.All(x => x.MemberType == MemberTypes.Property))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Property))
                 {
                     (members.First() as PropertyInfo).SetValue(null, value, null);
                     return value;
@@ -181,12 +181,12 @@ namespace IronLua.Library
                 var type = target.GetType();
                 var members = type.GetMember(index.ToString(), BindingFlags.Instance | BindingFlags.Public);
 
-                if (members.All(x => x.MemberType == MemberTypes.Field))
+                if (members.Any() && members.All(x => x.MemberType == MemberTypes.Field))
                 {
                     (members.First() as FieldInfo).SetValue(target, value);
                     return value;
                 }
-                else if (members.All(x => x.MemberType == MemberTypes.Property))
+                else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Property))
                 {
                     (members.First() as PropertyInfo).SetValue(target, value, null);
                     return value;
