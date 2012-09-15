@@ -46,15 +46,14 @@ assert(test3 == 100)
 @"
 object=clr.import('System.Object')
 objInstance=object()
-assert(not(objInstance == nil))
+assert(objInstance)
 
 str=clr.import('System.String')
 strInstance=clr.call(str,'Copy','This is a')
 strInstance=clr.call(str,'Concat',strInstance,' test string')
-assert(not(strInstance == nil))
+assert(strInstance)
 assert(tostring(strInstance) == 'This is a test string')
 ";
-
             engine.Execute(code);
         }
                 
