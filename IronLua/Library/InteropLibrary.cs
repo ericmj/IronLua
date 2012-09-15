@@ -136,7 +136,7 @@ namespace IronLua.Library
         }
 
         private object InteropIndex(object target, object index)
-        {       
+        {
             if (target is LuaTable)
             {
                 var type = (target as LuaTable).GetValue("__clrtype") as Type;
@@ -152,6 +152,22 @@ namespace IronLua.Library
             else if (target.GetType().IsArray)
             {
                 return (target as Array).GetValue(Convert.ToInt32(index));
+            }
+            else if (target.GetType().GetMethods().Any(x => x.Name.Equals("get_Item") && ParamsMatch(x, new[] { index.GetType() }) > 0))
+            {
+                var type = target.GetType();
+                var methods = target.GetType().GetMethods().Where(x => x.Name.Equals("get_Item") && ParamsMatch(x, new[] { index.GetType() }) > 0)
+                    .OrderByDescending(x => ParamsMatch(x, new[] { index.GetType() }));
+
+                var method = methods.First();
+                try
+                {
+                    return method.Invoke(target, ParamsConvert(method, new[] { index }));
+                }
+                catch (Exception ex)
+                {
+                    throw new LuaRuntimeException(Context, ex.Message, ex);
+                }
             }
             else
             {
@@ -191,6 +207,22 @@ namespace IronLua.Library
             {
                 (target as Array).SetValue(Convert.ChangeType(value, target.GetType().GetElementType()), Convert.ToInt32(index));
                 return value;
+            }
+            else if (target.GetType().GetMethods().Any(x => x.Name.Equals("set_Item") && ParamsMatch(x, new[] { index.GetType() }) > 0))
+            {
+                var type = target.GetType();
+                var methods = target.GetType().GetMethods().Where(x => x.Name.Equals("set_Item") && ParamsMatch(x, new[] { index.GetType(), value.GetType() }) > 0)
+                    .OrderByDescending(x => ParamsMatch(x, new[] { index.GetType(), value.GetType() }));
+
+                var method = methods.First();
+                try
+                {
+                    return method.Invoke(target, ParamsConvert(method, new[] { index, value }));
+                }
+                catch (Exception ex)
+                {
+                    throw new LuaRuntimeException(Context, ex.Message, ex);
+                }
             }
             else
             {
