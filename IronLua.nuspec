@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>IronLua</id>
+    <title>IronLua</title>
+    <version>0.1.0</version>
+    <authors>IronLua Contributors</authors>
+    <owners>IronLua Community</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>IronLua is an open-source implementation of the Lua programming language which is tightly integrated with the .NET Framework.</description>
+    <summary>IronLua is an open-source implementation of the Lua programming language which is tightly integrated with the .NET Framework.</summary>
+    <language>en-US</language>
+    <tags>ironlua lua dlr scripting dynamic</tags>
+  </metadata>
+  <files>
+    <file src="Platforms\**\*.*" target="lib" />
+    <file src="ilua*.exe" target="tools" />
+  </files>
+</package>
