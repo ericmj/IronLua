@@ -126,11 +126,10 @@ namespace IronLua
 
             string trace = "";
             for (int i = 0; i < stack.Length; i++)
-                trace += (stack[i].MethodName ?? string.Format("(line {0}, column {1})", stack[i].NameLocation.Start.Line, stack[i].NameLocation.Start.Column)) + "\n";
+                trace += "\tat " + (stack[i].MethodName ?? string.Format("line {0}, column {1}", stack[i].NameLocation.Start.Line, stack[i].NameLocation.Start.Column)) + "\n";
 
             return trace;
         }
-
 
         /// <summary>
         /// Gets the stack trace representing the current function call stack
@@ -143,7 +142,7 @@ namespace IronLua
 
             string trace = "";
             for (int i = 0; i < stack.Length; i++)
-                trace += (stack[i].MethodName ?? GetSourceCode(source, stack[i].NameLocation)) + "\n";
+                trace += "\tat '" + (stack[i].MethodName ?? GetSourceCode(source, stack[i].NameLocation)) + "'\n";
 
             return trace;
         }
@@ -159,9 +158,36 @@ namespace IronLua
             
             string trace = "";
             for (int i = 0; i < stack.Length; i++)            
-                trace += (stack[i].MethodName ?? GetSourceCode(source, stack[i].NameLocation)) + "\n";
+                trace +=  "\tat '" + (stack[i].MethodName ?? GetSourceCode(source, stack[i].NameLocation)) + "'\n";
             
             return trace;
+        }
+
+        public override string Source
+        {
+            get
+            {
+                if (!CurrentBlock.IsValid || !CurrentBlock.Start.IsValid)
+                    return "Lua Code";
+                return string.Format("Lua Code: line {0}, column {1}", CurrentBlock.Start.Line, CurrentBlock.Start.Column);
+            }
+            set
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        public override string StackTrace
+        {
+            get
+            {
+                return GetStackTrace() + base.StackTrace;
+            }
+        }
+
+        public override string ToString()
+        {
+            return base.ToString();
         }
     }
 }
