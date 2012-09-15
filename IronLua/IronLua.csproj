@@ -116,6 +116,7 @@
     <Compile Include="Runtime\LuaOps.cs" />
     <Compile Include="Runtime\LuaScriptCode.cs" />
     <Compile Include="Runtime\LuaTable.cs" />
+    <Compile Include="Runtime\LuaTrace.cs" />
     <Compile Include="Runtime\MetamethodFallbacks.cs" />
     <Compile Include="Runtime\RuntimeHelpers.cs" />
     <Compile Include="Runtime\Varargs.cs" />
