@@ -29,6 +29,12 @@ namespace IronLua.Tests
             Assert.That(engine, Is.Not.Null);
         }
 
+        public void CheckLuaInterpeter(string luaInterp)
+        {
+            if (!File.Exists(luaInterp))
+                Assert.Ignore("Lua interpeter not found");
+        }
+
         string lua50 = TestUtils.GetTestPath(@"libs\lua5.0.exe");
         string lua51 = TestUtils.GetTestPath(@"libs\lua5.1.exe");
         string lua52 = TestUtils.GetTestPath(@"libs\lua5.2.exe");
@@ -98,7 +104,7 @@ namespace IronLua.Tests
 
         public void LexerFailureTests(string exeFile, string snippet, string expect)
         {
-            Assert.That(File.Exists(exeFile), Is.True, "Lua interpeter not found");
+            CheckLuaInterpeter(exeFile);
             bool xfail = TestContext.CurrentContext.Test.Properties.Contains("FailureCase");
             //Console.WriteLine("snipet {0}", snippet);
             string actual = ExecuteLuaSnippet(exeFile, snippet, xfail);
@@ -108,45 +114,34 @@ namespace IronLua.Tests
             Assert.That(actual, Is.EqualTo(expect));
         }
 
-        //[Test, TestCaseSource(typeof(TestDataSource), "LexerFailureCases")]
-        //public void LexerFailureTestsUnderLua50(string snippet, string expect)
-        //{
-        //    LexerFailureTests(lua50, snippet, expect);
-        //}
+        //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
+        public void LexerFailureTestsUnderLua50(string snippet, string expect)
+        {
+            LexerFailureTests(lua50, snippet, expect);
+        }
 
         //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
         public void LexerFailureTestsUnderLua51(string snippet, string expect)
         {
-            Assert.That(File.Exists(lua51), Is.True);
             LexerFailureTests(lua51, snippet, expect);
         }
 
-        [Test, TestCaseSource(typeof(LexerTests.TestDataSource), "LexerTestCases")]
+        //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
         public void LexerFailureTestsUnderLua52(string snippet, string expect)
         {
-            Assert.That(File.Exists(lua52), Is.True);
-            Console.WriteLine("Working with snippet: {0}", snippet);
             LexerFailureTests(lua52, snippet, expect);
         }
-
-        //[Test]
-        public void DirectTest()
-        {
-            foreach (var td in TestDataSource.LexerTestCases())
-            {
-                Assert.That(td.Arguments.Length, Is.EqualTo(2));
-                LexerFailureTestsUnderLua52((string)td.Arguments[0], (string)td.Arguments[1]);
-            }
-        }
-
-        //[Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
+        
+        [Test, TestCaseSource(typeof(TestDataSource), "LexerTestCases")]
         public void LexerErrorReportTests(string snippet, string expect)
         {
             bool mustfail = TestContext.CurrentContext.Test.Properties.Contains("FailureCase");
 
             var tokenizer = new Tokenizer(ErrorSink.Default, new LuaCompilerOptions() { SkipFirstLine = true });
 
-            tokenizer.Initialize(null, new StringReader(snippet), null, SourceLocation.MinValue);
+            var sourceUnit = engine.GetLuaContext().CreateSnippet(snippet, SourceCodeKind.Expression);
+
+            tokenizer.Initialize(null, sourceUnit.GetReader(), sourceUnit, SourceLocation.MinValue);
             try
             {
                 var unused = tokenizer.EnumerateTokens(s => true) // all tokens
