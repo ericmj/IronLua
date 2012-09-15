@@ -56,17 +56,32 @@ namespace IronLua.Compiler
             ContractUtils.RequiresNotNull(context, "context");
             this.context = context;
         }
-
+        
         public Expression<Func<IDynamicMetaObjectProvider, dynamic>> Compile(Block block, SourceUnit sourceUnit = null)
         {
             if (sourceUnit != null)
                 _document = sourceUnit.Document ?? Expr.SymbolDocument("(chunk)", sourceUnit.LanguageContext.LanguageGuid, sourceUnit.LanguageContext.VendorGuid);
 
-            var dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
+            ParameterExpression dlrGlobals = Expr.Parameter(typeof(IDynamicMetaObjectProvider), "_DLR");
             scope = LuaScope.CreateRoot(dlrGlobals);
+            
             var blockExpr = Visit(block);
             var expr = Expr.Block(blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
             return Expr.Lambda<Func<IDynamicMetaObjectProvider, dynamic>>(expr, dlrGlobals);
+        }
+
+        public Expression<Func<dynamic>> CompileInline(Block block, LuaScope evaluationScope, IDynamicMetaObjectProvider runtimeScope, SourceUnit sourceUnit = null)
+        {
+            if (sourceUnit != null)
+                _document = sourceUnit.Document ?? Expr.SymbolDocument("(chunk)", sourceUnit.LanguageContext.LanguageGuid, sourceUnit.LanguageContext.VendorGuid);
+                        
+            ParameterExpression dlrGlobals = evaluationScope.GetDlrGlobals();
+            scope = evaluationScope;
+
+            var blockExpr = Visit(block);
+            var expr = Expr.Block(new[] { dlrGlobals }, Expr.Assign(dlrGlobals, Expr.Constant(runtimeScope)), blockExpr, Expr.Label(scope.GetReturnLabel(), Expr.Constant(null)));
+
+            return Expr.Lambda<Func<dynamic>>(expr);
         }
 
         Expr Visit(Block block)
@@ -77,6 +92,9 @@ namespace IronLua.Compiler
                 scope = LuaScope.CreateChildFrom(parentScope);
 
                 var statementExprs = new List<Expr>();
+
+                statementExprs.Add(LuaTrace.MakeUpdateCurrentEvaluationScope(context, scope));
+
                 if (block.Statements.Count > 0)
                 {
                     if (_document != null)
@@ -88,11 +106,13 @@ namespace IronLua.Compiler
                     statementExprs.AddRange(block.Statements.Select(s => s.Visit(this)));
                 }
 
-                if (statementExprs.Count == 0)
+                statementExprs.Add(LuaTrace.MakeUpdateCurrentEvaluationScope(context, parentScope));
+
+                if (statementExprs.Count == 2)
                     return Expr.Empty();
-                else if (statementExprs.Count == 1 && scope.LocalsCount == 0)
+                else if (statementExprs.Count == 3 && scope.LocalsCount == 0)
                     // Don't output blocks if we don't declare any locals and it's a single statement
-                    return statementExprs[0];
+                    return statementExprs[1];
                 else
                     return Expr.Block(scope.GetLocals(), statementExprs);
             } 

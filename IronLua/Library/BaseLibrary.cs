@@ -20,11 +20,11 @@ namespace IronLua.Library
         {
         }
 
-        public Varargs Assert(bool v, object message = null, params object[] additional)
+        public Varargs Assert(object v, object message = null, params object[] additional)
         {
-            if (v)
+            if ((v is bool ? (bool)v : v != null))
             {
-                var returnValues = new List<object>(2 + additional.Length) {true};
+                var returnValues = new List<object>(2 + additional.Length) { v };
                 if (message != null)
                     returnValues.Add(message);
                 returnValues.AddRange(additional);
@@ -46,8 +46,7 @@ namespace IronLua.Library
             var source = filename == null ? Console.In.ReadToEnd() : File.ReadAllText(filename);
             try
             {
-                var scope = new Microsoft.Scripting.Runtime.Scope();
-                return CompileString(Context, source)(scope);
+                return CompileString(Context, source)();
             }
             catch (SyntaxErrorException ex)
             {
@@ -160,6 +159,10 @@ namespace IronLua.Library
             catch (LuaSyntaxException e)
             {
                 return new Varargs(null, e.Message);
+            }
+            catch (Exception ex)
+            {
+                return new Varargs(null, ex.Message);
             }
         }
 
@@ -449,7 +452,7 @@ namespace IronLua.Library
             return -1;
         }
 
-        static Func<Microsoft.Scripting.Runtime.Scope, dynamic> CompileString(LuaContext context, string source)
+        static Func<dynamic> CompileString(LuaContext context, string source)
         {
             ContractUtils.RequiresNotNull(context, "context");
 
@@ -465,13 +468,13 @@ namespace IronLua.Library
             var parser = new Parser(lexer, lexer.ErrorSink);
             var ast = parser.Parse();
             var gen = new Generator(context);
-            var expr = gen.Compile(ast, sourceUnit);
+            var expr = gen.CompileInline(ast, context.Trace.CurrentEvaluationScope.GetRoot(), context.Trace.CurrentScopeStorage, sourceUnit);
             return expr.Compile();
         }
 
         public override void Setup(LuaTable table)
         {
-            table.SetConstant("assert", (Func<bool, object, object[], Varargs>)Assert);
+            table.SetConstant("assert", (Func<object, object, object[], Varargs>)Assert);
             table.SetConstant("collectgarbage", (Action<string, string>)CollectGarbage);
             table.SetConstant("dofile", (Func<string, object>)DoFile);
             table.SetConstant("error", (Action<string, object>)Error);

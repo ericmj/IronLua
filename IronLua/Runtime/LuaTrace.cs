@@ -5,6 +5,8 @@ using System.Text;
 using Microsoft.Scripting;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Dynamic;
+using IronLua.Compiler;
 
 namespace IronLua.Runtime
 {
@@ -70,6 +72,36 @@ namespace IronLua.Runtime
         public static Expression MakePopFunctionCall(LuaContext context)
         {
             return Expression.Call(Expression.Constant(context.Trace.CallStack), PopCallStackMethodInfo);
+        }
+
+        #endregion
+
+        #region Current Scope
+
+        public IDynamicMetaObjectProvider CurrentScopeStorage
+        { get; private set; }
+
+        public void UpdateCurrentScopeStorage(IDynamicMetaObjectProvider scopeStorage)
+        {
+            CurrentScopeStorage = scopeStorage;
+        }
+
+        public LuaScope CurrentEvaluationScope
+        { get; private set; }
+
+        public void UpdateCurrentEvaluationScope(LuaScope scope)
+        {
+            CurrentEvaluationScope = scope;
+        }
+
+
+        private static readonly MethodInfo UpdateCurrentEvaluationScopeMethodInfo = typeof(LuaTrace).GetMethod("UpdateCurrentEvaluationScope");
+        private static readonly MethodInfo UpdateScopeStorageMethodInfo = typeof(LuaTrace).GetMethod("UpdateCurrentScopeStorage");
+        public static Expression MakeUpdateCurrentEvaluationScope(LuaContext context, LuaScope scope)
+        {
+            return Expression.Block(
+                Expression.Call(Expression.Constant(context.Trace), UpdateCurrentEvaluationScopeMethodInfo, Expression.Constant(scope)),
+                Expression.Call(Expression.Constant(context.Trace), UpdateScopeStorageMethodInfo, scope.GetDlrGlobals()));
         }
 
         #endregion

@@ -139,5 +139,18 @@ namespace IronLua.Compiler
             scope.labels.Add(ReturnLabelName, Expr.Label(typeof(object)));
             return scope;
         }
+
+        public LuaScope GetParent()
+        {
+            return parent;
+        }
+
+        public LuaScope GetRoot()
+        {
+            var temp = this;
+            while (temp.parent != null)
+                temp = temp.parent;
+            return temp;
+        }
     }
 }
