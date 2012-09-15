@@ -115,21 +115,24 @@ namespace IronLua.Library
             table.SetConstant(Constant.INDEX_METAMETHOD, (Func<object, object, object>)InteropIndex);
             table.SetConstant(Constant.NEWINDEX_METAMETHOD, (Func<object, object, object, object>)InteropNewIndex);
             table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, object[], object>)InteropCall);
-            table.SetConstant(Constant.CONCAT_METAMETHOD, (Func<string, LuaTable, string>)Concat);
-            table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<LuaTable, string>)ToString);
+            table.SetConstant(Constant.CONCAT_METAMETHOD, (Func<string, object, string>)Concat);
+            table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<object, string>)ToString);
             table.SetConstant(Constant.LENGTH_METAMETHOD, (Func<object, object>)InteropLength);
 
             return table;
         }
 
-        private string Concat(string str, LuaTable table)
+        private string Concat(string str, object table)
         {
-            return str + (table.GetValue("__clrtype") as Type).FullName;
+            return str + ToString(table);
         }
 
-        private string ToString(LuaTable table)
+        private string ToString(object table)
         {
-            return "[CLASS] " + (table.GetValue("__clrtype") as Type).FullName;
+            if (table is LuaTable)
+                return "[CLASS] " + ((table as LuaTable).GetValue("__clrtype") as Type).FullName;
+            else
+                return table.ToString();
         }
 
         private object InteropIndex(object target, object index)
