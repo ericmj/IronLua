@@ -27,7 +27,10 @@ namespace IronLua.Library
             table.SetConstant("getvalue", (Func<object, string, object>)InteropGetValue);
             table.SetConstant("subscribe", (Action<object, string, Delegate>)InteropSubscribeEvent);
             table.SetConstant("unsubscribe", (Action<object, string, Delegate>)InteropUnsubscribeEvent);
+            table.SetConstant("makearray", (Func<object, object, object>)MakeArray);
         }
+
+        #region Static Types
 
         private LuaTable ImportType(string typeName, params object[] args)
         {
@@ -114,6 +117,7 @@ namespace IronLua.Library
             table.SetConstant(Constant.CALL_METAMETHOD, (Func<object, object[], object>)InteropCall);
             table.SetConstant(Constant.CONCAT_METAMETHOD, (Func<string, LuaTable, string>)Concat);
             table.SetConstant(Constant.TOSTRING_METAFIELD, (Func<LuaTable, string>)ToString);
+            table.SetConstant(Constant.LENGTH_METAMETHOD, (Func<object, object>)InteropLength);
 
             return table;
         }
@@ -141,6 +145,10 @@ namespace IronLua.Library
                     return (members.First() as PropertyInfo).GetValue(null, null);
                 else if (members.Any() && members.All(x => x.MemberType == MemberTypes.Method))
                     return new BoundMemberTracker(MemberTracker.FromMemberInfo(members.First()), target as LuaTable);
+            }
+            else if (target.GetType().IsArray)
+            {
+                return (target as Array).GetValue(Convert.ToInt32(index));
             }
             else
             {
@@ -176,6 +184,11 @@ namespace IronLua.Library
                     return value;
                 }
             }
+            else if (target.GetType().IsArray)
+            {
+                (target as Array).SetValue(Convert.ChangeType(value, target.GetType().GetElementType()), Convert.ToInt32(index));
+                return value;
+            }
             else
             {
                 var type = target.GetType();
@@ -194,6 +207,16 @@ namespace IronLua.Library
             }
 
             throw new LuaRuntimeException(Context, "Unable to find a field or property identified by '{0}'", index);
+        }
+
+        private object InteropLength(object target)
+        {
+            if (target is Array)
+                return (double)(target as Array).Length;
+            else if (target is LuaTable)
+                throw new LuaRuntimeException(Context, "Cannot get the length of a System.Type object");
+
+            throw new LuaRuntimeException(Context, "Cannot get the length of a {0} object", target.GetType().FullName);
         }
 
         /// <summary>
@@ -262,7 +285,9 @@ namespace IronLua.Library
             throw new LuaRuntimeException(Context, "Attempting to execute an anonymous function on the given type, this is not possible");
         }
 
+        #endregion
 
+        #region Object Instances
 
         #region Method Calls
 
@@ -663,5 +688,37 @@ namespace IronLua.Library
 
         #endregion
 
+        #endregion
+
+        #region Helper Functions
+
+        private object MakeArray(object typeContainer, object length)
+        {
+            Type type = null;
+            if (typeContainer is LuaTable)
+                type = (typeContainer as LuaTable).GetValue("__clrtype") as Type;
+            else if (typeContainer is Type)
+                type = typeContainer as Type;
+            else type = typeContainer.GetType();
+
+            if (type == null)
+                throw new LuaRuntimeException(Context, "Could not determine type of array to create");
+
+            //Ensure that we have an array type for this object
+            ImportType(type.MakeArrayType(), false);
+
+            try
+            {
+                int len = (int)Convert.ToInt32(length);
+
+                return Array.CreateInstance(type, len);
+            }
+            catch (Exception ex)
+            {
+                throw new LuaRuntimeException(Context, ex.Message, ex);
+            }
+        }
+
+        #endregion
     }
 }
