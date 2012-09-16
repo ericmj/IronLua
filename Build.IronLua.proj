@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- TODO: this section should be moved to Versioning.targets -->
+    <DisplayVersion>0.1</DisplayVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BaseConfiguration Condition=" '$(BaseConfiguration)' == '' ">Debug</BaseConfiguration>
+
+    <Solution>IronLua.sln</Solution>
+    <PackageName>IronLua-$(DisplayVersion)</PackageName>
+
+    <BaseDir>$(MSBuildProjectDirectory)</BaseDir>
+    <BuildDir>$(BaseDir)\bin\$(BaseConfiguration)</BuildDir>
+    <StageDir>$(BaseDir)\Stage\$(BaseConfiguration)\$(PackageName)</StageDir>
+    <PackageDir>$(BaseDir)\Package\$(BaseConfiguration)\$(PackageName)</PackageDir>
+
+    <!-- Using tools from IronLanguages project (see http://github.com/IronLanguages/main) -->
+    <UtilDir>F:\workspace\DLR\IronLanguages\Util</UtilDir>
+    <NuGetTool>$(UtilDir)\Misc\NuGet.exe</NuGetTool>
+    <ZipTool>$(UtilDir)\Misc\zip.exe</ZipTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <BuildProject Include="$(Solution)">
+      <Properties>Configuration=$(BaseConfiguration);OutputPath=$(BuildDir)</Properties>
+    </BuildProject>
+
+    <InstallerProject Include="$(BaseDir)\IronLua.Installer\IronLua.Installer.wixproj">
+      <Properties>Configuration=$(BaseConfiguration);BindInputPaths=$(StageDir);$(StageDir)/Platforms/Net40;OutputPath=$(PackageDir)</Properties>
+    </InstallerProject>
+  </ItemGroup>
+
+  <ItemGroup>
+    <IronLuaBins Include="ilua.exe" />
+    <IronLuaBins Include="iluaw.exe" />
+
+    <IronLuaLibs Include="IronLua.dll" />
+    <IronLuaLibs Include="IronLua.xml" />
+
+    <DlrLibs Include="Microsoft.Dynamic.dll" />
+    <DlrLibs Include="Microsoft.Dynamic.xml" />
+    <DlrLibs Include="Microsoft.Scripting.dll" />
+    <DlrLibs Include="Microsoft.Scripting.xml" />
+  </ItemGroup>
+
+  <Target Name="Build">
+    <MSBuild Projects="@(BuildProject)" Targets="Build" Properties="%(BuildProject.Properties)" />
+  </Target>
+
+  <Target Name="Rebuild">
+    <MSBuild Projects="@(BuildProject)" Targets="Rebuild" Properties="%(BuildProject.Properties)" />
+  </Target>
+
+  <Target Name="Clean">
+    <MSBuild Projects="@(BuildProject)" Targets="Clean" Properties="%(BuildProject.Properties)" />
+    <MSBuild Projects="@(InstallerProject)" Targets="Clean" Condition=" '$(OS)' == 'Windows_NT'" />
+  </Target>
+
+  <Target Name="DistClean" DependsOnTargets="Clean">
+    <RemoveDir Directories="$(BaseDir)\bin;$(BaseDir)\Stage;$(BaseDir)\Package" />
+  </Target>
+
+  <Target Name="StageClean">
+    <RemoveDir Directories="$(StageDir)" Condition="Exists('$(StageDir)')" />
+  </Target>
+
+  <Target Name="Stage" DependsOnTargets="StageClean;Build">
+    <MakeDir Directories="$(StageDir)" Condition="!Exists('$(StageDir)')" />
+
+    <!--<Copy SourceFiles="@(DlrLibs->'$(BuildDir)\%(Identity)')" DestinationFolder="$(StageDir)" />-->
+    <!--<Copy SourceFiles="@(IronLuaLibs->'$(BuildDir)\%(Identity)')" DestinationFolder="$(StageDir)" />-->
+    <Copy SourceFiles="@(IronLuaBins->'$(BuildDir)\%(Identity)')" DestinationFolder="$(StageDir)" />
+
+    <!-- .NET 4 -->
+    <Copy SourceFiles="@(DlrLibs->'$(BuildDir)\%(Identity)')" DestinationFolder="$(StageDir)\Platforms\Net40" />
+    <Copy SourceFiles="@(IronLuaLibs->'$(BuildDir)\%(Identity)')" DestinationFolder="$(StageDir)\Platforms\Net40" />
+  </Target>
+
+  <Target Name="MsiPackage" DependsOnTargets="Stage" Condition="'$(OS)' == 'Windows_NT'">
+    <MSBuild Projects="@(InstallerProject)" Targets="Rebuild" />
+  </Target>
+
+  <Target Name="NuGetPackage" DependsOnTargets="Stage" Condition="'$(OS)' == 'Windows_NT'">
+    <MakeDir Directories="$(PackageDir)" Condition="!Exists('$(PackageDir)')" />
+    <Exec Command="$(NuGetTool) pack &quot;$(BaseDir)\IronLua.nuspec&quot; -BasePath &quot;$(StageDir)&quot; -OutputDirectory &quot;$(PackageDir)&quot;" />
+  </Target>
+
+  <Target Name="ZipPackage" DependsOnTargets="Stage" Condition="'$(OS)' == 'Windows_NT'">
+    <MakeDir Directories="$(PackageDir)" Condition="!Exists('$(PackageDir)')" />
+    <Exec Command="$(ZipTool) -9 -r &quot;$(PackageDir)\$(PackageName).zip&quot; &quot;$(PackageName)&quot;" WorkingDirectory="$(StageDir)\.." />
+  </Target>
+
+  <Target Name="Packages" DependsOnTargets="ZipPackage;NuGetPackage;MsiPackage" />
+</Project>
