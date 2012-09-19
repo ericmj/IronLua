@@ -6,6 +6,7 @@
     <version>0.1.0</version>
     <authors>IronLua Contributors</authors>
     <owners>IronLua Community</owners>
+    <projectUrl>https://github.com/SPARTAN563/IronLua/wiki</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>IronLua is an open-source implementation of the Lua programming language which is tightly integrated with the .NET Framework.</description>
     <summary>IronLua is an open-source implementation of the Lua programming language which is tightly integrated with the .NET Framework.</summary>

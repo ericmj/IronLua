@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildThisFileDirectory)..\Versioning.targets" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
@@ -15,12 +16,29 @@
     <BindInputPaths Condition=" '$(BindInputPaths)' == '' ">$(SolutionDir)\bin\$(Configuration)</BindInputPaths>
     <OutputPath Condition=" '$(OutputPath)' == '' ">bin\$(Configuration)</OutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <WixConstant Include="ReleaseSeries">
+      <Value>$(MajorVersion).$(MinorVersion)</Value>
+    </WixConstant>    
+    <WixConstant Include="ProductVersion">
+      <Value>$(MajorVersion).$(MinorVersion).$(MicroVersion)$(AssemblyFileRevision).0</Value>
+    </WixConstant>
+    <WixConstant Include="ProductVersionText">
+      <Value>$(DisplayVersion)</Value>
+    </WixConstant>
+  </ItemGroup>
+  <PropertyGroup>
+    <CommonWixConstants>@(WixConstant->'%(Identity)=%(Value)')</CommonWixConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug</DefineConstants>
+    <DefineConstants>Debug;$(CommonWixConstants)</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <DefineConstants>$(CommonWixConstants)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Dlr.wxs" />

@@ -128,6 +128,17 @@
     <Compile Include="Util\HashHelpers.cs" />
     <Compile Include="Util\ParameterInfoExtensions.cs" />
     <Compile Include="Util\TypeExtensions.cs" />
+    <Compile Include="CurrentVersion.cs" />
+    <Compile Include="CurrentVersion.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CurrentVersion.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CurrentVersion.Template.cs">
+      <DependentUpon>CurrentVersion.cs</DependentUpon>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
