@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?include Version.wxi ?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" 
+     xmlns:netfx="http://schemas.microsoft.com/wix/NetFxExtension">
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Guid="{e861f8d8-522c-4a13-a065-9a6c8cb24483}">
+        <File Id="IronLua.dll" KeyPath="yes" />
+        <File Id="IronLua.xml" />
+      </Component>
+
+      <Component Guid="{4127c125-8803-4922-9d0d-a2bbc096ea50}">
+        <File Id="ilua.exe" KeyPath="yes">
+          <netfx:NativeImage Id="ngen_ilua.exe" Platform="all" AppBaseDirectory="INSTALLDIR"/>
+        </File>
+      </Component>
+
+      <Component Guid="{8e223371-4c5b-438b-b30c-c27a281f114b}">
+        <File Id="iluaw.exe" KeyPath="yes">
+          <netfx:NativeImage Id="ngen_iluaw.exe" Platform="all" AppBaseDirectory="INSTALLDIR"/>
+        </File>
+      </Component>
+
+      <Component>
+        <RegistryValue Id="InstallationKey"
+          Root='HKLM' Key='SOFTWARE\IronLua\$(var.ReleaseSeries)\InstallPath' Type='string' Value='[INSTALLDIR]' />
+      </Component>
+
+      <Component>
+        <RegistryValue Id='VSReferenceAssemblyKey'
+          Root='HKLM' Key='SOFTWARE\Microsoft\.NETFramework\v4.0.30319\AssemblyFoldersEx\$(var.ProductShortName)$(var.ReleaseSeries)' Type='string' Value='[INSTALLDIR]' />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id='GAC'>
+      <Component Guid="{222590c2-8892-4ceb-b053-ed31bfee3070}">
+        <File Id="gac_IronLua.dll" Name="IronLua.dll" Assembly=".net" KeyPath="yes">
+          <netfx:NativeImage Id="ngen_IronLua.dll" Platform="all" AppBaseDirectory="INSTALLDIR"/>
+        </File>
+      </Component>
+    </DirectoryRef>
+
+    <ComponentGroup Id="IronLua">
+      <ComponentRef Id="IronLua.dll"/>
+      <ComponentRef Id="ilua.exe"/>
+      <ComponentRef Id="iluaw.exe"/>
+      <ComponentRef Id="InstallationKey"/>
+      <ComponentRef Id="VSReferenceAssemblyKey"/>
+    </ComponentGroup>
+
+    <ComponentGroup Id="IronLuaGac">
+      <ComponentRef Id="gac_IronLua.dll"/>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

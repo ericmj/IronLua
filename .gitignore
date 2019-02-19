@@ -1,4 +1,12 @@
 *.suo
+/.vs
 bin/
 obj/
 *ReSharper*
+*.csproj.user
+*.wixproj.user
+*.sln.DotSettings.user
+TestResults/*
+*lua-*-tests*
+Stage/
+/Packages

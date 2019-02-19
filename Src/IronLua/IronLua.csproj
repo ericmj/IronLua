@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net45</TargetFrameworks>
+    <AssemblyName>IronLua</AssemblyName>
+    <RootNamespace>IronLua</RootNamespace>
+    <AssemblyTitle>IronLua</AssemblyTitle>
+    <Description>"IronLua - A Lua runtime for .NET"</Description>
+    <Copyright>IronLua Contributors</Copyright>
+    <Company>IronLua Team</Company>
+    <Product>IronLua</Product>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="CurrentVersion.Generated.cs" />
+    <Compile Remove="CurrentVersion.Template.cs" />
+    <Compile Remove="Runtime\Context.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CurrentVersion.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CurrentVersion.cs</DependentUpon>
+    </Compile>
+    <None Include="CurrentVersion.Template.cs" >
+      <DependentUpon>CurrentVersion.Generated.cs</DependentUpon>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DLR\Src\Microsoft.Dynamic\Microsoft.Dynamic.csproj" />
+    <ProjectReference Include="..\DLR\Src\Microsoft.Scripting.Metadata\Microsoft.Scripting.Metadata.csproj" />
+    <ProjectReference Include="..\DLR\Src\Microsoft.Scripting\Microsoft.Scripting.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?include Version.wxi ?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" UpgradeCode="dcdaa2f7-32ce-4289-beb5-a0084be6a3a1" Name="$(var.ProductShortName) $(var.ProductVersionText)" Version="$(var.ProductVersion)" Language="1033" Manufacturer="$(var.Manufacturer)">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MediaTemplate CabinetTemplate="ilua{0}.cab" EmbedCab="yes" CompressionLevel="high" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- Properties --> <!-- TODO: no project website yet exist -->
+    <!--<Property Id="ARPHELPLINK" Value="http://www.ironlua.org/support/" /> -->
+    <!--<Property Id="ARPURLINFOABOUT" Value="http://www.ironlua.org" /> -->
+    <!--<Property Id="ARPURLUPDATEINFO" Value="http://ironlua.codeplex.com" /> -->
+
+    <!-- We search for an existing file type for .py files.  If it's found we'll use it, otherwise we'll default to Python.File which matches CPython -->
+    <Property Id="LUAFILETYPE" Value="Lua.File">
+      <RegistrySearch Id="LuaFileTypeSearch" Root="HKCR" Key=".lua" Type="raw" />
+    </Property>
+
+    <!-- Same thing but used to decide if we should install the default info for the file type -->
+    <Property Id="LUAFILETYPENODEFAULT">
+      <RegistrySearch Id="LuaFileTypeNoDefaultSearch" Root="HKCR" Key=".lua" Type="raw" />
+    </Property>
+
+    <!-- Launch conditions -->
+    <Condition Message="An administrator must approve or install [ProductName]."> Privileged </Condition>
+    <Condition Message="A later version of [ProductName] is already installed."> NOT NEWERVERSIONDETECTED </Condition>
+    <Condition Message="[ProductName] requires .NET Framework 4.0 or later.">  Installed OR MsiNetAssemblySupport >= "4.0.0.0" </Condition>
+
+    <!-- Root directories -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="IronLuaStartMenu" Name="$(var.ProductShortName) $(var.ReleaseSeries)" />
+      </Directory>
+      
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLDIR" Name="$(var.ProductShortName) $(var.ReleaseSeries)" />
+      </Directory>
+      
+      <Directory Id="GAC" Name="GAC" />
+    </Directory>
+
+    <DirectoryRef Id="IronLuaStartMenu">
+      <Component Id="IronLuaCommonShortcuts">
+        <Shortcut Id="IronLua_Console" Name="IronLua Console" Target="[INSTALLDIR]ilua.exe" />
+
+        <RegistryValue Root="HKCU" Key="SOFTWARE\IronLua\$(var.ReleaseSeries)" Name="ilua" Type="integer" Value="1" KeyPath="yes"/>
+        <RemoveFolder Id="IronLuaStartMenu" On="uninstall" />        
+      </Component>
+    </DirectoryRef>
+
+    <!-- Features - listed in the UI in the same order as they appear here -->    
+    <Feature Id="Feature_IronLua" ConfigurableDirectory="INSTALLDIR" Absent="disallow" AllowAdvertise="no" Display="expand" Level="1" Title="IronLua">
+      <Feature Id="Feature_Core" Absent="disallow" AllowAdvertise="no" Display="collapse" Level="1" Title="IronLua" Description="IronLua binaries for the Desktop CLR.">
+        <ComponentGroupRef Id='Dlr' />
+        <ComponentGroupRef Id='IronLua' />
+        
+        <ComponentRef Id='IronLuaCommonShortcuts' />
+
+        <Feature Id='IronLua_Core_Gac' AllowAdvertise='no' Level='1' Title='GAC Assemblies' Description='Install the IronLua assemblies into the GAC.'>
+          <ComponentGroupRef Id='DlrGac' />
+          <ComponentGroupRef Id='IronLuaGac' />
+        </Feature>
+      </Feature>
+		</Feature>
+
+    <InstallUISequence>
+      <!-- Because we have a launch condition that uses the results of FindRelatedProducts, put it first. -->
+      <LaunchConditions After="FindRelatedProducts" />
+    </InstallUISequence>
+
+    <!-- User interface -->
+    <UIRef Id="WixUI_FeatureTree" />
+
+    <!-- InstallLocation key -->
+    <!--<SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="InstallValidate" />-->
+  </Product>
+</Wix>

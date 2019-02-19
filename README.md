@@ -1,3 +1,30 @@
+#Sierra IronLua
+
+This is a heavily modified branch of IronLua by fgretief. By "heavily modified" I mean that I am not attempting to follow any coding styles or paradigms used by the original author, rather attempting to get this branch to a usable state as quickly and efficiently as possible.
+
+##Index
+**[Current State](#current-state)**
+
+**[Helping Out](wiki/How-to-Help)**
+
+**[Current Branch Goals](#current-branch-goals)**
+
+**[Possible Goals](#possible-goals)**
+
+**[Completed Goals](#completed-goals)**
+
+**[CLR Interop Library](wiki/CLR-Interop-Library)**
+
+**[IronLua](#ironlua)**
+
+<a id="current-state"></a>
+## Current State
+The current state of the branch is somewhat usable, though there may well be bugs and exception generating code paths which I have not checked or fixed. Feel free to poke about and let me know if you find a problem and I'll try and get it fixed when I next have time in my schedule.
+
+Currently it is possible to interact with a large portion of the CLR from within Lua, including accessing and writing values on both classes and structures. It is also possible to import CLR types directly from within Lua through the use of the clr namespace, from which they can then be instantiated. A number of bugs and niggles that were previously present in IronLua have also been ironed out, making it possible to do a lot more than was previously possible.
+
+
+<a id="ironlua"></a>
 # IronLua
 
 IronLua is intended to be a full implementation of Lua targeting .NET. Allowing easy embedding into applications and friction-less integration with .NET are key goals.

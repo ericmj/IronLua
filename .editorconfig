@@ -1,0 +1,18 @@
+; Top-most EditorConfig file
+root = true
+
+[*]
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.csproj]
+indent_size = 2
+
+[*.cs]
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# use language keywords instead of BCL types
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+dotnet_style_predefined_type_for_member_access = true:suggestion

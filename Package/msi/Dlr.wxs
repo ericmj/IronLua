@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:netfx="http://schemas.microsoft.com/wix/NetFxExtension">
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Guid="{e2775991-aa7d-4cb3-bff9-9b927259dffa}">
+        <File Id="Microsoft.Scripting.dll" KeyPath="yes" />
+        <File Id="Microsoft.Scripting.xml" />
+      </Component>
+
+      <Component Guid="{359e7d2f-f76c-4b6b-bc54-46b2dc9d822a}">
+        <File Id="Microsoft.Dynamic.dll" KeyPath="yes" />
+        <File Id="Microsoft.Dynamic.xml" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="GAC">
+      <Component Guid="{ba7e26ce-7834-4a03-9382-2749bd2eb19e}">
+        <File Id="gac_Microsoft.Scripting.dll" Name="Microsoft.Scripting.dll" Assembly=".net" KeyPath="yes">
+          <netfx:NativeImage Id="ngen_Microsoft.Scripting.dll" Platform="all" AppBaseDirectory="INSTALLDIR"/>
+        </File>
+      </Component>
+
+      <Component Guid="{7d8e380d-ade7-4540-807d-575b42b2f22a}">
+        <File Id="gac_Microsoft.Dynamic.dll" Name="Microsoft.Dynamic.dll" Assembly=".net" KeyPath="yes">
+          <netfx:NativeImage Id="ngen_Microsoft.Dynamic.dll" Platform="all" AppBaseDirectory="INSTALLDIR"/>
+        </File>
+      </Component>
+    </DirectoryRef>
+
+    <ComponentGroup Id="Dlr">
+      <ComponentRef Id="Microsoft.Scripting.dll" />
+      <ComponentRef Id="Microsoft.Dynamic.dll" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="DlrGac">
+      <ComponentRef Id="gac_Microsoft.Scripting.dll" />
+      <ComponentRef Id="gac_Microsoft.Dynamic.dll" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>
