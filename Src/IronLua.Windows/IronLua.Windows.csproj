@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net45;net47</TargetFrameworks>
+    <AssemblyName>iluaw</AssemblyName>
+    <RootNamespace>IronLua</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AssemblyTitle>iluaw</AssemblyTitle>
+    <Description>"IronLua - A Lua runtime for .NET"</Description>
+    <Copyright>IronLua Contributors</Copyright>
+    <Company>IronLua Team</Company>
+    <Product>IronLua</Product>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IronLua\IronLua.csproj" />
+    <ProjectReference Include="..\DLR\Src\Microsoft.Dynamic\Microsoft.Dynamic.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+</Project>

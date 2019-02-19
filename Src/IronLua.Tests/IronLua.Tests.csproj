@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net45</TargetFrameworks>
+    <AssemblyName>IronLua.Tests</AssemblyName>
+    <RootNamespace>IronLua.Tests</RootNamespace>
+    <AssemblyTitle>IronLua.Tests</AssemblyTitle>
+    <Description>"IronLua - A Lua runtime for .NET"</Description>
+    <Copyright>IronLua Contributors</Copyright>
+    <Company>IronLua Team</Company>
+    <Product>IronLua</Product>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.11.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IronLua\IronLua.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+</Project>
