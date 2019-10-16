@@ -7,4 +7,6 @@ sleep 10
 
 service jenkins status
 
+du -h
 
+echo "Disk usage is above"
