@@ -1,0 +1,7 @@
+#bin/bash
+# This to identify java where
+whereis java
+
+sleep 10
+
+service jenkins status
